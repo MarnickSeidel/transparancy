@@ -1,0 +1,18 @@
+# Web
+web/node_modules/
+web/.next/
+web/.env
+web/.env.local
+
+# Scraper
+scraper/.venv/
+scraper/__pycache__/
+scraper/.env
+scraper/*.log
+scraper/debug_listing.png
+scraper/_nb_snapshot*.json
+scraper/CV/
+
+# OS
+.DS_Store
+Thumbs.db

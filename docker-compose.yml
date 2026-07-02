@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: transparancy-db
+    restart: unless-stopped
+    # Host 5433 avoids clashing with a local Postgres (or other app) on 5432
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: pereira_realestate
+    volumes:
+      - transparancy_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  web:
+    build:
+      context: ./web
+      dockerfile: Dockerfile
+    container_name: transparancy-web
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/pereira_realestate?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  transparancy_postgres_data:

@@ -1,0 +1,85 @@
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+model Listing {
+  id                    String   @id @default(uuid()) @db.Uuid
+  externalId            String   @unique @map("external_id")
+  title                 String
+  priceCop              BigInt   @map("price_cop")
+  areaM2                Float    @map("area_m2")
+  estrato               Int?
+  neighborhood          String?
+  neighborhoodRaw       String?   @map("neighborhood_raw")
+  conjunto              String?
+  city                  String   @default("Pereira")
+  cityId                String?  @map("city_id")
+  citySlug              String?  @map("city_slug")
+  department            String   @default("Risaralda")
+  departmentSlug        String?  @map("department_slug")
+  pricePerM2            Float?   @map("price_per_m2")
+  pricePerM2Built       Float?   @map("price_per_m2_built")
+  pricePerM2Terrain     Float?   @map("price_per_m2_terrain")
+  dealScore             Float?   @map("deal_score")
+  url                   String
+  imageUrl              String?  @map("image_url")
+  dateScraped           DateTime @map("date_scraped")
+  isDeal                Boolean  @default(false) @map("is_deal")
+  propertyType          String?  @map("property_type")
+  operationType         String?  @map("operation_type")
+  areaBuiltM2           Float?   @map("area_built_m2")
+  areaTerrainM2         Float?   @map("area_terrain_m2")
+  areaTerraceM2         Float?   @map("area_terrace_m2")
+  bedrooms              Int?
+  bathrooms             Int?
+  rooms                 Int?
+  adminFeeCop           BigInt?  @map("admin_fee_cop")
+  currencySymbol        String?  @map("currency_symbol")
+  latitude              Float?
+  longitude             Float?
+  locationPath          Json?    @map("location_path")
+  sourceCreatedAt       DateTime? @map("source_created_at")
+  sourceUpdatedAt       DateTime? @map("source_updated_at")
+  qualityFlags          Json?    @map("quality_flags")
+  dataCompletenessScore Float?   @map("data_completeness_score")
+  sourceFingerprint     String?  @map("source_fingerprint")
+  firstSeenAt           DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt            DateTime @default(now()) @map("last_seen_at")
+  lastChangedAt         DateTime? @map("last_changed_at")
+  timesSeen             Int      @default(1) @map("times_seen")
+
+  @@index([neighborhood])
+  @@index([conjunto])
+  @@index([city])
+  @@index([cityId])
+  @@index([citySlug])
+  @@index([estrato])
+  @@index([dateScraped])
+  @@index([propertyType])
+  @@index([sourceUpdatedAt])
+  @@index([lastSeenAt])
+  @@index([sourceFingerprint])
+  @@index([latitude, longitude])
+  @@map("listings")
+}
+
+model Subscriber {
+  id         String   @id @default(uuid()) @db.Uuid
+  email      String   @unique
+  source     String?
+  city       String?
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([createdAt])
+  @@index([source])
+  @@index([city])
+  @@map("subscribers")
+}

@@ -1,0 +1,140 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f0f4f8;
+  --foreground: #0f172a;
+  --surface: #f1f5f9;
+  --surface-muted: #e2e8f0;
+  --elevated: #ffffff;
+  --border-subtle: #e2e8f0;
+  --text-muted: #64748b;
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-fg: #ffffff;
+}
+
+[data-theme="dark"] {
+  --background: #111827;
+  --foreground: #f1f5f9;
+  --surface: #1e293b;
+  --surface-muted: #334155;
+  --elevated: #1e293b;
+  --border-subtle: #475569;
+  --text-muted: #cbd5e1;
+  --accent: #0d9488;
+  --accent-hover: #14b8a6;
+  --accent-fg: #f8fafc;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+[data-theme="dark"] body {
+  background: radial-gradient(
+    circle at 12% 8%,
+    #1e293b 0%,
+    var(--background) 45%,
+    #0f172a 100%
+  );
+}
+
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700 {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] .border-slate-200,
+[data-theme="dark"] .border-slate-200\/80,
+[data-theme="dark"] .border-slate-200\/90 {
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .bg-slate-50,
+[data-theme="dark"] .bg-slate-50\/40,
+[data-theme="dark"] .bg-slate-50\/80,
+[data-theme="dark"] .bg-white,
+[data-theme="dark"] .bg-white\/70 {
+  background-color: #1e293b !important;
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .bg-page {
+    background: linear-gradient(
+      165deg,
+      var(--surface-muted) 0%,
+      var(--background) 35%,
+      color-mix(in srgb, var(--background) 88%, #f8fafc) 100%
+    );
+  }
+
+  .app-shell {
+    min-height: 100vh;
+    color: var(--foreground);
+    background:
+      radial-gradient(circle at 5% 10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
+      radial-gradient(circle at 95% 2%, color-mix(in srgb, #22d3ee 14%, transparent), transparent 24%),
+      linear-gradient(165deg, var(--surface-muted) 0%, var(--background) 35%, color-mix(in srgb, var(--background) 88%, #f8fafc) 100%);
+  }
+
+  .premium-surface {
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, #ffffff);
+    background: color-mix(in srgb, var(--elevated) 88%, transparent);
+    box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(8px);
+  }
+
+  [data-theme="dark"] .premium-surface {
+    background: color-mix(in srgb, var(--elevated) 96%, #f8fafc 4%);
+    border-color: color-mix(in srgb, var(--border-subtle) 92%, #94a3b8);
+    box-shadow: 0 20px 50px -28px rgba(0, 0, 0, 0.55);
+  }
+
+  [data-theme="dark"] .app-shell {
+    background:
+      radial-gradient(circle at 5% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 30%),
+      radial-gradient(circle at 95% 2%, color-mix(in srgb, #22d3ee 16%, transparent), transparent 26%),
+      linear-gradient(165deg, var(--surface-muted) 0%, var(--background) 40%, #0f172a 100%);
+  }
+
+  /* Light pad behind raster logos in dark UI so dark text / black boxes stay readable */
+  .logo-on-dark {
+    border-radius: 0.5rem;
+    background: #f1f5f9;
+    padding: 0.25rem 0.5rem;
+    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+  }
+
+  .kpi-card {
+    @apply rounded-2xl border border-slate-200/80 bg-elevated p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover dark:border-slate-600/70;
+  }
+
+  .data-table tbody tr {
+    @apply transition-colors duration-150;
+  }
+
+  [data-theme="dark"] .data-table tbody tr:hover {
+    background-color: color-mix(in srgb, var(--surface) 70%, transparent);
+  }
+
+  .section-table-head {
+    @apply border-b border-slate-200/80 bg-surface/80 px-4 py-3 dark:border-slate-600/60 dark:bg-slate-800/50;
+  }
+
+  .link-focus {
+    @apply rounded-md outline-none ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-teal-500/50 dark:ring-offset-slate-900;
+  }
+}

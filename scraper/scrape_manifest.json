@@ -1,0 +1,151 @@
+{
+  "notes": "Matrix: enable property_types and cities; URLs are {base_url}/{path}/{slug}. Target id = {property.id}_{city.id}. Manizales barrios: data/neighborhoods/manizales.json. enabled=false means run_scrape_manifest.py SKIPS that city—it does NOT block scrape.py. Monthly refresh: run scrape.py per market with LISTING_URL + CITY_DEFAULT + DEPARTMENT_DEFAULT (START_PAGE=1). Rows whose source fingerprint changed (price, fields, etc.) are upserted; unchanged rows are skipped after a DB lookup. Pagination stops after MAX_NO_ACTION_PAGES consecutive pages with zero actionable rows (see config.py / env). listing_index_exhausted is documentation only (not read by code). POLICY: cities already in DB stay enabled=false in the matrix so a blind 'run all manifest targets' job only hits new markets; use explicit scrape.py (or --only + enabled=true) for monthly city passes. DB cities so far: Bogotá, Cali, Manizales, Medellín, Pereira. Next matrix expansion: Barranquilla, Cartagena, Soacha, …",
+  "base_url": "https://www.fincaraiz.com.co",
+  "defaults": {
+    "max_listings_per_run": 500,
+    "start_page": 1
+  },
+  "property_types": [
+    {
+      "id": "apartamentos",
+      "path": "venta/apartamentos",
+      "label": "Apartamentos (venta)",
+      "enabled": true
+    },
+    {
+      "id": "casas",
+      "path": "venta/casas",
+      "label": "Casas (venta)",
+      "enabled": false
+    }
+  ],
+  "cities": [
+    {
+      "id": "bogota",
+      "slug": "bogota/bogota-dc",
+      "label": "Bogotá",
+      "city_default": "Bogota",
+      "department_default": "Bogota D.C.",
+      "listing_index_exhausted": true,
+      "enabled": false
+    },
+    {
+      "id": "medellin",
+      "slug": "medellin/antioquia",
+      "label": "Medellín",
+      "city_default": "Medellin",
+      "department_default": "Antioquia",
+      "listing_index_exhausted": true,
+      "enabled": false
+    },
+    {
+      "id": "cali",
+      "slug": "cali/valle-del-cauca",
+      "label": "Cali",
+      "city_default": "Cali",
+      "department_default": "Valle del Cauca",
+      "listing_index_exhausted": true,
+      "enabled": false
+    },
+    {
+      "id": "barranquilla",
+      "slug": "barranquilla/atlantico",
+      "label": "Barranquilla",
+      "city_default": "Barranquilla",
+      "department_default": "Atlantico",
+      "enabled": false
+    },
+    {
+      "id": "cartagena",
+      "slug": "cartagena/bolivar",
+      "label": "Cartagena",
+      "city_default": "Cartagena",
+      "department_default": "Bolivar",
+      "enabled": false
+    },
+    {
+      "id": "soacha",
+      "slug": "soacha/cundinamarca",
+      "label": "Soacha",
+      "city_default": "Soacha",
+      "department_default": "Cundinamarca",
+      "enabled": false
+    },
+    {
+      "id": "cucuta",
+      "slug": "cucuta/norte-de-santander",
+      "label": "Cúcuta",
+      "city_default": "Cucuta",
+      "department_default": "Norte de Santander",
+      "enabled": false
+    },
+    {
+      "id": "soledad",
+      "slug": "soledad/atlantico",
+      "label": "Soledad",
+      "city_default": "Soledad",
+      "department_default": "Atlantico",
+      "enabled": false
+    },
+    {
+      "id": "bucaramanga",
+      "slug": "bucaramanga/santander",
+      "label": "Bucaramanga",
+      "city_default": "Bucaramanga",
+      "department_default": "Santander",
+      "enabled": false
+    },
+    {
+      "id": "bello",
+      "slug": "bello/antioquia",
+      "label": "Bello",
+      "city_default": "Bello",
+      "department_default": "Antioquia",
+      "enabled": false
+    },
+    {
+      "id": "villavicencio",
+      "slug": "villavicencio/meta",
+      "label": "Villavicencio",
+      "city_default": "Villavicencio",
+      "department_default": "Meta",
+      "enabled": false
+    },
+    {
+      "id": "ibague",
+      "slug": "ibague/tolima",
+      "label": "Ibagué",
+      "city_default": "Ibague",
+      "department_default": "Tolima",
+      "enabled": false
+    },
+    {
+      "id": "santa-marta",
+      "slug": "santa-marta/magdalena",
+      "label": "Santa Marta",
+      "city_default": "Santa Marta",
+      "department_default": "Magdalena",
+      "enabled": false
+    },
+    {
+      "id": "pereira",
+      "slug": "pereira/risaralda",
+      "label": "Pereira",
+      "city_default": "Pereira",
+      "department_default": "Risaralda",
+      "listing_index_exhausted": true,
+      "enabled": false
+    },
+    {
+      "id": "manizales",
+      "slug": "manizales/caldas",
+      "label": "Manizales",
+      "city_default": "Manizales",
+      "department_default": "Caldas",
+      "max_listings_per_run": 1000,
+      "listing_index_exhausted": true,
+      "enabled": false
+    }
+  ],
+  "targets": []
+}
