@@ -20,6 +20,7 @@ from typing import Any
 
 from config import (
     CITY_DEFAULT,
+    SKIP_DEAL_REFRESH,
     DEPARTMENT_DEFAULT,
     LISTING_URL,
     MAX_LISTINGS_PER_RUN,
@@ -962,8 +963,11 @@ def run() -> None:
                 **stats
             )
         )
-        refresh_deals_after_scrape(conn)
-        print("Recomputed is_deal from neighborhood (or city) averages.")
+        if SKIP_DEAL_REFRESH:
+            print("Skipped deal refresh (SKIP_DEAL_REFRESH=1).")
+        else:
+            refresh_deals_after_scrape(conn, city=CITY_DEFAULT)
+            print(f"Recomputed is_deal for {CITY_DEFAULT} from neighborhood (or city) averages.")
     finally:
         conn.close()
 

@@ -30,6 +30,13 @@ if not DATABASE_URL:
 
 DEAL_THRESHOLD_PCT = float(os.environ.get("DEAL_THRESHOLD_PCT", "15"))
 
+# Skip full deal recompute after each scrape (useful on Supabase free tier / automations).
+SKIP_DEAL_REFRESH = os.environ.get("SKIP_DEAL_REFRESH", "").strip().lower() in (
+    "1",
+    "true",
+    "yes",
+)
+
 MIN_DELAY_SEC = float(os.environ.get("MIN_DELAY_SEC", "2.5"))
 MAX_DELAY_SEC = float(os.environ.get("MAX_DELAY_SEC", "8.0"))
 

@@ -292,18 +292,30 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
     }
 
 
-def refresh_deals_after_scrape(conn, threshold_pct: Optional[float] = None) -> None:
+def refresh_deals_after_scrape(
+    conn,
+    threshold_pct: Optional[float] = None,
+    *,
+    city: Optional[str] = None,
+) -> None:
     """Mark is_deal when price_per_m2 is at least threshold_pct below ref average."""
     t = threshold_pct if threshold_pct is not None else DEAL_THRESHOLD_PCT
     factor = 1.0 - (t / 100.0)
     cur = conn.cursor()
+    city_clause = ""
+    city_params: list[Any] = []
+    if city and str(city).strip():
+        city_clause = " AND city ILIKE %s"
+        city_params = [str(city).strip()]
+
     cur.execute(
-        """
+        f"""
         SELECT city, neighborhood, AVG(price_per_m2)::float
         FROM listings
-        WHERE price_per_m2 IS NOT NULL
+        WHERE price_per_m2 IS NOT NULL{city_clause}
         GROUP BY city, neighborhood
-        """
+        """,
+        city_params,
     )
     neigh_avg: dict[tuple[str, Optional[str]], float] = {}
     for cty, nb, avg in cur.fetchall():
@@ -311,23 +323,25 @@ def refresh_deals_after_scrape(conn, threshold_pct: Optional[float] = None) -> N
         neigh_avg[key] = float(avg) if avg is not None else 0.0
 
     cur.execute(
-        """
+        f"""
         SELECT city, AVG(price_per_m2)::float
         FROM listings
-        WHERE price_per_m2 IS NOT NULL
+        WHERE price_per_m2 IS NOT NULL{city_clause}
         GROUP BY city
-        """
+        """,
+        city_params,
     )
     city_avg: dict[str, float] = {}
     for cty, avg in cur.fetchall():
         city_avg[str(cty or "")] = float(avg) if avg is not None else 0.0
 
     cur.execute(
-        """
+        f"""
         SELECT id, city, neighborhood, price_per_m2, source_updated_at, date_scraped, data_completeness_score
         FROM listings
-        WHERE price_per_m2 IS NOT NULL
-        """
+        WHERE price_per_m2 IS NOT NULL{city_clause}
+        """,
+        city_params,
     )
     updates: list[tuple[bool, Optional[float], str]] = []
     now = datetime.now(timezone.utc)
