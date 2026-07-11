@@ -23,6 +23,7 @@ type Content = {
   navDashboard: string;
   navOpportunities: string;
   navExplore: string;
+  navZones: string;
   navHeatmap: string;
   navAnalyze: string;
   navEstimate: string;
@@ -49,6 +50,7 @@ const content: Record<Lang, Content> = {
     navDashboard: "Dashboard",
     navOpportunities: "Oportunidades",
     navExplore: "Explorar",
+    navZones: "Barrios",
     navHeatmap: "Mapa H3",
     navAnalyze: "Analizar URL",
     navEstimate: "Estimador",
@@ -97,6 +99,7 @@ const content: Record<Lang, Content> = {
     navDashboard: "Dashboard",
     navOpportunities: "Opportunities",
     navExplore: "Explore",
+    navZones: "Zones",
     navHeatmap: "H3 map",
     navAnalyze: "Analyze URL",
     navEstimate: "Estimator",
@@ -270,6 +273,9 @@ export default function Home() {
             </Link>
             <Link href="/explore" className="transition hover:text-teal-500">
               {txt.navExplore}
+            </Link>
+            <Link href="/zones" className="transition hover:text-teal-500">
+              {txt.navZones}
             </Link>
             <Link href="/heatmap" className="transition hover:text-teal-500">
               {txt.navHeatmap}

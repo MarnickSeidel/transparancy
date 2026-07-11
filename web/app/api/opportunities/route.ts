@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { MIN_ANALYTICS_AREA_M2, percentile } from "@/lib/analytics";
 import {
   analyzeDeal,
+  buildWhyDeal,
   toDealListingInput,
   type DealListingInput,
 } from "@/lib/dealEngine";
@@ -161,6 +162,8 @@ export async function GET(req: Request) {
         }
         if (hideLowConfidence && analysis.confidence === "low") return null;
 
+        const whyDeal = buildWhyDeal(analysis, subject);
+
         return {
           id: row.id,
           title: row.title,
@@ -178,6 +181,7 @@ export async function GET(req: Request) {
           compMethod: analysis.compMethod,
           dealScore: analysis.dealScore,
           scoreBreakdown: analysis.breakdown,
+          whyDeal,
           confidence: analysis.confidence,
           confidenceReasons: analysis.confidenceReasons,
           discountVsRefPct: analysis.discountVsRefPct,

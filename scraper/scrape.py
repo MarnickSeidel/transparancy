@@ -29,7 +29,12 @@ from config import (
 )
 from db import connect, get_existing_listing_meta, refresh_deals_after_scrape, upsert_listings
 from human_behavior import pause_action, pause_short, pick_user_agent
-from neighborhood_catalog import catalog_key_for_city, pick_neighborhood_with_catalog
+from neighborhood_catalog import catalog_key_for_city, load_all_catalogs
+from neighborhood_resolver import (
+    fetch_peer_counts,
+    merge_quality_flags,
+    resolve_neighborhood,
+)
 from parse_fields import (
     clean_area_m2,
     clean_price_cop,
@@ -320,6 +325,31 @@ def extract_owner_fields(item: dict[str, Any]) -> dict[str, Any]:
         out["owner_type"] = otype[:50]
     if "particular" in owner:
         out["owner_particular"] = bool(owner.get("particular"))
+    return out
+
+
+def extract_location_main_meta(item: dict[str, Any]) -> dict[str, str | None]:
+    """FR location_main name, type, slug for barrio resolution."""
+    out: dict[str, str | None] = {
+        "location_main_name": None,
+        "location_type": None,
+        "location_slug": None,
+    }
+    locs = item.get("locations")
+    if not isinstance(locs, dict):
+        return out
+    lm = locs.get("location_main")
+    if not isinstance(lm, dict):
+        return out
+    name = normalize_named_field(lm.get("name"))
+    if name:
+        out["location_main_name"] = name[:100]
+    ltype = lm.get("location_type")
+    if isinstance(ltype, str) and ltype.strip():
+        out["location_type"] = ltype.strip()[:50]
+    slug = first_slug(lm.get("slug"))
+    if slug:
+        out["location_slug"] = slug[:80]
     return out
 
 
@@ -900,10 +930,16 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
     accepts_barter = parse_barter_flag(item, tech_fields)
     owner_fields = extract_owner_fields(item)
     location_enrichment = extract_location_enrichment(item)
+    location_main = extract_location_main_meta(item)
 
-    nb_structured, _, _ = extract_neighborhood_structured(item)
+    nb_structured, nb_structured_id, nb_structured_slug = extract_neighborhood_structured(item)
     if not is_valid_neighborhood_candidate(nb_structured):
         nb_structured = None
+
+    neighborhood_source_id = (
+        location_enrichment.get("neighborhood_source_id")
+        or nb_structured_id
+    )
 
     zone_names = [
         z for z in extract_zone_names(item) if is_valid_neighborhood_candidate(z)
@@ -912,6 +948,12 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
     nb_from_locations = extract_neighborhood_from_locations(item)
     if not is_valid_neighborhood_candidate(nb_from_locations):
         nb_from_locations = None
+
+    source_location_name = (
+        location_main.get("location_main_name")
+        or nb_structured
+        or nb_from_locations
+    )
 
     nb_text = neighborhood_from_title(title) or neighborhood_from_title(blob)
     if not is_valid_neighborhood_candidate(nb_text):
@@ -923,16 +965,28 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
     cat_key = catalog_key_for_city(city, city_slug)
     nb_candidates = [
         nb_structured,
-        zone0,
         nb_from_locations,
         nb_text,
         nb_addr,
+        zone0,
     ]
     nb_cleaned = [
         c for c in (normalize_neighborhood(x) for x in nb_candidates) if c
     ]
-    nb = pick_neighborhood_with_catalog(nb_candidates, cat_key)
     nb_raw = first_raw_neighborhood_label(nb_candidates)
+    peer_counts = getattr(listing_to_row, "_peer_counts", None)
+    nb_resolution = resolve_neighborhood(
+        candidates=nb_candidates,
+        city=city,
+        city_slug=city_slug,
+        neighborhood_source_id=neighborhood_source_id,
+        source_location_name=source_location_name,
+        location_type=location_main.get("location_type"),
+        location_slug=location_main.get("location_slug") or nb_structured_slug,
+        zone_name=location_enrichment.get("zone_name"),
+        peer_counts=peer_counts,
+    )
+    nb = nb_resolution.neighborhood
     conjunto = extract_conjunto(item, title, blob)
 
     estrato = parse_estrato_value(item.get("stratum"), blob)
@@ -1019,11 +1073,14 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
 
     description_stored = description.strip()[:8000] if description.strip() else None
 
-    quality_flags = {
+    bool_flags = {
         "missing_estrato": estrato is None,
-        "missing_neighborhood": not bool(nb),
         "missing_neighborhood_label": not bool(nb_raw),
-        "neighborhood_not_in_catalog": bool(cat_key and nb_cleaned and not nb),
+        "neighborhood_not_in_catalog": bool(
+            cat_key
+            and nb_cleaned
+            and nb_resolution.confidence in {"weak", "missing"}
+        ),
         "missing_geo": lat is None or lon is None,
         "missing_admin_fee": admin_fee_cop is None,
         "missing_source_updated_at": source_updated_at is None,
@@ -1038,7 +1095,8 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         "missing_area_private": is_apartment_property(property_type, item)
         and area_private is None,
     }
-    data_completeness_score = score_completeness(quality_flags)
+    quality_flags = merge_quality_flags(bool_flags, nb_resolution)
+    data_completeness_score = score_completeness(bool_flags)
 
     source_fingerprint = build_fingerprint(
         {
@@ -1122,7 +1180,7 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         "latitude": lat,
         "longitude": lon,
         "location_path": location_path,
-        "neighborhood_source_id": location_enrichment["neighborhood_source_id"],
+        "neighborhood_source_id": neighborhood_source_id,
         "zone_name": location_enrichment["zone_name"],
         "commune_name": location_enrichment["commune_name"],
         "source_created_at": source_created_at,
@@ -1147,6 +1205,8 @@ def run() -> None:
     page_num = START_PAGE
     no_action_pages = 0
     conn = connect()
+    load_all_catalogs()
+    listing_to_row._peer_counts = fetch_peer_counts(conn, CITY_DEFAULT)
     while cap <= 0 or len(collected) < cap:
         url = paginated_url(LISTING_URL, page_num)
         try:

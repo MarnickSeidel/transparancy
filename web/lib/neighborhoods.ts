@@ -11,3 +11,16 @@ export function normalizeNeighborhoodKey(input: string): string {
     .replace(/[^a-z0-9]+/g, "")
     .trim();
 }
+
+/** Pick the filter dropdown label that matches a URL or dossier neighborhood param. */
+export function resolveNeighborhoodLabel(
+  param: string,
+  options: string[],
+): string {
+  const trimmed = param.trim();
+  if (!trimmed || trimmed === "all") return "all";
+  if (options.includes(trimmed)) return trimmed;
+  const key = normalizeNeighborhoodKey(trimmed);
+  if (!key) return trimmed;
+  return options.find((o) => normalizeNeighborhoodKey(o) === key) ?? trimmed;
+}

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
@@ -9,6 +10,7 @@ import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
+import { resolveNeighborhoodLabel } from "@/lib/neighborhoods";
 import { useUiLang } from "@/lib/useUiLang";
 
 type ListingRow = {
@@ -120,10 +122,14 @@ export default function ListingExplorer() {
       if (!fRes.ok || !lRes.ok) throw new Error("load");
       const fJson = await fRes.json();
       const lJson = (await lRes.json()) as ListingsResponse;
+      const nextNeighborhoods: string[] = fJson.neighborhoods ?? [];
       setCities(fJson.cities ?? []);
-      setNeighborhoods(fJson.neighborhoods ?? []);
+      setNeighborhoods(nextNeighborhoods);
       setPropertyTypes(fJson.propertyTypes ?? []);
       setEstratos(fJson.estratos ?? []);
+      setNeighborhood((prev) =>
+        prev === "all" ? prev : resolveNeighborhoodLabel(prev, nextNeighborhoods),
+      );
       setData(lJson);
     } catch {
       setError(txt.couldNotLoad);
@@ -164,6 +170,15 @@ export default function ListingExplorer() {
             {error}
           </div>
         ) : null}
+
+        <p className="mb-6">
+          <Link
+            href="/zones"
+            className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
+          >
+            {txt.zonesLink}
+          </Link>
+        </p>
 
         <Card className="mb-6 border-slate-200/90 p-4 shadow-card">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">

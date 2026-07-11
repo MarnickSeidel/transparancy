@@ -36,6 +36,8 @@ _MIN_SUFFIX_LEN = 5
 
 # fold_key -> canonical display name
 _fold_to_canonical: dict[str, dict[str, str]] = {}
+# city_key -> source_id -> canonical display name
+_source_id_to_canonical: dict[str, dict[str, str]] = {}
 # city_key -> True if loaded
 _loaded: set[str] = set()
 
@@ -75,12 +77,23 @@ def _load_city_file(path: Path) -> None:
             if ta:
                 bucket[_fold(alias)] = ta
 
+    source_ids = raw.get("source_ids") or {}
+    id_bucket: dict[str, str] = {}
+    if isinstance(source_ids, dict):
+        for sid, target in source_ids.items():
+            if isinstance(sid, str) and isinstance(target, str):
+                ta = " ".join(target.split())
+                if ta:
+                    id_bucket[sid.strip()] = ta
+
     _fold_to_canonical[city_key] = bucket
+    _source_id_to_canonical[city_key] = id_bucket
     _loaded.add(city_key)
 
 
 def load_all_catalogs() -> None:
     _fold_to_canonical.clear()
+    _source_id_to_canonical.clear()
     _loaded.clear()
     if not _DATA_DIR.is_dir():
         return
@@ -134,6 +147,44 @@ def _suffix_catalog_match(f: str, bucket: dict[str, str]) -> str | None:
             continue
         return canon
     return None
+
+
+def resolve_by_source_id(source_id: str | None, city_key: str) -> str | None:
+    if not source_id or not source_id.strip():
+        return None
+    bucket = _source_id_to_canonical.get(city_key)
+    if not bucket:
+        return None
+    return bucket.get(source_id.strip())
+
+
+def resolve_exact_in_catalog(
+    raw: str | None,
+    city_key: str,
+    *,
+    rural: bool = False,
+) -> str | None:
+    """Exact fold match + aliases only (no fuzzy or substring merge)."""
+    if not raw or not str(raw).strip():
+        return None
+    bucket = _fold_to_canonical.get(city_key)
+    if not bucket:
+        return None
+    text = " ".join(str(raw).split())
+    f = _fold(text)
+    if len(f) < 2:
+        return None
+    hit = bucket.get(f)
+    if not hit:
+        return None
+    if rural:
+        low = hit.casefold()
+        if not low.endswith(" rural"):
+            rural_hit = bucket.get(f"{f} rural") or bucket.get(_fold(f"{hit} rural"))
+            if rural_hit:
+                return rural_hit
+            return f"{hit} rural"
+    return hit
 
 
 def resolve_in_catalog(raw: str | None, city_key: str) -> str | None:

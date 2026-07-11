@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 
 import { MIN_ANALYTICS_AREA_M2, MIN_SAMPLE_SIZE } from "@/lib/analytics";
 import { pricePerM2Bucket, type PriceBucket } from "@/lib/mapPriceBuckets";
+import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -31,13 +32,11 @@ function buildWhere(searchParams: URLSearchParams): Prisma.ListingWhereInput {
   };
 
   const city = searchParams.get("city");
-  const neighborhood = searchParams.get("neighborhood");
   const estrato = searchParams.get("estrato");
   const propertyType = searchParams.get("propertyType");
   const maxPriceRaw = searchParams.get("maxPriceCop");
 
   if (city && city !== "all") where.city = city;
-  if (neighborhood && neighborhood !== "all") where.neighborhood = neighborhood;
   if (propertyType && propertyType !== "all") where.propertyType = propertyType;
   if (estrato && estrato !== "all") {
     const e = Number.parseInt(estrato, 10);
@@ -50,6 +49,46 @@ function buildWhere(searchParams: URLSearchParams): Prisma.ListingWhereInput {
   }
 
   return where;
+}
+
+async function applyNeighborhoodFilter(
+  where: Prisma.ListingWhereInput,
+  neighborhood: string | null,
+): Promise<void> {
+  if (!neighborhood || neighborhood === "all") return;
+
+  const key = normalizeNeighborhoodKey(neighborhood.trim());
+  if (!key) {
+    where.neighborhood = neighborhood;
+    return;
+  }
+
+  const city =
+    typeof where.city === "string"
+      ? where.city
+      : undefined;
+
+  const rows = await prisma.listing.findMany({
+    where: {
+      isActive: true,
+      ...(city ? { city } : {}),
+      neighborhood: { not: null },
+    },
+    select: { neighborhood: true },
+    distinct: ["neighborhood"],
+  });
+
+  const matches = rows
+    .map((r) => r.neighborhood)
+    .filter((n): n is string => !!n && normalizeNeighborhoodKey(n) === key);
+
+  if (matches.length === 0) {
+    where.neighborhood = neighborhood;
+  } else if (matches.length === 1) {
+    where.neighborhood = matches[0];
+  } else {
+    where.neighborhood = { in: matches };
+  }
 }
 
 function buildOrderBy(
@@ -102,6 +141,7 @@ export async function GET(req: Request) {
 
   try {
     const where = buildWhere(searchParams);
+    await applyNeighborhoodFilter(where, searchParams.get("neighborhood"));
     const orderBy = buildOrderBy(
       searchParams.get("sortBy"),
       searchParams.get("sortDir"),

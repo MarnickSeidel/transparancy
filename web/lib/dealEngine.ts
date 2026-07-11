@@ -86,6 +86,31 @@ export type DealAnalysis = {
   domDays: number | null;
 };
 
+export type DealFlag =
+  | "barter"
+  | "project"
+  | "terrace_heavy"
+  | "area_mismatch"
+  | "promoted"
+  | "recent_price_drop"
+  | "long_dom"
+  | "low_comp_sample"
+  | "high_admin_fee"
+  | "terrain_risk"
+  | "type_location_mismatch";
+
+export type WhyDeal = {
+  compMethod: string;
+  discountPct: number | null;
+  medianCompPricePerM2: number | null;
+  compSampleSize: number;
+  metricType: MetricType;
+  flags: DealFlag[];
+  confidence: ConfidenceLevel;
+  confidenceNotes: string[];
+  scoreBreakdown: DealScoreBreakdown | null;
+};
+
 const GEO_RADIUS_M = 1000;
 const MIN_RELAXED_SAMPLE = 4;
 
@@ -954,6 +979,51 @@ export function analyzeDeal(
     confidenceReasons: reasons,
     priceDropPct,
     domDays: dom,
+  };
+}
+
+export function buildWhyDeal(
+  analysis: DealAnalysis,
+  listing: Pick<
+    DealListingInput,
+    | "acceptsBarter"
+    | "isProject"
+    | "terraceHeavyFlag"
+    | "areaMismatchFlag"
+    | "paidQuota"
+    | "highlight"
+  >,
+): WhyDeal {
+  const flags: DealFlag[] = [];
+  const bd = analysis.breakdown;
+
+  if (listing.acceptsBarter) flags.push("barter");
+  if (listing.isProject) flags.push("project");
+  if (listing.terraceHeavyFlag) flags.push("terrace_heavy");
+  if (listing.areaMismatchFlag) flags.push("area_mismatch");
+  if (listing.paidQuota || (listing.highlight != null && listing.highlight > 0)) {
+    flags.push("promoted");
+  }
+
+  if (bd) {
+    if (bd.priceDropBonus > 0) flags.push("recent_price_drop");
+    if (bd.domBonus > 0) flags.push("long_dom");
+    if (bd.lowSamplePenalty > 0) flags.push("low_comp_sample");
+    if (bd.highAdminPenalty > 0) flags.push("high_admin_fee");
+    if (bd.terrainRiskPenalty > 0) flags.push("terrain_risk");
+    if (bd.typeLocationPenalty > 0) flags.push("type_location_mismatch");
+  }
+
+  return {
+    compMethod: analysis.compMethod,
+    discountPct: analysis.discountVsRefPct,
+    medianCompPricePerM2: analysis.refPpm2,
+    compSampleSize: analysis.compSampleSize,
+    metricType: analysis.metricType,
+    flags: Array.from(new Set(flags)),
+    confidence: analysis.confidence,
+    confidenceNotes: analysis.confidenceReasons,
+    scoreBreakdown: analysis.breakdown,
   };
 }
 

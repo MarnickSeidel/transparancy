@@ -1,12 +1,12 @@
 "use client";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import SiteHeader from "@/app/components/SiteHeader";
-import type { DealScoreBreakdown } from "@/lib/dealEngine";
+import type { DealFlag, DealScoreBreakdown, WhyDeal } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -25,6 +25,7 @@ type OpportunityRow = {
   compMethod?: string;
   dealScore: number | null;
   scoreBreakdown?: DealScoreBreakdown | null;
+  whyDeal?: WhyDeal | null;
   discountVsRefPct: number | null;
   confidence?: "high" | "medium" | "low";
   confidenceReasons?: string[];
@@ -71,6 +72,171 @@ function compMethodLabel(method: string | undefined, lang: "es" | "en") {
   return labels[method]?.[lang] ?? method;
 }
 
+function dealFlagLabel(
+  flag: DealFlag,
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+): string {
+  const key = `dealFlag_${flag}` as keyof typeof txt;
+  return (txt[key] as string | undefined) ?? flag;
+}
+
+function dealNoteLabel(
+  note: string,
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+): string {
+  const key = `dealNote_${note}` as keyof typeof txt;
+  return (txt[key] as string | undefined) ?? note;
+}
+
+function scoreDrivers(
+  bd: DealScoreBreakdown | null | undefined,
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+): { label: string; value: number }[] {
+  if (!bd) return [];
+  const rows: { label: string; value: number }[] = [];
+  if (bd.discountComponent !== 0) {
+    rows.push({ label: txt.dealScoreDriver_discount, value: bd.discountComponent });
+  }
+  if (bd.freshnessComponent !== 0) {
+    rows.push({ label: txt.dealScoreDriver_freshness, value: bd.freshnessComponent });
+  }
+  if (bd.completenessComponent !== 0) {
+    rows.push({ label: txt.dealScoreDriver_completeness, value: bd.completenessComponent });
+  }
+  if (bd.priceDropBonus !== 0) {
+    rows.push({ label: txt.dealScoreDriver_price_drop, value: bd.priceDropBonus });
+  }
+  if (bd.domBonus !== 0) {
+    rows.push({ label: txt.dealScoreDriver_dom, value: bd.domBonus });
+  }
+  if (bd.barterPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_barter, value: -bd.barterPenalty });
+  }
+  if (bd.projectPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_project, value: -bd.projectPenalty });
+  }
+  if (bd.promotedPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_promoted, value: -bd.promotedPenalty });
+  }
+  if (bd.lowSamplePenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_low_sample, value: -bd.lowSamplePenalty });
+  }
+  if (bd.highAdminPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_high_admin, value: -bd.highAdminPenalty });
+  }
+  if (bd.terrainRiskPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_terrain_risk, value: -bd.terrainRiskPenalty });
+  }
+  if (bd.typeLocationPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_type_location, value: -bd.typeLocationPenalty });
+  }
+  return rows;
+}
+
+function WhyDealPanel({
+  row,
+  txt,
+  locale,
+  lang,
+}: {
+  row: OpportunityRow;
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"];
+  locale: string;
+  lang: "es" | "en";
+}) {
+  const why = row.whyDeal;
+  if (!why) return null;
+
+  const drivers = scoreDrivers(why.scoreBreakdown, txt);
+
+  return (
+    <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 px-4 py-3">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
+        {txt.opportunitiesWhyDeal}
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div>
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyCompMethod}</p>
+          <p className="mt-0.5 text-sm text-foreground">
+            {compMethodLabel(why.compMethod, lang)}
+          </p>
+          <p className="mt-1 text-xs text-muted">
+            {txt.opportunitiesWhyCompCount}: {why.compSampleSize}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyDiscount}</p>
+          <p className="mt-0.5 text-sm font-medium tabular-nums text-foreground">
+            {why.discountPct == null ? "—" : `${why.discountPct.toFixed(1)}%`}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyMedianComp}</p>
+          <p className="mt-0.5 text-sm tabular-nums text-foreground">
+            {fmtCop(why.medianCompPricePerM2, locale)}
+          </p>
+          <p className="mt-1 text-xs text-muted">{metricTypeLabel(why.metricType, txt)}</p>
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesConfidence}</p>
+          <p className="mt-0.5 text-sm text-foreground">{confidenceLabel(why.confidence, txt)}</p>
+        </div>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <div>
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyFlags}</p>
+          {why.flags.length > 0 ? (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {why.flags.map((flag) => (
+                <span
+                  key={flag}
+                  className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs text-amber-900 ring-1 ring-amber-200/80"
+                >
+                  {dealFlagLabel(flag, txt)}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-1 text-sm text-muted">{txt.opportunitiesWhyNoFlags}</p>
+          )}
+        </div>
+        <div>
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyConfidence}</p>
+          {why.confidenceNotes.length > 0 ? (
+            <ul className="mt-2 list-inside list-disc space-y-0.5 text-sm text-foreground">
+              {why.confidenceNotes.map((note) => (
+                <li key={note}>{dealNoteLabel(note, txt)}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-1 text-sm text-muted">{txt.opportunitiesWhyNoNotes}</p>
+          )}
+        </div>
+      </div>
+
+      {drivers.length > 0 ? (
+        <div className="mt-4 border-t border-slate-200/80 pt-3">
+          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyScoreDrivers}</p>
+          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {drivers.map((d) => (
+              <span
+                key={d.label}
+                className={`text-xs tabular-nums ${
+                  d.value >= 0 ? "text-emerald-800" : "text-rose-800"
+                }`}
+              >
+                {d.value >= 0 ? "+" : ""}
+                {d.value.toFixed(1)} {d.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 function signalTags(
   row: OpportunityRow,
   txt: (typeof uiText)["es"] | (typeof uiText)["en"],
@@ -80,12 +246,6 @@ function signalTags(
   if (row.isProject) tags.push(txt.opportunitiesFlagProject);
   if (row.priceDropPct != null && row.priceDropPct >= 2) {
     tags.push(txt.opportunitiesFlagPriceDrop.replace("{pct}", row.priceDropPct.toFixed(0)));
-  }
-  if (row.scoreBreakdown?.priceDropBonus && row.scoreBreakdown.priceDropBonus > 0) {
-    tags.push(`+${row.scoreBreakdown.priceDropBonus} drop`);
-  }
-  if (row.scoreBreakdown?.domBonus && row.scoreBreakdown.domBonus > 0) {
-    tags.push(`+${row.scoreBreakdown.domBonus} DOM`);
   }
   return tags;
 }
@@ -123,6 +283,7 @@ export default function OpportunitiesTop() {
   const [hideLowConfidence, setHideLowConfidence] = useState(true);
   const [sortBy, setSortBy] = useState<"dealScore" | "discount" | "price" | "confidence">("dealScore");
   const [rows, setRows] = useState<OpportunityRow[]>([]);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -232,6 +393,7 @@ export default function OpportunitiesTop() {
       setNeighborhoods(fJson.neighborhoods ?? []);
       setPropertyTypes(fJson.propertyTypes ?? []);
       setRows((oJson.opportunities ?? []) as OpportunityRow[]);
+      setExpandedId(null);
     } catch {
       setError(uiText[lang].couldNotLoad);
     } finally {
@@ -500,32 +662,29 @@ export default function OpportunitiesTop() {
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.dealScore}</th>
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesSignals}</th>
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesConfidence}</th>
+                  <th className="w-10 px-2 py-3" aria-label={txt.opportunitiesWhyDeal} />
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={10}>
+                    <td className="px-4 py-4 text-slate-500" colSpan={11}>
                       {txt.estimateCalculating}
                     </td>
                   </tr>
                 ) : sortedRows.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={10}>
+                    <td className="px-4 py-4 text-slate-500" colSpan={11}>
                       {txt.opportunitiesEmpty} {txt.adjustFiltersHint}
                     </td>
                   </tr>
                 ) : (
                   sortedRows.map((r) => {
                     const tags = signalTags(r, txt);
-                    const compLabel =
-                      r.compSampleSize != null && r.compMethod
-                        ? txt.opportunitiesCompInfo
-                            .replace("{n}", String(r.compSampleSize))
-                            .replace("{method}", compMethodLabel(r.compMethod, lang))
-                        : null;
+                    const isExpanded = expandedId === r.id;
                     return (
-                    <tr key={r.id} className="hover:bg-surface/50">
+                    <Fragment key={r.id}>
+                    <tr className="hover:bg-surface/50">
                       <td className="px-4 py-3">
                         <a href={r.url} target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
                           {r.title}
@@ -545,9 +704,7 @@ export default function OpportunitiesTop() {
                         {r.discountVsRefPct == null ? "—" : `${r.discountVsRefPct.toFixed(1)}%`}
                       </td>
                       <td className="px-4 py-3 tabular-nums">
-                        <span title={r.scoreBreakdown ? JSON.stringify(r.scoreBreakdown) : undefined}>
-                          {r.dealScore?.toFixed(1) ?? "—"}
-                        </span>
+                        {r.dealScore?.toFixed(1) ?? "—"}
                       </td>
                       <td className="px-4 py-3">
                         {tags.length > 0 ? (
@@ -564,12 +721,46 @@ export default function OpportunitiesTop() {
                         ) : (
                           <span className="text-muted">—</span>
                         )}
-                        {compLabel ? (
-                          <p className="mt-1 text-xs text-muted">{compLabel}</p>
-                        ) : null}
                       </td>
                       <td className="px-4 py-3">{confidenceLabel(r.confidence, txt)}</td>
+                      <td className="px-2 py-3 text-center">
+                        <button
+                          type="button"
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                          aria-expanded={isExpanded}
+                          aria-label={
+                            isExpanded
+                              ? txt.opportunitiesWhyDealCollapse
+                              : txt.opportunitiesWhyDealExpand
+                          }
+                          title={txt.opportunitiesWhyDeal}
+                          onClick={() =>
+                            setExpandedId(isExpanded ? null : r.id)
+                          }
+                        >
+                          <svg
+                            className={`h-4 w-4 transition-transform ${isExpanded ? "rotate-180" : ""}`}
+                            viewBox="0 0 20 20"
+                            fill="currentColor"
+                            aria-hidden
+                          >
+                            <path
+                              fillRule="evenodd"
+                              d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"
+                              clipRule="evenodd"
+                            />
+                          </svg>
+                        </button>
+                      </td>
                     </tr>
+                    {isExpanded ? (
+                      <tr className="bg-surface/30">
+                        <td className="px-4 py-3" colSpan={11}>
+                          <WhyDealPanel row={r} txt={txt} locale={locale} lang={lang} />
+                        </td>
+                      </tr>
+                    ) : null}
+                    </Fragment>
                     );
                   })
                 )}

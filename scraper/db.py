@@ -20,6 +20,17 @@ from deal_engine import (
 )
 
 
+def _nb_confidence_rank_sql(expr: str) -> str:
+    """SQL CASE mapping quality_flags.neighborhood_confidence to rank."""
+    return f"""CASE COALESCE({expr}->>'neighborhood_confidence', 'missing')
+      WHEN 'catalog' THEN 5
+      WHEN 'source_id' THEN 4
+      WHEN 'provisional' THEN 3
+      WHEN 'weak' THEN 2
+      ELSE 1
+    END"""
+
+
 def connect():
     return psycopg2.connect(DATABASE_URL)
 
@@ -183,7 +194,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
 
     execute_values(
         cur,
-        """
+        f"""
         INSERT INTO listings (
           id, external_id, title, price_cop, area_m2, estrato,
           neighborhood, neighborhood_raw, conjunto, city, city_id, city_slug, department, department_slug,
@@ -218,12 +229,18 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
             ELSE listings.estrato
           END,
           neighborhood = CASE
-            WHEN listings.neighborhood IS NOT NULL
-              AND btrim(listings.neighborhood) <> ''
-              AND lower(btrim(listings.neighborhood)) <> 'unknown'
-            THEN listings.neighborhood
-            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.neighborhood
-            ELSE COALESCE(listings.neighborhood, EXCLUDED.neighborhood)
+            WHEN listings.neighborhood IS NULL
+              OR btrim(listings.neighborhood) = ''
+              OR lower(btrim(listings.neighborhood)) = 'unknown'
+            THEN EXCLUDED.neighborhood
+            WHEN {_nb_confidence_rank_sql("EXCLUDED.quality_flags")} >
+                 {_nb_confidence_rank_sql("listings.quality_flags")}
+            THEN EXCLUDED.neighborhood
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint
+              AND {_nb_confidence_rank_sql("EXCLUDED.quality_flags")} >=
+                  {_nb_confidence_rank_sql("listings.quality_flags")}
+            THEN EXCLUDED.neighborhood
+            ELSE listings.neighborhood
           END,
           neighborhood_raw = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.neighborhood_raw
@@ -411,7 +428,11 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
             ELSE listings.source_updated_at
           END,
           quality_flags = CASE
-            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.quality_flags
+            WHEN {_nb_confidence_rank_sql("EXCLUDED.quality_flags")} >
+                 {_nb_confidence_rank_sql("listings.quality_flags")}
+            THEN EXCLUDED.quality_flags
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint
+            THEN EXCLUDED.quality_flags
             ELSE listings.quality_flags
           END,
           data_completeness_score = CASE
