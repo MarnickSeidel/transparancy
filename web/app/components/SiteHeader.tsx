@@ -8,13 +8,15 @@ import type { Lang } from "@/lib/i18n";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import { useUiTheme } from "@/lib/useUiTheme";
 
-type NavKey = "dashboard" | "estimate" | "opportunities" | "analyzeUrl";
+type NavKey = "dashboard" | "estimate" | "opportunities" | "explore" | "heatmap" | "analyzeUrl";
 
 type HeaderText = {
   menuLabel: string;
   dashboardNav: string;
   estimateNav: string;
   opportunitiesNav: string;
+  exploreNav: string;
+  heatmapNav: string;
   analyzeUrlNav: string;
 };
 
@@ -31,6 +33,8 @@ const navItems: Array<{ key: NavKey; href: string; textKey: keyof HeaderText }> 
   { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
   { key: "estimate", href: "/estimate", textKey: "estimateNav" },
   { key: "opportunities", href: "/opportunities", textKey: "opportunitiesNav" },
+  { key: "explore", href: "/explore", textKey: "exploreNav" },
+  { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
   { key: "analyzeUrl", href: "/analyze-url", textKey: "analyzeUrlNav" },
 ];
 

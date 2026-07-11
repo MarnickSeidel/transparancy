@@ -1,10 +1,14 @@
 import type { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { MIN_ANALYTICS_AREA_M2 } from "@/lib/analytics";
+import { MIN_ANALYTICS_AREA_M2, percentile } from "@/lib/analytics";
+import {
+  analyzeDeal,
+  toDealListingInput,
+  type DealListingInput,
+} from "@/lib/dealEngine";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
-import { dealScore } from "@/lib/transparency";
 
 export const dynamic = "force-dynamic";
 
@@ -38,175 +42,13 @@ function neighborhoodPassesFilters(
   return true;
 }
 
-function avg(nums: number[]): number | null {
-  if (nums.length === 0) return null;
-  const s = nums.reduce((a, b) => a + b, 0);
-  return s / nums.length;
-}
-
-type ConfidenceLevel = "high" | "medium" | "low";
-type MetricType = "built" | "terrain" | "generic";
-
-function percentile(values: number[], p: number): number | null {
-  if (values.length === 0) return null;
-  const arr = [...values].sort((a, b) => a - b);
-  const idx = (arr.length - 1) * p;
-  const low = Math.floor(idx);
-  const high = Math.ceil(idx);
-  if (low === high) return arr[low];
-  const w = idx - low;
-  return arr[low] * (1 - w) + arr[high] * w;
-}
-
-function areaMismatchGuard(l: {
-  propertyType: string | null;
-  areaM2: number;
-  areaBuiltM2: number | null;
-  areaTerrainM2: number | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  pricePerM2Built: number | null;
-  pricePerM2Terrain: number | null;
-}, minBuiltPpm2ForHouse: number): boolean {
-  const t = (l.propertyType ?? "").toLowerCase();
-  const isHouse = t.includes("casa");
-  if (!isHouse) return false;
-
-  // Very likely a terrain/built mixup for houses.
-  if (l.areaM2 >= 600 && (l.areaBuiltM2 == null || l.areaBuiltM2 < 220)) {
-    return true;
-  }
-
-  // Unrealistically small built area for houses.
-  if (
-    l.areaM2 < 25 &&
-    (l.areaBuiltM2 == null || l.areaBuiltM2 < 25) &&
-    (l.areaTerrainM2 == null || l.areaTerrainM2 < 100)
-  ) {
-    return true;
-  }
-
-  // Contradictory area fields.
-  if (
-    l.areaBuiltM2 != null &&
-    l.areaTerrainM2 != null &&
-    l.areaBuiltM2 > l.areaTerrainM2 * 1.5
-  ) {
-    return true;
-  }
-
-  // House-like layout but "built" density is too low for urban houses:
-  // usually means lot/total area got treated as built area.
-  if (
-    l.areaM2 >= 900 &&
-    (l.bedrooms ?? 0) <= 6 &&
-    (l.bathrooms ?? 0) <= 8 &&
-    l.pricePerM2Built != null &&
-    l.pricePerM2Built < minBuiltPpm2ForHouse &&
-    (l.pricePerM2Terrain == null || l.pricePerM2Terrain <= l.pricePerM2Built * 1.4)
-  ) {
-    return true;
-  }
-
-  return false;
-}
-
-function confidenceForListing(l: {
-  propertyType: string | null;
-  neighborhood: string | null;
-  areaM2: number;
-  areaBuiltM2: number | null;
-  areaTerrainM2: number | null;
-  sourceUpdatedAt: Date | null;
-}): { confidence: ConfidenceLevel; reasons: string[] } {
-  const reasons: string[] = [];
-  let score = 100;
-
-  const t = (l.propertyType ?? "").toLowerCase();
-  const isHouse = t.includes("casa");
-
-  if (!l.propertyType) {
-    score -= 20;
-    reasons.push("missing_property_type");
-  }
-  if (!l.neighborhood) {
-    score -= 15;
-    reasons.push("missing_neighborhood");
-  }
-  if (!l.sourceUpdatedAt) {
-    score -= 10;
-    reasons.push("missing_update_time");
-  } else {
-    const ageDays = (Date.now() - l.sourceUpdatedAt.getTime()) / 86400000;
-    if (ageDays > 45) {
-      score -= 20;
-      reasons.push("stale_listing");
-    } else if (ageDays > 20) {
-      score -= 10;
-      reasons.push("aging_listing");
-    }
-  }
-  if (isHouse && l.areaTerrainM2 != null && l.areaBuiltM2 == null && l.areaM2 > 300) {
-    score -= 25;
-    reasons.push("house_area_terrain_like");
-  }
-  if (l.areaBuiltM2 != null && l.areaM2 > 0) {
-    const ratio = Math.max(l.areaBuiltM2, l.areaM2) / Math.min(l.areaBuiltM2, l.areaM2);
-    if (ratio >= 3) {
-      score -= 20;
-      reasons.push("built_total_area_divergence");
-    } else if (ratio >= 2) {
-      score -= 10;
-      reasons.push("built_total_area_gap");
-    }
-  }
-
-  if (score >= 80) return { confidence: "high", reasons };
-  if (score >= 55) return { confidence: "medium", reasons };
-  return { confidence: "low", reasons };
-}
-
-function pickMetricForListing(l: {
-  propertyType: string | null;
-  pricePerM2: number | null;
-  pricePerM2Built: number | null;
-  pricePerM2Terrain: number | null;
-  areaBuiltM2: number | null;
-  areaTerrainM2: number | null;
-}): { metricType: MetricType; ppm2: number | null } {
-  const t = (l.propertyType ?? "").toLowerCase();
-  const terrainLike =
-    t.includes("lote") ||
-    t.includes("terreno") ||
-    t.includes("finca") ||
-    t.includes("parcela");
-
-  if (
-    l.pricePerM2Terrain != null &&
-    l.areaTerrainM2 != null &&
-    l.areaTerrainM2 >= 50 &&
-    terrainLike
-  ) {
-    return { metricType: "terrain", ppm2: l.pricePerM2Terrain };
-  }
-
-  if (
-    l.pricePerM2Built != null &&
-    l.areaBuiltM2 != null &&
-    l.areaBuiltM2 >= 20
-  ) {
-    return { metricType: "built", ppm2: l.pricePerM2Built };
-  }
-
-  if (
-    l.pricePerM2Terrain != null &&
-    l.areaTerrainM2 != null &&
-    l.areaTerrainM2 >= 80
-  ) {
-    return { metricType: "terrain", ppm2: l.pricePerM2Terrain };
-  }
-
-  return { metricType: "generic", ppm2: l.pricePerM2 };
+function minBuiltPpm2ForHouse(pool: DealListingInput[]): number {
+  const builtHousePpm2 = pool
+    .filter((l) => (l.propertyType ?? "").toLowerCase().includes("casa"))
+    .map((l) => l.pricePerM2Built)
+    .filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
+  const p15 = percentile(builtHousePpm2, 0.15);
+  return p15 != null ? Math.max(900_000, p15 * 0.75) : 900_000;
 }
 
 export async function GET(req: Request) {
@@ -225,6 +67,14 @@ export async function GET(req: Request) {
   const excludeUnknownNeighborhoods =
     searchParams.get("excludeUnknownNeighborhoods") === "1";
   const hideLowConfidence = searchParams.get("hideLowConfidence") !== "0";
+  const excludeBarter = searchParams.get("excludeBarter") === "1";
+  const excludeProjects = searchParams.get("excludeProjects") === "1";
+  const minDiscountRaw = searchParams.get("minDiscountPct");
+  const minDiscountPct =
+    minDiscountRaw != null && minDiscountRaw.trim() !== ""
+      ? Number.parseFloat(minDiscountRaw)
+      : 0;
+
   const maxPriceRaw = searchParams.get("maxPriceCop");
   let maxPriceCop: bigint | null = null;
   if (maxPriceRaw != null && maxPriceRaw.trim() !== "") {
@@ -237,25 +87,27 @@ export async function GET(req: Request) {
   try {
     const andFilters: Prisma.ListingWhereInput[] = [
       {
+        isActive: true,
         pricePerM2: { not: null },
         areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
+        operationType: { contains: "venta", mode: "insensitive" },
       },
     ];
 
     if (maxPriceCop != null) {
       andFilters.push({ priceCop: { lte: maxPriceCop } });
     }
-
     if (city && city !== "all") andFilters.push({ city });
     if (propertyType && propertyType.trim()) {
       andFilters.push({ propertyType: propertyType.trim() });
     }
-    const where: Prisma.ListingWhereInput = { AND: andFilters };
+    if (excludeBarter) andFilters.push({ acceptsBarter: false });
+    if (excludeProjects) andFilters.push({ isProject: false });
 
     const rows = await prisma.listing.findMany({
-      where,
+      where: { AND: andFilters },
       orderBy: { dateScraped: "desc" },
-      take: 2500,
+      take: 5000,
     });
 
     const filteredRows = rows.filter((r) =>
@@ -267,117 +119,83 @@ export async function GET(req: Request) {
       ),
     );
 
-    const neighborhoodAvgsGeneric = new Map<string, number>();
-    const neighborhoodAvgsBuilt = new Map<string, number>();
-    const neighborhoodAvgsTerrain = new Map<string, number>();
-    const genericBuckets = new Map<string, number[]>();
-    const builtBuckets = new Map<string, number[]>();
-    const terrainBuckets = new Map<string, number[]>();
-    for (const r of filteredRows) {
-      const key = normalizeNeighborhoodKey(r.neighborhood ?? "");
-      if (!key) continue;
-      if (r.pricePerM2 != null) {
-        const arr = genericBuckets.get(key) ?? [];
-        arr.push(r.pricePerM2);
-        genericBuckets.set(key, arr);
-      }
-      if (r.pricePerM2Built != null) {
-        const arr = builtBuckets.get(key) ?? [];
-        arr.push(r.pricePerM2Built);
-        builtBuckets.set(key, arr);
-      }
-      if (r.pricePerM2Terrain != null) {
-        const arr = terrainBuckets.get(key) ?? [];
-        arr.push(r.pricePerM2Terrain);
-        terrainBuckets.set(key, arr);
-      }
+    const pool = filteredRows.map((r) => toDealListingInput(r));
+    const houseFloor = minBuiltPpm2ForHouse(pool);
+
+    const listingIds = filteredRows.map((r) => r.id);
+    const priceEventsRaw =
+      listingIds.length > 0
+        ? await prisma.listingPriceEvent.findMany({
+            where: {
+              listingId: { in: listingIds },
+              recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
+            },
+            orderBy: { recordedAt: "desc" },
+          })
+        : [];
+
+    const priceEventsByListing = new Map<
+      string,
+      { priceCop: bigint; recordedAt: Date }[]
+    >();
+    for (const ev of priceEventsRaw) {
+      const arr = priceEventsByListing.get(ev.listingId) ?? [];
+      arr.push({ priceCop: ev.priceCop, recordedAt: ev.recordedAt });
+      priceEventsByListing.set(ev.listingId, arr);
     }
-    Array.from(genericBuckets.entries()).forEach(([k, vals]) => {
-      const a = avg(vals);
-      if (a != null) neighborhoodAvgsGeneric.set(k, a);
-    });
-    Array.from(builtBuckets.entries()).forEach(([k, vals]) => {
-      const a = avg(vals);
-      if (a != null) neighborhoodAvgsBuilt.set(k, a);
-    });
-    Array.from(terrainBuckets.entries()).forEach(([k, vals]) => {
-      const a = avg(vals);
-      if (a != null) neighborhoodAvgsTerrain.set(k, a);
-    });
-    const cityAvgGeneric = avg(
-      filteredRows
-        .map((r) => r.pricePerM2)
-        .filter((v): v is number => v != null && Number.isFinite(v)),
-    );
-    const cityAvgBuilt = avg(
-      filteredRows
-        .map((r) => r.pricePerM2Built)
-        .filter((v): v is number => v != null && Number.isFinite(v)),
-    );
-    const cityAvgTerrain = avg(
-      filteredRows
-        .map((r) => r.pricePerM2Terrain)
-        .filter((v): v is number => v != null && Number.isFinite(v)),
-    );
 
-    const builtHousePpm2 = filteredRows
-      .filter((l) => (l.propertyType ?? "").toLowerCase().includes("casa"))
-      .map((l) => l.pricePerM2Built)
-      .filter((v): v is number => v != null && Number.isFinite(v) && v > 0);
-    const p15BuiltHouse = percentile(builtHousePpm2, 0.15);
-    // City-aware floor: never below fixed baseline, but scales up in higher-price cities.
-    const minBuiltPpm2ForHouse =
-      p15BuiltHouse != null
-        ? Math.max(900000, p15BuiltHouse * 0.75)
-        : 900000;
+    const scored = filteredRows
+      .map((row) => {
+        const subject = toDealListingInput(row);
+        const analysis = analyzeDeal(subject, pool, {
+          priceEvents: priceEventsByListing.get(row.id),
+          minBuiltPpm2ForHouse: houseFloor,
+          requirePositiveDiscount: true,
+        });
+        if (analysis.excluded) return null;
+        if (
+          analysis.discountVsRefPct == null ||
+          analysis.discountVsRefPct < minDiscountPct
+        ) {
+          return null;
+        }
+        if (hideLowConfidence && analysis.confidence === "low") return null;
 
-    const top10 = filteredRows
-      .filter((l) => !areaMismatchGuard(l, minBuiltPpm2ForHouse))
-      .map((l) => {
-        const picked = pickMetricForListing(l);
-        const ppm2 = picked.ppm2;
-        const neighborhoodKey = normalizeNeighborhoodKey(l.neighborhood ?? "");
-        const refFrom = (m: Map<string, number>, cityAvg: number | null | undefined) => {
-          if (!neighborhoodKey) return cityAvg ?? null;
-          return m.get(neighborhoodKey) ?? cityAvg ?? null;
-        };
-        const ref =
-          picked.metricType === "built"
-            ? refFrom(neighborhoodAvgsBuilt, cityAvgBuilt)
-            : picked.metricType === "terrain"
-              ? refFrom(neighborhoodAvgsTerrain, cityAvgTerrain)
-              : refFrom(neighborhoodAvgsGeneric, cityAvgGeneric);
-        const score =
-          l.dealScore ??
-          dealScore(ppm2, ref, l.sourceUpdatedAt, l.dataCompletenessScore);
-        const { confidence, reasons } = confidenceForListing(l);
-        const gapPct =
-          ppm2 != null && ref != null && ref > 0 ? ((ref - ppm2) / ref) * 100 : null;
         return {
-          id: l.id,
-          title: l.title,
-          city: l.city,
-          neighborhood: l.neighborhood,
-          priceCop: l.priceCop.toString(),
-          areaM2: l.areaM2,
-          pricePerM2: ppm2,
-          metricType: picked.metricType,
-          refAvgUsed: ref,
-          dealScore: score,
-          confidence,
-          confidenceReasons: reasons,
-          discountVsRefPct: gapPct,
-          url: l.url,
-          imageUrl: l.imageUrl,
-          sourceUpdatedAt: l.sourceUpdatedAt?.toISOString() ?? null,
+          id: row.id,
+          title: row.title,
+          city: row.city,
+          neighborhood: row.neighborhood,
+          zoneName: row.zoneName,
+          propertyType: row.propertyType,
+          priceCop: row.priceCop.toString(),
+          areaM2: row.areaM2,
+          areaPrivateM2: row.areaPrivateM2,
+          pricePerM2: analysis.subjectPpm2,
+          metricType: analysis.metricType,
+          refAvgUsed: analysis.refPpm2,
+          compSampleSize: analysis.compSampleSize,
+          compMethod: analysis.compMethod,
+          dealScore: analysis.dealScore,
+          scoreBreakdown: analysis.breakdown,
+          confidence: analysis.confidence,
+          confidenceReasons: analysis.confidenceReasons,
+          discountVsRefPct: analysis.discountVsRefPct,
+          priceDropPct: analysis.priceDropPct,
+          domDays: analysis.domDays,
+          acceptsBarter: row.acceptsBarter,
+          terraceHeavy: row.terraceHeavyFlag,
+          isProject: row.isProject,
+          url: row.url,
+          imageUrl: row.imageUrl,
+          sourceUpdatedAt: row.sourceUpdatedAt?.toISOString() ?? null,
         };
       })
-      .filter((r) => r.pricePerM2 != null && r.refAvgUsed != null)
-      .filter((r) => !hideLowConfidence || r.confidence !== "low")
+      .filter((r): r is NonNullable<typeof r> => r != null)
       .sort((a, b) => (b.dealScore ?? -1) - (a.dealScore ?? -1))
       .slice(0, 10);
 
-    return NextResponse.json({ opportunities: top10 });
+    return NextResponse.json({ opportunities: scored });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

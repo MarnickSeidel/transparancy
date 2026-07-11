@@ -9,6 +9,7 @@ import os
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -169,6 +170,7 @@ def run_city_venta_types(
     """
     For each venta path, scrape until per-type cap or exhaustion (multi-pass).
     """
+    run_started_at = datetime.now(timezone.utc)
     base = "https://www.fincaraiz.com.co"
     for plabel, path in VENTA_PATHS:
         cap = casas_apto_max if path in _HEAVY_PATHS else default_max
@@ -190,6 +192,23 @@ def run_city_venta_types(
             f"\n>>> {city_label} / {plabel}: collected {total} actionable (target {cap})\n",
             flush=True,
         )
+
+    from db import connect, mark_inactive_listings
+
+    conn = connect()
+    try:
+        marked = mark_inactive_listings(
+            conn,
+            run_started_at=run_started_at,
+            city=city_default,
+        )
+        print(
+            f"\n>>> {city_label}: marked {marked} listings inactive "
+            f"(not seen during this city refresh).\n",
+            flush=True,
+        )
+    finally:
+        conn.close()
 
     print_city_db_report(db_report_ilike)
     print(f"\nDone all venta property types for {city_label}.")

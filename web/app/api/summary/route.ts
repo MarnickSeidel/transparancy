@@ -21,9 +21,12 @@ export async function GET(req: Request) {
       return d;
     })();
 
-    const cityWhere = city && city !== "all" ? { city } : {};
+    const cityWhere = city && city !== "all" ? { city, isActive: true } : { isActive: true };
     const cond = summaryCityConditions(city);
-    const whereSql = Prisma.join(cond, " AND ");
+    const whereSql = Prisma.join(
+      [...cond, Prisma.sql`l.is_active = true`],
+      " AND ",
+    );
 
     const [
       avgRow,
@@ -33,6 +36,7 @@ export async function GET(req: Request) {
       withGeo,
       newToday,
       winRow,
+      distinctCounts,
     ] = await Promise.all([
       prisma.listing.aggregate({
         where: {
@@ -86,9 +90,22 @@ export async function GET(req: Request) {
           (SELECT percentile_cont(0.75) WITHIN GROUP (ORDER BY v) FROM clipped)::float8 AS p75
         FROM bounds b
       `),
+      prisma.$queryRaw<
+        Array<{ city_count: bigint; neighborhood_count: bigint }>
+      >(Prisma.sql`
+        SELECT
+          COUNT(DISTINCT l.city)::bigint AS city_count,
+          COUNT(DISTINCT l.neighborhood) FILTER (
+            WHERE l.neighborhood IS NOT NULL AND btrim(l.neighborhood) <> ''
+          )::bigint AS neighborhood_count
+        FROM listings l
+        WHERE l.is_active = true
+        ${city && city !== "all" ? Prisma.sql`AND l.city = ${city}` : Prisma.empty}
+      `),
     ]);
 
     const w = winRow[0];
+    const counts = distinctCounts[0];
     const n = w?.n != null ? Number(w.n) : 0;
     const medianPpm2 = w?.p50 ?? null;
     const p25 = w?.p25 ?? null;
@@ -109,6 +126,9 @@ export async function GET(req: Request) {
       cityScope: city && city !== "all" ? city : "all",
       cityLabel: city && city !== "all" ? city : "All cities",
       totalListings,
+      cityCount: counts?.city_count != null ? Number(counts.city_count) : 0,
+      neighborhoodCount:
+        counts?.neighborhood_count != null ? Number(counts.neighborhood_count) : 0,
       listingsScrapedToday: listingsToday,
       listingsNewToday: newToday,
       coverageEstratoPct:

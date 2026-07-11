@@ -10,7 +10,14 @@ from typing import Any, Optional
 import psycopg2
 from psycopg2.extras import Json, execute_batch, execute_values
 
-from config import DATABASE_URL, DEAL_THRESHOLD_PCT
+from config import DATABASE_URL
+from deal_engine import (
+    DealListingInput,
+    PriceEventInput,
+    analyze_deal,
+    listing_from_row,
+    min_built_ppm2_for_house,
+)
 
 
 def connect():
@@ -44,13 +51,15 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
     external_ids = [str(r["external_id"]) for r in rows]
     cur.execute(
         """
-        SELECT external_id, source_fingerprint
+        SELECT external_id, id, price_cop, source_fingerprint
         FROM listings
         WHERE external_id = ANY(%s)
         """,
         (external_ids,),
     )
-    existing = {eid: fp for eid, fp in cur.fetchall()}
+    existing: dict[str, tuple[str, int, str | None]] = {}
+    for eid, lid, price_cop, fp in cur.fetchall():
+        existing[str(eid)] = (str(lid), int(price_cop), fp)
 
     new_count = 0
     changed_count = 0
@@ -62,6 +71,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
         ppm2 = float(price) / float(area) if area and area > 0 else None
         area_built = r.get("area_built_m2")
         area_terrain = r.get("area_terrain_m2")
+        area_private = r.get("area_private_m2")
         ppm2_built = (
             float(price) / float(area_built)
             if area_built and float(area_built) > 0
@@ -72,9 +82,15 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
             if area_terrain and float(area_terrain) > 0
             else None
         )
+        ppm2_private = (
+            float(price) / float(area_private)
+            if area_private and float(area_private) > 0
+            else None
+        )
         fp = r.get("source_fingerprint")
-        prev_fp = existing.get(r["external_id"])
-        if prev_fp is None:
+        prev = existing.get(str(r["external_id"]))
+        prev_fp = prev[2] if prev else None
+        if prev is None:
             new_count += 1
         elif prev_fp == fp:
             unchanged_count += 1
@@ -111,11 +127,38 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
                 r.get("image_url"),
                 now,
                 False,
+                True,
                 r.get("property_type"),
                 r.get("operation_type"),
                 float(area_built) if area_built else None,
                 float(area_terrain) if area_terrain else None,
                 float(r.get("area_terrace_m2")) if r.get("area_terrace_m2") else None,
+                float(area_private) if area_private else None,
+                ppm2_private,
+                r.get("description"),
+                r.get("garage"),
+                r.get("floor"),
+                r.get("antiquity"),
+                bool(r.get("accepts_barter")),
+                r.get("construction_state"),
+                int(r["owner_id"]) if r.get("owner_id") is not None else None,
+                r.get("owner_name"),
+                r.get("owner_type"),
+                r.get("owner_particular"),
+                r.get("neighborhood_source_id"),
+                r.get("zone_name"),
+                r.get("commune_name"),
+                Json(r.get("facilities")) if r.get("facilities") is not None else None,
+                r.get("image_count"),
+                int(r["price_admin_included"])
+                if r.get("price_admin_included") is not None
+                else None,
+                r.get("highlight"),
+                float(r["relevance"]) if r.get("relevance") is not None else None,
+                r.get("paid_quota"),
+                bool(r.get("is_project")),
+                bool(r.get("area_mismatch_flag")),
+                bool(r.get("terrace_heavy_flag")),
                 r.get("bedrooms"),
                 r.get("bathrooms"),
                 r.get("rooms"),
@@ -145,8 +188,13 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           id, external_id, title, price_cop, area_m2, estrato,
           neighborhood, neighborhood_raw, conjunto, city, city_id, city_slug, department, department_slug,
           price_per_m2, price_per_m2_built,
-          price_per_m2_terrain, deal_score, url, image_url, date_scraped, is_deal,
+          price_per_m2_terrain, deal_score, url, image_url, date_scraped, is_deal, is_active,
           property_type, operation_type, area_built_m2, area_terrain_m2, area_terrace_m2,
+          area_private_m2, price_per_m2_private, description, garage, floor, antiquity,
+          accepts_barter, construction_state, owner_id, owner_name, owner_type, owner_particular,
+          neighborhood_source_id, zone_name, commune_name, facilities, image_count,
+          price_admin_included, highlight, relevance, paid_quota, is_project,
+          area_mismatch_flag, terrace_heavy_flag,
           bedrooms, bathrooms, rooms,
           admin_fee_cop, currency_symbol, latitude, longitude, location_path,
           source_created_at, source_updated_at, quality_flags, data_completeness_score,
@@ -205,6 +253,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           url = EXCLUDED.url,
           image_url = EXCLUDED.image_url,
           date_scraped = EXCLUDED.date_scraped,
+          is_active = true,
           property_type = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.property_type
             ELSE listings.property_type
@@ -224,6 +273,102 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           area_terrace_m2 = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_terrace_m2
             ELSE listings.area_terrace_m2
+          END,
+          area_private_m2 = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_private_m2
+            ELSE COALESCE(listings.area_private_m2, EXCLUDED.area_private_m2)
+          END,
+          price_per_m2_private = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.price_per_m2_private
+            ELSE listings.price_per_m2_private
+          END,
+          description = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.description
+            ELSE COALESCE(listings.description, EXCLUDED.description)
+          END,
+          garage = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.garage
+            ELSE COALESCE(listings.garage, EXCLUDED.garage)
+          END,
+          floor = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.floor
+            ELSE COALESCE(listings.floor, EXCLUDED.floor)
+          END,
+          antiquity = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.antiquity
+            ELSE COALESCE(listings.antiquity, EXCLUDED.antiquity)
+          END,
+          accepts_barter = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.accepts_barter
+            ELSE listings.accepts_barter
+          END,
+          construction_state = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.construction_state
+            ELSE COALESCE(listings.construction_state, EXCLUDED.construction_state)
+          END,
+          owner_id = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.owner_id
+            ELSE COALESCE(listings.owner_id, EXCLUDED.owner_id)
+          END,
+          owner_name = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.owner_name
+            ELSE COALESCE(listings.owner_name, EXCLUDED.owner_name)
+          END,
+          owner_type = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.owner_type
+            ELSE COALESCE(listings.owner_type, EXCLUDED.owner_type)
+          END,
+          owner_particular = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.owner_particular
+            ELSE COALESCE(listings.owner_particular, EXCLUDED.owner_particular)
+          END,
+          neighborhood_source_id = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.neighborhood_source_id
+            ELSE COALESCE(listings.neighborhood_source_id, EXCLUDED.neighborhood_source_id)
+          END,
+          zone_name = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.zone_name
+            ELSE COALESCE(listings.zone_name, EXCLUDED.zone_name)
+          END,
+          commune_name = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.commune_name
+            ELSE COALESCE(listings.commune_name, EXCLUDED.commune_name)
+          END,
+          facilities = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.facilities
+            ELSE COALESCE(listings.facilities, EXCLUDED.facilities)
+          END,
+          image_count = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.image_count
+            ELSE COALESCE(listings.image_count, EXCLUDED.image_count)
+          END,
+          price_admin_included = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.price_admin_included
+            ELSE listings.price_admin_included
+          END,
+          highlight = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.highlight
+            ELSE listings.highlight
+          END,
+          relevance = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.relevance
+            ELSE listings.relevance
+          END,
+          paid_quota = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.paid_quota
+            ELSE listings.paid_quota
+          END,
+          is_project = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.is_project
+            ELSE listings.is_project
+          END,
+          area_mismatch_flag = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_mismatch_flag
+            ELSE listings.area_mismatch_flag
+          END,
+          terrace_heavy_flag = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.terrace_heavy_flag
+            ELSE listings.terrace_heavy_flag
           END,
           bedrooms = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.bedrooms
@@ -283,13 +428,75 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
         """,
         prepared,
     )
+
+    price_events: list[tuple[str, str, str, int, datetime]] = []
+    for r in rows:
+        eid = str(r["external_id"])
+        new_price = int(r["price_cop"])
+        prev = existing.get(eid)
+        if prev is None:
+            continue
+        listing_id, old_price, _ = prev
+        if old_price != new_price:
+            price_events.append(
+                (str(uuid.uuid4()), listing_id, eid, new_price, now)
+            )
+
+    if price_events:
+        execute_values(
+            cur,
+            """
+            INSERT INTO listing_price_events (id, listing_id, external_id, price_cop, recorded_at)
+            VALUES %s
+            """,
+            price_events,
+        )
+
     conn.commit()
     return {
         "written": len(prepared),
         "new": new_count,
         "changed": changed_count,
         "unchanged": unchanged_count,
+        "price_events": len(price_events),
     }
+
+
+def mark_inactive_listings(
+    conn,
+    *,
+    run_started_at: datetime,
+    city: Optional[str] = None,
+) -> int:
+    """
+    After a city refresh, mark listings in that city inactive when they were not
+    seen during this run (last_seen_at before run_started_at).
+    """
+    cur = conn.cursor()
+    if city and str(city).strip():
+        cur.execute(
+            """
+            UPDATE listings
+            SET is_active = false
+            WHERE city ILIKE %s
+              AND last_seen_at < %s
+              AND is_active IS DISTINCT FROM false
+            """,
+            (str(city).strip(), run_started_at),
+        )
+    else:
+        cur.execute(
+            """
+            UPDATE listings
+            SET is_active = false
+            WHERE last_seen_at < %s
+              AND is_active IS DISTINCT FROM false
+            """,
+            (run_started_at,),
+        )
+    updated = cur.rowcount
+    conn.commit()
+    return updated
 
 
 def refresh_deals_after_scrape(
@@ -298,9 +505,8 @@ def refresh_deals_after_scrape(
     *,
     city: Optional[str] = None,
 ) -> None:
-    """Mark is_deal when price_per_m2 is at least threshold_pct below ref average."""
-    t = threshold_pct if threshold_pct is not None else DEAL_THRESHOLD_PCT
-    factor = 1.0 - (t / 100.0)
+    """Recompute is_deal and deal_score using dealEngine-aligned comp pools."""
+    del threshold_pct  # legacy param; positive discount is required instead
     cur = conn.cursor()
     city_clause = ""
     city_params: list[Any] = []
@@ -308,62 +514,95 @@ def refresh_deals_after_scrape(
         city_clause = " AND city ILIKE %s"
         city_params = [str(city).strip()]
 
-    cur.execute(
-        f"""
-        SELECT city, neighborhood, AVG(price_per_m2)::float
-        FROM listings
-        WHERE price_per_m2 IS NOT NULL{city_clause}
-        GROUP BY city, neighborhood
-        """,
-        city_params,
-    )
-    neigh_avg: dict[tuple[str, Optional[str]], float] = {}
-    for cty, nb, avg in cur.fetchall():
-        key = (str(cty or ""), nb)
-        neigh_avg[key] = float(avg) if avg is not None else 0.0
+    listing_cols = [
+        "id",
+        "city",
+        "neighborhood",
+        "zone_name",
+        "property_type",
+        "construction_state",
+        "estrato",
+        "operation_type",
+        "area_m2",
+        "area_built_m2",
+        "area_private_m2",
+        "area_terrain_m2",
+        "area_terrace_m2",
+        "price_cop",
+        "price_per_m2",
+        "price_per_m2_built",
+        "price_per_m2_private",
+        "price_per_m2_terrain",
+        "admin_fee_cop",
+        "bedrooms",
+        "bathrooms",
+        "latitude",
+        "longitude",
+        "source_updated_at",
+        "first_seen_at",
+        "data_completeness_score",
+        "accepts_barter",
+        "terrace_heavy_flag",
+        "area_mismatch_flag",
+        "is_project",
+        "paid_quota",
+        "highlight",
+    ]
+    col_sql = ", ".join(listing_cols)
 
     cur.execute(
         f"""
-        SELECT city, AVG(price_per_m2)::float
+        SELECT {col_sql}
         FROM listings
-        WHERE price_per_m2 IS NOT NULL{city_clause}
-        GROUP BY city
+        WHERE is_active = true
+          AND price_per_m2 IS NOT NULL
+          AND area_m2 >= 5
+          AND operation_type ILIKE '%venta%'{city_clause}
         """,
         city_params,
     )
-    city_avg: dict[str, float] = {}
-    for cty, avg in cur.fetchall():
-        city_avg[str(cty or "")] = float(avg) if avg is not None else 0.0
+    rows = cur.fetchall()
+    if not rows:
+        return
+
+    pool: list[DealListingInput] = [
+        listing_from_row(row, listing_cols) for row in rows
+    ]
+    house_floor = min_built_ppm2_for_house(pool)
+    listing_ids = [p.id for p in pool]
 
     cur.execute(
-        f"""
-        SELECT id, city, neighborhood, price_per_m2, source_updated_at, date_scraped, data_completeness_score
-        FROM listings
-        WHERE price_per_m2 IS NOT NULL{city_clause}
+        """
+        SELECT listing_id, price_cop, recorded_at
+        FROM listing_price_events
+        WHERE listing_id = ANY(%s::uuid[])
+          AND recorded_at >= NOW() - INTERVAL '90 days'
+        ORDER BY recorded_at DESC
         """,
-        city_params,
+        (listing_ids,),
     )
+    events_by_listing: dict[str, list[PriceEventInput]] = {}
+    for listing_id, price_cop, recorded_at in cur.fetchall():
+        lid = str(listing_id)
+        events_by_listing.setdefault(lid, []).append(
+            PriceEventInput(price_cop=int(price_cop), recorded_at=recorded_at)
+        )
+
     updates: list[tuple[bool, Optional[float], str]] = []
-    now = datetime.now(timezone.utc)
-    for lid, cty, nb, ppm2, source_updated_at, date_scraped, completeness in cur.fetchall():
-        city_key = str(cty or "")
-        ref = neigh_avg.get((city_key, nb)) if nb else None
-        if not ref or ref <= 0:
-            ref = city_avg.get(city_key)
-        is_deal = bool(ref and ref > 0 and float(ppm2) <= ref * factor)
-        if ref and ref > 0:
-            rel_discount = (float(ref) - float(ppm2)) / float(ref)
-        else:
-            rel_discount = 0.0
-        rel_discount = max(-1.0, min(1.0, rel_discount))
-        freshness_base = source_updated_at or date_scraped
-        if freshness_base and freshness_base.tzinfo is None:
-            freshness_base = freshness_base.replace(tzinfo=timezone.utc)
-        age_days = (now - freshness_base).total_seconds() / 86400.0 if freshness_base else 30
-        freshness_component = max(0.0, 1.0 - min(age_days / 30.0, 1.0))
-        completeness_component = float(completeness) if completeness is not None else 0.0
-        score = (rel_discount * 80.0) + (freshness_component * 12.0) + (completeness_component * 8.0)
-        updates.append((is_deal, round(score, 4), str(lid)))
+    for subject in pool:
+        analysis = analyze_deal(
+            subject,
+            pool,
+            price_events=events_by_listing.get(subject.id),
+            min_built_ppm2_for_house=house_floor,
+            require_positive_discount=True,
+        )
+        is_deal = (
+            not analysis.excluded
+            and analysis.discount_vs_ref_pct is not None
+            and analysis.discount_vs_ref_pct > 0
+        )
+        updates.append((is_deal, analysis.deal_score, subject.id))
 
     execute_batch(
         cur,

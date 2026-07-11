@@ -57,10 +57,13 @@ def print_global_summary(url: str) -> None:
     cur = conn.cursor()
     cur.execute("SELECT COUNT(*) FROM listings")
     total = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM listings WHERE is_active = true")
+    active = cur.fetchone()[0]
     cur.execute(
         """
         SELECT COUNT(*) FROM listings
-        WHERE last_seen_at >= NOW() - INTERVAL '24 hours'
+        WHERE is_active = true
+          AND last_seen_at >= NOW() - INTERVAL '24 hours'
         """
     )
     seen_24h = cur.fetchone()[0]
@@ -81,7 +84,8 @@ def print_global_summary(url: str) -> None:
     print(f"MONTHLY REFRESH SUMMARY ({now})")
     print("=" * 60)
     print(f"  Total listings in DB:     {total:,}")
-    print(f"  Listings seen last 24h:   {seen_24h:,}")
+    print(f"  Active listings:        {active:,}")
+    print(f"  Active seen last 24h:   {seen_24h:,}")
     print("  Top cities:")
     for city, n in top:
         print(f"    {city}: {n:,}")

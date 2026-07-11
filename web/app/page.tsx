@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import PageFooter from "./components/PageFooter";
 import LanguageToggle from "./components/LanguageToggle";
@@ -22,6 +22,8 @@ type Content = {
   openPlatform: string;
   navDashboard: string;
   navOpportunities: string;
+  navExplore: string;
+  navHeatmap: string;
   navAnalyze: string;
   navEstimate: string;
   ctaPrimary: string;
@@ -30,6 +32,10 @@ type Content = {
   highlights: Array<{ label: string; value: string }>;
   features: Array<{ title: string; description: string }>;
   cards: Array<{ zone: string; type: string; value: string; score: string }>;
+  statsLoading: string;
+  statsListingsLabel: string;
+  statsNeighborhoodsLabel: string;
+  statsCitiesLabel: string;
 };
 
 const content: Record<Lang, Content> = {
@@ -42,16 +48,22 @@ const content: Record<Lang, Content> = {
     openPlatform: "Entrar al dashboard",
     navDashboard: "Dashboard",
     navOpportunities: "Oportunidades",
+    navExplore: "Explorar",
+    navHeatmap: "Mapa H3",
     navAnalyze: "Analizar URL",
     navEstimate: "Estimador",
     ctaPrimary: "Analizar anuncio ahora",
     ctaSecondary: "Calcular precio sugerido",
     cardsLabel: "Vista previa de oportunidades",
     highlights: [
-      { label: "Anuncios analizados por mes", value: "180k+" },
-      { label: "Barrios cubiertos", value: "540+" },
-      { label: "Tiempo de respuesta", value: "< 2 seg" },
+      { label: "Anuncios analizados", value: "…" },
+      { label: "Barrios cubiertos", value: "…" },
+      { label: "Ciudades activas", value: "…" },
     ],
+    statsLoading: "Cargando datos…",
+    statsListingsLabel: "Anuncios analizados",
+    statsNeighborhoodsLabel: "Barrios cubiertos",
+    statsCitiesLabel: "Ciudades activas",
     features: [
       {
         title: "Heatmaps de mercado",
@@ -84,16 +96,22 @@ const content: Record<Lang, Content> = {
     openPlatform: "Open dashboard",
     navDashboard: "Dashboard",
     navOpportunities: "Opportunities",
+    navExplore: "Explore",
+    navHeatmap: "H3 map",
     navAnalyze: "Analyze URL",
     navEstimate: "Estimator",
     ctaPrimary: "Analyze listing now",
     ctaSecondary: "Calculate price range",
     cardsLabel: "Opportunity preview",
     highlights: [
-      { label: "Listings analyzed monthly", value: "180k+" },
-      { label: "Neighborhoods covered", value: "540+" },
-      { label: "Average response time", value: "< 2 sec" },
+      { label: "Listings analyzed", value: "…" },
+      { label: "Neighborhoods covered", value: "…" },
+      { label: "Active cities", value: "…" },
     ],
+    statsLoading: "Loading live data…",
+    statsListingsLabel: "Listings analyzed",
+    statsNeighborhoodsLabel: "Neighborhoods covered",
+    statsCitiesLabel: "Active cities",
     features: [
       {
         title: "Market heatmaps",
@@ -124,6 +142,81 @@ export default function Home() {
   const { theme, toggleTheme } = useUiTheme("light");
   const darkMode = theme === "dark";
   const txt = useMemo(() => content[lang], [lang]);
+  const locale = lang === "es" ? "es-CO" : "en-US";
+
+  const [highlights, setHighlights] = useState(txt.highlights);
+  const [cards, setCards] = useState(txt.cards);
+  const [statsReady, setStatsReady] = useState(false);
+
+  useEffect(() => {
+    setHighlights(txt.highlights);
+    setCards(txt.cards);
+  }, [txt.highlights, txt.cards]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadLiveData() {
+      try {
+        const [summaryRes, oppRes] = await Promise.all([
+          fetch("/api/summary"),
+          fetch("/api/opportunities"),
+        ]);
+        if (!summaryRes.ok) return;
+        const summary = await summaryRes.json();
+        if (cancelled) return;
+
+        setHighlights([
+          {
+            label: txt.statsListingsLabel,
+            value: Number(summary.totalListings ?? 0).toLocaleString(locale),
+          },
+          {
+            label: txt.statsNeighborhoodsLabel,
+            value: Number(summary.neighborhoodCount ?? 0).toLocaleString(locale),
+          },
+          {
+            label: txt.statsCitiesLabel,
+            value: Number(summary.cityCount ?? 0).toLocaleString(locale),
+          },
+        ]);
+        setStatsReady(true);
+
+        if (oppRes.ok) {
+          const oppJson = await oppRes.json();
+          const opportunities = (oppJson.opportunities ?? []).slice(0, 3);
+          if (!cancelled && opportunities.length > 0) {
+            setCards(
+              opportunities.map(
+                (o: {
+                  neighborhood: string | null;
+                  city: string;
+                  propertyType: string | null;
+                  priceCop: string;
+                  dealScore: number | null;
+                }) => ({
+                  zone: o.neighborhood?.trim() || o.city,
+                  type: o.propertyType ?? (lang === "es" ? "Inmueble" : "Property"),
+                  value: `COP ${Number(String(o.priceCop).replace(/\D/g, "")).toLocaleString(locale)}`,
+                  score:
+                    o.dealScore != null && Number.isFinite(o.dealScore)
+                      ? `${Math.round(o.dealScore)}/100`
+                      : "—",
+                }),
+              ),
+            );
+          }
+        }
+      } catch {
+        if (!cancelled) setStatsReady(false);
+      }
+    }
+
+    void loadLiveData();
+    return () => {
+      cancelled = true;
+    };
+  }, [lang, locale, txt.statsCitiesLabel, txt.statsListingsLabel, txt.statsNeighborhoodsLabel]);
 
   return (
     <main
@@ -174,6 +267,12 @@ export default function Home() {
             </Link>
             <Link href="/opportunities" className="transition hover:text-teal-500">
               {txt.navOpportunities}
+            </Link>
+            <Link href="/explore" className="transition hover:text-teal-500">
+              {txt.navExplore}
+            </Link>
+            <Link href="/heatmap" className="transition hover:text-teal-500">
+              {txt.navHeatmap}
             </Link>
             <Link href="/analyze-url" className="transition hover:text-teal-500">
               {txt.navAnalyze}
@@ -227,7 +326,7 @@ export default function Home() {
             </div>
 
             <div className="mt-10 grid gap-4 sm:grid-cols-3">
-              {txt.highlights.map((item) => (
+              {highlights.map((item) => (
                 <Card
                   key={item.label}
                   className={`rounded-xl p-4 transition-transform duration-300 hover:-translate-y-1 ${
@@ -243,6 +342,11 @@ export default function Home() {
                 </Card>
               ))}
             </div>
+            {!statsReady ? (
+              <p className={`mt-3 text-xs ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
+                {txt.statsLoading}
+              </p>
+            ) : null}
           </div>
 
           <aside
@@ -256,9 +360,9 @@ export default function Home() {
               {txt.cardsLabel}
             </p>
             <div className="mt-4 space-y-3">
-              {txt.cards.map((card) => (
+              {cards.map((card) => (
                 <div
-                  key={`${card.zone}-${card.type}`}
+                  key={`${card.zone}-${card.type}-${card.value}`}
                   className={`rounded-xl border p-4 ${
                     darkMode
                       ? "border-slate-700 bg-slate-900/70"

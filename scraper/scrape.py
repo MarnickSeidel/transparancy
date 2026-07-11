@@ -150,6 +150,12 @@ def parse_money_to_int(value: Any) -> int | None:
 
 
 def extract_admin_fee(item: dict[str, Any], blob: str) -> int | None:
+    common = item.get("commonExpenses")
+    if isinstance(common, dict):
+        n = parse_money_to_int(common.get("amount"))
+        if n is not None:
+            return n
+
     for key in ("admin", "adminPrice", "admin_fee", "administration"):
         if key in item:
             n = parse_money_to_int(item.get(key))
@@ -163,10 +169,260 @@ def extract_admin_fee(item: dict[str, Any], blob: str) -> int | None:
             if n is not None:
                 return n
 
+    sheet_admin = parse_technical_sheet_value(item, "commonExpenses")
+    if sheet_admin:
+        n = clean_price_cop(sheet_admin)
+        if n is not None:
+            return n
+
     m = re.search(r"\+\s*\$\s*([\d.,]+)\s*admin", blob, flags=re.IGNORECASE)
     if m:
         return clean_price_cop(m.group(1))
     return None
+
+
+def parse_area_number(value: Any) -> float | None:
+    if isinstance(value, (int, float)):
+        n = float(value)
+        return n if n > 0 else None
+    if isinstance(value, str):
+        s = value.strip()
+        if not s:
+            return None
+        try:
+            n = float(s.replace(",", "."))
+            return n if n > 0 else None
+        except ValueError:
+            return clean_area_m2(s)
+    return None
+
+
+def parse_technical_sheet_value(item: dict[str, Any], field: str) -> str | None:
+    sheet = item.get("technicalSheet")
+    if not isinstance(sheet, list):
+        return None
+    for row in sheet:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("field") or "").strip() == field:
+            val = row.get("value")
+            if isinstance(val, str) and val.strip():
+                return val.strip()
+    return None
+
+
+def parse_technical_sheet_fields(item: dict[str, Any]) -> dict[str, Any]:
+    sheet = item.get("technicalSheet")
+    if not isinstance(sheet, list):
+        return {}
+    out: dict[str, Any] = {}
+    for row in sheet:
+        if not isinstance(row, dict):
+            continue
+        field = str(row.get("field") or "").strip()
+        value = row.get("value")
+        if field and value is not None:
+            out[field] = value
+    return out
+
+
+_TERRACE_AREA_RES = (
+    re.compile(
+        r"(?i)terraza\s+(?:de\s+)?([\d.,]+)\s*m(?:²|2|\b)",
+    ),
+    re.compile(
+        r"(?i)([\d.,]+)\s*m(?:²|2)\s+(?:de\s+)?terraza",
+    ),
+    re.compile(
+        r"(?i)terraza\s+de\s+([\d.,]+)",
+    ),
+)
+
+
+def parse_terrace_area_from_text(text: str) -> float | None:
+    if not text:
+        return None
+    for pat in _TERRACE_AREA_RES:
+        m = pat.search(text.replace("\u00a0", " "))
+        if not m:
+            continue
+        try:
+            n = float(m.group(1).replace(",", "."))
+            if 4 <= n <= 500:
+                return n
+        except ValueError:
+            continue
+    return None
+
+
+def is_apartment_property(property_type: str | None, item: dict[str, Any]) -> bool:
+    t = (property_type or "").casefold()
+    if "apartamento" in t or "apto" in t:
+        return True
+    type_id = item.get("typeID") or item.get("property_type_id")
+    return type_id == 2
+
+
+def parse_barter_flag(item: dict[str, Any], tech: dict[str, Any]) -> bool:
+    if bool(item.get("barter")):
+        return True
+    raw = tech.get("barter")
+    if isinstance(raw, str):
+        s = raw.strip().casefold()
+        return s in {"si", "sí", "yes", "true", "1"}
+    return False
+
+
+def extract_facilities(item: dict[str, Any]) -> list[dict[str, Any]] | None:
+    raw = item.get("facilities")
+    if not isinstance(raw, list):
+        return None
+    out: list[dict[str, Any]] = []
+    for row in raw:
+        if not isinstance(row, dict):
+            continue
+        name = normalize_named_field(row.get("name"))
+        if not name:
+            continue
+        entry: dict[str, Any] = {"name": name}
+        if row.get("id") is not None:
+            entry["id"] = row.get("id")
+        group = normalize_named_field(row.get("group"))
+        if group:
+            entry["group"] = group
+        out.append(entry)
+    return out or None
+
+
+def facilities_has_terrace(facilities: list[dict[str, Any]] | None) -> bool:
+    if not facilities:
+        return False
+    for f in facilities:
+        name = str(f.get("name") or "").casefold()
+        if name == "terraza" or "terraza" in name:
+            return True
+    return False
+
+
+def extract_owner_fields(item: dict[str, Any]) -> dict[str, Any]:
+    owner = item.get("owner")
+    if not isinstance(owner, dict):
+        return {}
+    out: dict[str, Any] = {}
+    oid = owner.get("id")
+    if isinstance(oid, int):
+        out["owner_id"] = oid
+    name = normalize_named_field(owner.get("name"))
+    if name:
+        out["owner_name"] = name[:200]
+    otype = normalize_named_field(owner.get("type"))
+    if otype:
+        out["owner_type"] = otype[:50]
+    if "particular" in owner:
+        out["owner_particular"] = bool(owner.get("particular"))
+    return out
+
+
+def extract_location_enrichment(item: dict[str, Any]) -> dict[str, str | None]:
+    locs = item.get("locations")
+    out: dict[str, str | None] = {
+        "neighborhood_source_id": None,
+        "zone_name": None,
+        "commune_name": None,
+    }
+    if not isinstance(locs, dict):
+        return out
+
+    for key, target in (
+        ("neighbourhood", "neighborhood_source_id"),
+        ("neighborhood", "neighborhood_source_id"),
+    ):
+        nodes = locs.get(key)
+        if isinstance(nodes, list) and nodes and isinstance(nodes[0], dict):
+            nid = nodes[0].get("id")
+            if isinstance(nid, str) and nid.strip():
+                out["neighborhood_source_id"] = nid.strip()[:120]
+                break
+
+    lm = locs.get("location_main")
+    if out["neighborhood_source_id"] is None and isinstance(lm, dict):
+        nid = lm.get("id")
+        if isinstance(nid, str) and nid.strip():
+            out["neighborhood_source_id"] = nid.strip()[:120]
+
+    for key, target in (("zone", "zone_name"), ("commune", "commune_name")):
+        nodes = locs.get(key)
+        if isinstance(nodes, list) and nodes and isinstance(nodes[0], dict):
+            name = normalize_named_field(nodes[0].get("name"))
+            if name:
+                out[target] = name[:100]
+    return out
+
+
+def resolve_listing_areas(
+    item: dict[str, Any],
+    *,
+    property_type: str | None,
+    blob: str,
+) -> dict[str, Any]:
+    tech = parse_technical_sheet_fields(item)
+    is_apt = is_apartment_property(property_type, item)
+
+    m2_total = parse_area_number(item.get("m2"))
+    m2_built = parse_area_number(item.get("m2Built")) or parse_area_number(
+        tech.get("m2Built")
+    )
+    m2_private = parse_area_number(item.get("m2apto")) or parse_area_number(
+        tech.get("m2apto")
+    )
+    m2_terrain = parse_area_number(item.get("m2Terrain"))
+    m2_terrace = parse_area_number(item.get("m2Terrace")) or parse_area_number(
+        tech.get("m2Terrace")
+    )
+    if m2_terrace is None:
+        m2_terrace = parse_terrace_area_from_text(blob)
+
+    area_mismatch = False
+    terrace_heavy = False
+
+    if is_apt and m2_private:
+        area = m2_private
+        area_built = m2_private
+        if m2_built and m2_built > m2_private * 1.12:
+            area_mismatch = True
+            terrace_heavy = True
+        elif m2_total and m2_total > m2_private * 1.12:
+            area_mismatch = True
+            terrace_heavy = True
+        if m2_terrace and m2_private and m2_terrace >= m2_private * 0.5:
+            terrace_heavy = True
+    else:
+        area = m2_total or m2_built or m2_private
+        area_built = m2_built or m2_private or m2_total
+        if (
+            m2_built
+            and m2_private
+            and max(m2_built, m2_private) / min(m2_built, m2_private) >= 1.25
+        ):
+            area_mismatch = True
+
+    if area is None:
+        area = clean_area_m2(blob)
+    if area_built is None and area is not None:
+        area_built = area
+
+    return {
+        "area_m2": area,
+        "area_built_m2": area_built,
+        "area_private_m2": m2_private,
+        "area_terrain_m2": m2_terrain,
+        "area_terrace_m2": m2_terrace,
+        "area_mismatch_flag": area_mismatch,
+        "terrace_heavy_flag": terrace_heavy,
+        "construction_state": normalize_named_field(
+            tech.get("construction_state_name")
+        ),
+    }
 
 
 def normalize_named_field(value: Any) -> str | None:
@@ -622,57 +878,28 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
     if price is None:
         return None
 
-    area_raw = item.get("m2") or item.get("m2Built") or item.get("m2apto")
-    area: float | None = None
-    if isinstance(area_raw, (int, float)):
-        area = float(area_raw)
-    elif isinstance(area_raw, str):
-        try:
-            area = float(area_raw.replace(",", "."))
-        except ValueError:
-            area = clean_area_m2(area_raw)
-    if area is None:
-        area = clean_area_m2(blob)
+    property_type = normalize_named_field(item.get("property_type"))
+    areas = resolve_listing_areas(item, property_type=property_type, blob=blob)
+    area = areas["area_m2"]
+    area_built = areas["area_built_m2"]
+    area_private = areas["area_private_m2"]
+    area_terrain = areas["area_terrain_m2"]
+    area_terrace = areas["area_terrace_m2"]
+    area_mismatch_flag = areas["area_mismatch_flag"]
+    terrace_heavy_flag = areas["terrace_heavy_flag"]
+    construction_state = areas["construction_state"]
+
+    facilities = extract_facilities(item)
+    if facilities_has_terrace(facilities):
+        terrace_heavy_flag = True
+
     if area is None or area <= 0:
         return None
 
-    area_built: float | None = None
-    for candidate in (item.get("m2Built"), item.get("m2apto"), item.get("m2")):
-        if isinstance(candidate, (int, float)) and float(candidate) > 0:
-            area_built = float(candidate)
-            break
-        if isinstance(candidate, str):
-            try:
-                parsed = float(candidate.replace(",", "."))
-                if parsed > 0:
-                    area_built = parsed
-                    break
-            except ValueError:
-                continue
-
-    area_terrain: float | None = None
-    terrain_raw = item.get("m2Terrain")
-    if isinstance(terrain_raw, (int, float)) and float(terrain_raw) > 0:
-        area_terrain = float(terrain_raw)
-    elif isinstance(terrain_raw, str):
-        try:
-            parsed = float(terrain_raw.replace(",", "."))
-            if parsed > 0:
-                area_terrain = parsed
-        except ValueError:
-            area_terrain = None
-
-    area_terrace: float | None = None
-    terrace_raw = item.get("m2Terrace")
-    if isinstance(terrace_raw, (int, float)) and float(terrace_raw) > 0:
-        area_terrace = float(terrace_raw)
-    elif isinstance(terrace_raw, str):
-        try:
-            parsed = float(terrace_raw.replace(",", "."))
-            if parsed > 0:
-                area_terrace = parsed
-        except ValueError:
-            area_terrace = None
+    tech_fields = parse_technical_sheet_fields(item)
+    accepts_barter = parse_barter_flag(item, tech_fields)
+    owner_fields = extract_owner_fields(item)
+    location_enrichment = extract_location_enrichment(item)
 
     nb_structured, _, _ = extract_neighborhood_structured(item)
     if not is_valid_neighborhood_candidate(nb_structured):
@@ -709,7 +936,6 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
     conjunto = extract_conjunto(item, title, blob)
 
     estrato = parse_estrato_value(item.get("stratum"), blob)
-    property_type = normalize_named_field(item.get("property_type"))
     operation_type = normalize_named_field(item.get("operation_type"))
     admin_fee_cop = extract_admin_fee(item, blob)
     price_currency = item.get("price")
@@ -774,6 +1000,24 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
     bedrooms = parse_optional_int(item.get("bedrooms"))
     bathrooms = parse_optional_int(item.get("bathrooms"))
     rooms = parse_optional_int(item.get("rooms"))
+    garage = parse_optional_int(item.get("garage"))
+    floor = parse_optional_int(item.get("floor"))
+    antiquity = parse_optional_int(item.get("antiquity"))
+    image_count = parse_optional_int(item.get("image_count"))
+
+    price_admin_included: int | None = None
+    if isinstance(price_obj, dict):
+        admin_inc = price_obj.get("admin_included")
+        if isinstance(admin_inc, (int, float)):
+            price_admin_included = int(admin_inc)
+
+    highlight = parse_optional_int(item.get("highlight"))
+    relevance_raw = item.get("relevance")
+    relevance = float(relevance_raw) if isinstance(relevance_raw, (int, float)) else None
+    paid_quota = bool(item.get("paid_quota")) if item.get("paid_quota") is not None else None
+    is_project = bool(item.get("isProject"))
+
+    description_stored = description.strip()[:8000] if description.strip() else None
 
     quality_flags = {
         "missing_estrato": estrato is None,
@@ -788,6 +1032,11 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         "missing_bathrooms": bathrooms is None,
         "missing_rooms": rooms is None,
         "missing_conjunto": not bool(conjunto),
+        "area_mismatch": area_mismatch_flag,
+        "terrace_heavy": terrace_heavy_flag,
+        "accepts_barter": accepts_barter,
+        "missing_area_private": is_apartment_property(property_type, item)
+        and area_private is None,
     }
     data_completeness_score = score_completeness(quality_flags)
 
@@ -802,6 +1051,10 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
             "operation_type": operation_type,
             "area_built_m2": area_built,
             "area_terrain_m2": area_terrain,
+            "area_private_m2": area_private,
+            "area_terrace_m2": area_terrace,
+            "accepts_barter": accepts_barter,
+            "construction_state": construction_state,
             "latitude": lat,
             "longitude": lon,
             "city": city,
@@ -817,6 +1070,10 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
             "bathrooms": bathrooms,
             "rooms": rooms,
             "conjunto": conjunto,
+            "area_private_m2": area_private,
+            "area_terrace_m2": area_terrace,
+            "accepts_barter": accepts_barter,
+            "description_len": len(description_stored or ""),
         }
     )
 
@@ -841,6 +1098,22 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         "area_built_m2": area_built,
         "area_terrain_m2": area_terrain,
         "area_terrace_m2": area_terrace,
+        "area_private_m2": area_private,
+        "description": description_stored,
+        "garage": garage,
+        "floor": floor,
+        "antiquity": antiquity,
+        "accepts_barter": accepts_barter,
+        "construction_state": construction_state,
+        "facilities": facilities,
+        "image_count": image_count,
+        "price_admin_included": price_admin_included,
+        "highlight": highlight,
+        "relevance": relevance,
+        "paid_quota": paid_quota,
+        "is_project": is_project,
+        "area_mismatch_flag": area_mismatch_flag,
+        "terrace_heavy_flag": terrace_heavy_flag,
         "bedrooms": bedrooms,
         "bathrooms": bathrooms,
         "rooms": rooms,
@@ -849,11 +1122,15 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         "latitude": lat,
         "longitude": lon,
         "location_path": location_path,
+        "neighborhood_source_id": location_enrichment["neighborhood_source_id"],
+        "zone_name": location_enrichment["zone_name"],
+        "commune_name": location_enrichment["commune_name"],
         "source_created_at": source_created_at,
         "source_updated_at": source_updated_at,
         "quality_flags": quality_flags,
         "data_completeness_score": data_completeness_score,
         "source_fingerprint": source_fingerprint,
+        **owner_fields,
     }
 
 

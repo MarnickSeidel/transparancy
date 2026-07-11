@@ -9,6 +9,7 @@ export function listingAnalyticsConditions(
   neighborhood: string | null,
 ): Prisma.Sql[] {
   const parts: Prisma.Sql[] = [
+    Prisma.sql`l.is_active = true`,
     Prisma.sql`l.price_per_m2 IS NOT NULL`,
     Prisma.sql`l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}`,
   ];
@@ -25,6 +26,7 @@ export function listingAnalyticsConditions(
 
 export function summaryCityConditions(city: string | null): Prisma.Sql[] {
   const parts: Prisma.Sql[] = [
+    Prisma.sql`l.is_active = true`,
     Prisma.sql`l.price_per_m2 IS NOT NULL`,
     Prisma.sql`l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}`,
   ];

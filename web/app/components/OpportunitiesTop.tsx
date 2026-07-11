@@ -6,6 +6,7 @@ import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import SiteHeader from "@/app/components/SiteHeader";
+import type { DealScoreBreakdown } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -14,15 +15,22 @@ type OpportunityRow = {
   title: string;
   city: string;
   neighborhood: string | null;
+  zoneName?: string | null;
   priceCop: string;
   areaM2: number;
   pricePerM2: number | null;
-  metricType?: "built" | "terrain" | "generic";
+  metricType?: "private" | "built" | "terrain" | "generic";
   refAvgUsed: number | null;
+  compSampleSize?: number;
+  compMethod?: string;
   dealScore: number | null;
+  scoreBreakdown?: DealScoreBreakdown | null;
   discountVsRefPct: number | null;
   confidence?: "high" | "medium" | "low";
   confidenceReasons?: string[];
+  priceDropPct?: number | null;
+  acceptsBarter?: boolean;
+  isProject?: boolean;
   url: string;
   sourceUpdatedAt: string | null;
 };
@@ -46,9 +54,40 @@ function metricTypeLabel(
   t: OpportunityRow["metricType"] | undefined,
   txt: (typeof uiText)["es"] | (typeof uiText)["en"],
 ) {
+  if (t === "private") return txt.opportunitiesMetricPrivate;
   if (t === "built") return txt.opportunitiesMetricBuilt;
   if (t === "terrain") return txt.opportunitiesMetricTerrain;
   return txt.opportunitiesMetricGeneric;
+}
+
+function compMethodLabel(method: string | undefined, lang: "es" | "en") {
+  if (!method) return "—";
+  const labels: Record<string, { es: string; en: string }> = {
+    geo_1km: { es: "geo 1 km", en: "geo 1 km" },
+    zone: { es: "zona", en: "zone" },
+    neighborhood: { es: "barrio", en: "neighborhood" },
+    city: { es: "ciudad", en: "city" },
+  };
+  return labels[method]?.[lang] ?? method;
+}
+
+function signalTags(
+  row: OpportunityRow,
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+) {
+  const tags: string[] = [];
+  if (row.acceptsBarter) tags.push(txt.opportunitiesFlagBarter);
+  if (row.isProject) tags.push(txt.opportunitiesFlagProject);
+  if (row.priceDropPct != null && row.priceDropPct >= 2) {
+    tags.push(txt.opportunitiesFlagPriceDrop.replace("{pct}", row.priceDropPct.toFixed(0)));
+  }
+  if (row.scoreBreakdown?.priceDropBonus && row.scoreBreakdown.priceDropBonus > 0) {
+    tags.push(`+${row.scoreBreakdown.priceDropBonus} drop`);
+  }
+  if (row.scoreBreakdown?.domBonus && row.scoreBreakdown.domBonus > 0) {
+    tags.push(`+${row.scoreBreakdown.domBonus} DOM`);
+  }
+  return tags;
 }
 
 /** Read ?city=&neighborhood=&propertyType= on first client paint (page is loaded with ssr:false). */
@@ -76,6 +115,9 @@ export default function OpportunitiesTop() {
   const [excludedNeighborhoods, setExcludedNeighborhoods] = useState<string[]>([]);
   const [excludeDraft, setExcludeDraft] = useState("");
   const [maxPriceCop, setMaxPriceCop] = useState("");
+  const [minDiscountPct, setMinDiscountPct] = useState("");
+  const [excludeBarter, setExcludeBarter] = useState(false);
+  const [excludeProjects, setExcludeProjects] = useState(false);
   const [excludeUnknownNeighborhoods, setExcludeUnknownNeighborhoods] =
     useState(false);
   const [hideLowConfidence, setHideLowConfidence] = useState(true);
@@ -106,16 +148,28 @@ export default function OpportunitiesTop() {
     if (Number.isFinite(maxParsed) && maxParsed >= 1) {
       p.set("maxPriceCop", String(maxParsed));
     }
+    const minDisc = minDiscountPct.trim();
+    if (minDisc !== "") {
+      const parsed = Number.parseFloat(minDisc);
+      if (Number.isFinite(parsed) && parsed >= 0) {
+        p.set("minDiscountPct", String(parsed));
+      }
+    }
+    if (excludeBarter) p.set("excludeBarter", "1");
+    if (excludeProjects) p.set("excludeProjects", "1");
     if (excludeUnknownNeighborhoods) p.set("excludeUnknownNeighborhoods", "1");
     if (!hideLowConfidence) p.set("hideLowConfidence", "0");
     const s = p.toString();
     return s ? `?${s}` : "";
   }, [
     city,
+    excludeBarter,
+    excludeProjects,
     excludeUnknownNeighborhoods,
     excludedNeighborhoods,
     hideLowConfidence,
     maxPriceCop,
+    minDiscountPct,
     neighborhood,
     propertyType,
   ]);
@@ -278,6 +332,21 @@ export default function OpportunitiesTop() {
             <p className="mt-1 max-w-xs text-xs text-muted">{txt.opportunitiesMaxPriceHint}</p>
           </div>
           <div className="w-full sm:w-auto">
+            <label className="block text-xs font-medium text-muted" htmlFor="opp-min-discount">
+              {txt.opportunitiesMinDiscount}
+            </label>
+            <input
+              id="opp-min-discount"
+              type="text"
+              inputMode="decimal"
+              className={`${inputClassName} sm:min-w-[120px]`}
+              value={minDiscountPct}
+              onChange={(e) => setMinDiscountPct(e.target.value)}
+              placeholder="5"
+            />
+            <p className="mt-1 max-w-xs text-xs text-muted">{txt.opportunitiesMinDiscountHint}</p>
+          </div>
+          <div className="w-full sm:w-auto">
             <label className="block text-xs font-medium text-muted" htmlFor="opp-sortby">
               {txt.opportunitiesSortedBy}
             </label>
@@ -321,6 +390,26 @@ export default function OpportunitiesTop() {
                 onChange={(e) => setHideLowConfidence(e.target.checked)}
               />
               <span>{txt.opportunitiesHideLowConfidence}</span>
+            </label>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-surface/70 px-3 py-2.5">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-800">
+              <input
+                type="checkbox"
+                checked={excludeBarter}
+                onChange={(e) => setExcludeBarter(e.target.checked)}
+              />
+              <span>{txt.opportunitiesExcludeBarter}</span>
+            </label>
+          </div>
+          <div className="rounded-xl border border-slate-200 bg-surface/70 px-3 py-2.5">
+            <label className="inline-flex items-center gap-2 text-sm text-slate-800">
+              <input
+                type="checkbox"
+                checked={excludeProjects}
+                onChange={(e) => setExcludeProjects(e.target.checked)}
+              />
+              <span>{txt.opportunitiesExcludeProjects}</span>
             </label>
           </div>
           </div>
@@ -409,24 +498,33 @@ export default function OpportunitiesTop() {
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesMetric}</th>
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunityDiscount}</th>
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.dealScore}</th>
+                  <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesSignals}</th>
                   <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesConfidence}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={9}>
+                    <td className="px-4 py-4 text-slate-500" colSpan={10}>
                       {txt.estimateCalculating}
                     </td>
                   </tr>
                 ) : sortedRows.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={9}>
+                    <td className="px-4 py-4 text-slate-500" colSpan={10}>
                       {txt.opportunitiesEmpty} {txt.adjustFiltersHint}
                     </td>
                   </tr>
                 ) : (
-                  sortedRows.map((r) => (
+                  sortedRows.map((r) => {
+                    const tags = signalTags(r, txt);
+                    const compLabel =
+                      r.compSampleSize != null && r.compMethod
+                        ? txt.opportunitiesCompInfo
+                            .replace("{n}", String(r.compSampleSize))
+                            .replace("{method}", compMethodLabel(r.compMethod, lang))
+                        : null;
+                    return (
                     <tr key={r.id} className="hover:bg-surface/50">
                       <td className="px-4 py-3">
                         <a href={r.url} target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
@@ -434,17 +532,46 @@ export default function OpportunitiesTop() {
                         </a>
                       </td>
                       <td className="px-4 py-3">{r.city}</td>
-                      <td className="px-4 py-3">{r.neighborhood ?? txt.unknown}</td>
+                      <td className="px-4 py-3">
+                        {r.neighborhood ?? txt.unknown}
+                        {r.zoneName ? (
+                          <span className="ml-1 text-xs text-muted">({r.zoneName})</span>
+                        ) : null}
+                      </td>
                       <td className="px-4 py-3 tabular-nums">{fmtCop(Number(r.priceCop), locale)}</td>
                       <td className="px-4 py-3 tabular-nums">{fmtCop(r.pricePerM2, locale)}</td>
                       <td className="px-4 py-3">{metricTypeLabel(r.metricType, txt)}</td>
                       <td className="px-4 py-3 tabular-nums">
                         {r.discountVsRefPct == null ? "—" : `${r.discountVsRefPct.toFixed(1)}%`}
                       </td>
-                      <td className="px-4 py-3 tabular-nums">{r.dealScore?.toFixed(1) ?? "—"}</td>
+                      <td className="px-4 py-3 tabular-nums">
+                        <span title={r.scoreBreakdown ? JSON.stringify(r.scoreBreakdown) : undefined}>
+                          {r.dealScore?.toFixed(1) ?? "—"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        {tags.length > 0 ? (
+                          <div className="flex flex-wrap gap-1">
+                            {tags.map((tag) => (
+                              <span
+                                key={tag}
+                                className="rounded-full bg-amber-50 px-2 py-0.5 text-xs text-amber-900 ring-1 ring-amber-200/80"
+                              >
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-muted">—</span>
+                        )}
+                        {compLabel ? (
+                          <p className="mt-1 text-xs text-muted">{compLabel}</p>
+                        ) : null}
+                      </td>
                       <td className="px-4 py-3">{confidenceLabel(r.confidence, txt)}</td>
                     </tr>
-                  ))
+                    );
+                  })
                 )}
               </tbody>
             </table>
