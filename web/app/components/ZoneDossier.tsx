@@ -14,6 +14,7 @@ import {
   isApartmentType,
   isHouseType,
   type ZoneConfidence,
+  type ZoneDossier,
 } from "@/lib/zones";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
@@ -23,33 +24,11 @@ const MonthlyTrendChart = dynamic(() => import("@/app/components/MonthlyTrendCha
   loading: () => <Skeleton className="h-52 w-full rounded-2xl" />,
 });
 
-type ZoneDossierData = {
-  slug: string;
-  displayName: string;
-  city: string;
-  citySlug: string;
-  listingCount: number;
-  dataPointCount: number;
-  medianPricePerM2: number | null;
-  medianPriceCop: number | null;
-  published: boolean;
-  minDataPoints: number;
-  opportunityCount: number;
-  dominantConfidence: ZoneConfidence;
-  confidenceMix: Record<string, number>;
-  propertyTypes: Array<{
-    type: string;
-    count: number;
-    medianPricePerM2: number | null;
-  }>;
-  aliases: Array<{ label: string; count: number }>;
-  exploreNeighborhood: string;
-  monthlyTrend: Array<{ month: string; sample: number; medianPpm2: number | null }>;
-};
-
 type Props = {
   citySlug: string;
   zoneSlug: string;
+  /** Server-rendered dossier — skips initial client fetch when set. */
+  initialData?: ZoneDossier | null;
 };
 
 type PropertyTab = "all" | "apt" | "house";
@@ -82,13 +61,13 @@ const CONFIDENCE_BADGE: Record<ZoneConfidence, string> = {
   missing: "bg-slate-100 text-slate-700 ring-slate-200/80 dark:bg-slate-800/60 dark:text-slate-300 dark:ring-slate-700/60",
 };
 
-export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
+export default function ZoneDossier({ citySlug, zoneSlug, initialData }: Props) {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
 
-  const [data, setData] = useState<ZoneDossierData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<ZoneDossier | null>(initialData ?? null);
+  const [loading, setLoading] = useState(initialData == null);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [propertyTab, setPropertyTab] = useState<PropertyTab>("all");
@@ -107,7 +86,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
         return;
       }
       if (!res.ok && res.status !== 202) throw new Error("load");
-      setData((await res.json()) as ZoneDossierData);
+      setData((await res.json()) as ZoneDossier);
     } catch {
       setError(txt.couldNotLoad);
     } finally {
@@ -116,8 +95,9 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
   }, [citySlug, zoneSlug, txt.couldNotLoad]);
 
   useEffect(() => {
+    if (initialData != null) return;
     void load();
-  }, [load]);
+  }, [load, initialData]);
 
   const exploreHref = useMemo(() => {
     if (!data) return "/explore";

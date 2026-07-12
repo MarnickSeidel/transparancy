@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import { rootMetadata } from "@/lib/seo";
 import localFont from "next/font/local";
 import "./globals.css";
 
@@ -13,16 +13,7 @@ const geistMono = localFont({
   weight: "100 900",
 });
 
-export const metadata: Metadata = {
-  title: "Habidata — Colombia real estate data intelligence",
-  description:
-    "Habidata: bilingual (ES/EN) listings analytics, price-per-m² transparency, opportunities, and estimators for Colombia.",
-  icons: {
-    icon: "/branding/habidata-mark.png",
-    shortcut: "/branding/habidata-mark.png",
-    apple: "/branding/habidata-mark.png",
-  },
-};
+export const metadata = rootMetadata();
 
 export default function RootLayout({
   children,

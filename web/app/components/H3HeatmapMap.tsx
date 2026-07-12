@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
-import type { GeoJSON as GeoJSONType, Layer } from "leaflet";
+import type { FeatureCollection } from "geojson";
+import type { Layer } from "leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -28,9 +29,10 @@ function FitBounds({ cells }: { cells: H3HeatCell[] }) {
   const map = useMap();
   useEffect(() => {
     if (cells.length === 0) return;
-    const bounds = L.latLngBounds(
-      cells.flatMap((cell) => cell.boundary.map(([lat, lng]) => [lat, lng])),
+    const points: L.LatLngTuple[] = cells.flatMap((cell) =>
+      cell.boundary.map(([lat, lng]) => [lat, lng] as L.LatLngTuple),
     );
+    const bounds = L.latLngBounds(points);
     map.fitBounds(bounds.pad(0.08));
   }, [cells, map]);
   return null;
@@ -44,7 +46,7 @@ type CellProps = {
   topNeighborhood: string | null;
 };
 
-function toGeoJson(cells: H3HeatCell[]): GeoJSONType.FeatureCollection {
+function toGeoJson(cells: H3HeatCell[]): FeatureCollection {
   return {
     type: "FeatureCollection",
     features: cells.map((cell) => ({

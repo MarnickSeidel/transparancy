@@ -35,6 +35,7 @@ function base(
     pricePerM2Built: 2_500_000,
     pricePerM2Private: 2_777_777,
     pricePerM2Terrain: null,
+    priceAdminIncluded: null,
     adminFeeCop: null,
     bedrooms: 3,
     bathrooms: 2,

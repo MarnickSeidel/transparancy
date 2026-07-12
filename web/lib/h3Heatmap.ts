@@ -38,7 +38,7 @@ function median(values: number[]): number {
 function topNeighborhood(counts: Map<string, number>): string | null {
   let best: string | null = null;
   let bestN = 0;
-  for (const [name, n] of counts) {
+  for (const [name, n] of Array.from(counts.entries())) {
     if (n > bestN) {
       best = name;
       bestN = n;
@@ -84,7 +84,7 @@ export function aggregateListingsToH3(
   const scaleP75 = percentile(allPrices, 0.75);
 
   const cells: H3HeatCell[] = [];
-  for (const [h3Index, data] of cellData) {
+  for (const [h3Index, data] of Array.from(cellData.entries())) {
     if (data.prices.length === 0) continue;
     const med = median(data.prices);
     const [lat, lng] = cellToLatLng(h3Index);

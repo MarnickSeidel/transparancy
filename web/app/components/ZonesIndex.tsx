@@ -42,15 +42,25 @@ function fmtTemplate(template: string, vars: Record<string, string | number>) {
   );
 }
 
-export default function ZonesIndex() {
+type Props = {
+  initialCities?: string[];
+  initialCity?: string;
+  initialData?: ZonesResponse;
+};
+
+export default function ZonesIndex({
+  initialCities,
+  initialCity,
+  initialData,
+}: Props = {}) {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
 
-  const [city, setCity] = useState(DEFAULT_ZONE_CITY);
-  const [cities, setCities] = useState<string[]>([DEFAULT_ZONE_CITY]);
-  const [data, setData] = useState<ZonesResponse | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [city, setCity] = useState(initialCity ?? DEFAULT_ZONE_CITY);
+  const [cities, setCities] = useState<string[]>(initialCities ?? [DEFAULT_ZONE_CITY]);
+  const [data, setData] = useState<ZonesResponse | null>(initialData ?? null);
+  const [loading, setLoading] = useState(initialData == null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -79,8 +89,9 @@ export default function ZonesIndex() {
   }, [city, txt.couldNotLoad]);
 
   useEffect(() => {
+    if (initialData != null && city === (initialCity ?? DEFAULT_ZONE_CITY)) return;
     void load();
-  }, [load]);
+  }, [load, initialData, initialCity, city]);
 
   const zones = data?.zones ?? [];
   const minDataPoints = data?.minDataPoints ?? data?.minCount ?? DEFAULT_MIN_ZONE_DATA_POINTS;
