@@ -12,6 +12,7 @@ import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
 
 type Props = {
+  homeHref?: string
   lang: Lang
   onToggleLang: () => void
   theme: "light" | "dark"
@@ -19,6 +20,7 @@ type Props = {
 }
 
 export default function MarketingHeader({
+  homeHref = "/",
   lang,
   onToggleLang,
   theme,
@@ -35,7 +37,7 @@ export default function MarketingHeader({
       <div className="mx-auto max-w-6xl px-4 py-4 sm:px-6">
         <div className="premium-surface rounded-2xl px-4 py-4 sm:px-5">
           <div className="flex items-center justify-between gap-3">
-            <Link href="/" className="inline-flex shrink-0 items-center" onClick={handleCloseMenu}>
+            <Link href={homeHref} className="inline-flex shrink-0 items-center" onClick={handleCloseMenu}>
               {isDark ? (
                 <span className="logo-on-dark">
                   <Image

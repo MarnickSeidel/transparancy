@@ -1,5 +1,6 @@
-import { rootMetadata } from "@/lib/seo";
+import { rootMetadata, siteViewport } from "@/lib/seo";
 import localFont from "next/font/local";
+import type { Viewport } from "next";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -14,6 +15,8 @@ const geistMono = localFont({
 });
 
 export const metadata = rootMetadata();
+
+export const viewport: Viewport = siteViewport;
 
 export default function RootLayout({
   children,

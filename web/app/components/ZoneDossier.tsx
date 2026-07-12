@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
+import Breadcrumbs from "@/app/components/Breadcrumbs";
 import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
 import Skeleton from "@/app/components/ui/Skeleton";
@@ -13,9 +14,11 @@ import {
   DEFAULT_MIN_ZONE_DATA_POINTS,
   isApartmentType,
   isHouseType,
+  type PublishableZone,
   type ZoneConfidence,
   type ZoneDossier,
 } from "@/lib/zones";
+import { localePath, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -27,8 +30,12 @@ const MonthlyTrendChart = dynamic(() => import("@/app/components/MonthlyTrendCha
 type Props = {
   citySlug: string;
   zoneSlug: string;
+  locale?: Locale;
   /** Server-rendered dossier — skips initial client fetch when set. */
   initialData?: ZoneDossier | null;
+  introParagraphs?: string[];
+  breadcrumbItems?: Array<{ label: string; href: string }>;
+  relatedZones?: PublishableZone[];
 };
 
 type PropertyTab = "all" | "apt" | "house";
@@ -61,10 +68,19 @@ const CONFIDENCE_BADGE: Record<ZoneConfidence, string> = {
   missing: "bg-slate-100 text-slate-700 ring-slate-200/80 dark:bg-slate-800/60 dark:text-slate-300 dark:ring-slate-700/60",
 };
 
-export default function ZoneDossier({ citySlug, zoneSlug, initialData }: Props) {
-  const { lang, toggleLang } = useUiLang("es");
+export default function ZoneDossier({
+  citySlug,
+  zoneSlug,
+  locale: pageLocale = "es",
+  initialData,
+  introParagraphs = [],
+  breadcrumbItems = [],
+  relatedZones = [],
+}: Props) {
+  const { lang, toggleLang } = useUiLang(pageLocale);
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
+  const lp = (path: string) => localePath(lang, path);
 
   const [data, setData] = useState<ZoneDossier | null>(initialData ?? null);
   const [loading, setLoading] = useState(initialData == null);
@@ -166,14 +182,23 @@ export default function ZoneDossier({ citySlug, zoneSlug, initialData }: Props) 
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-        <p className="mb-6">
-          <Link
-            href="/zones"
-            className="text-sm font-medium text-accent hover:underline"
-          >
-            {txt.zonesBackToList}
-          </Link>
-        </p>
+        {breadcrumbItems.length > 0 ? (
+          <Breadcrumbs items={breadcrumbItems} />
+        ) : (
+          <p className="mb-6">
+            <Link href={lp("/zones")} className="text-sm font-medium text-accent hover:underline">
+              {txt.zonesBackToList}
+            </Link>
+          </p>
+        )}
+
+        {introParagraphs.length > 0 ? (
+          <div className="mb-8 max-w-3xl space-y-3 text-sm leading-relaxed text-muted">
+            {introParagraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        ) : null}
 
         {error ? (
           <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
@@ -363,12 +388,59 @@ export default function ZoneDossier({ citySlug, zoneSlug, initialData }: Props) 
                 <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
                   {txt.zonesMonthlyTrend}
                 </h2>
+                <div className="mb-4 overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead>
+                      <tr className="border-b border-slate-200 text-left text-xs uppercase tracking-wide text-muted dark:border-slate-700">
+                        <th className="pb-2 pr-4">{lang === "en" ? "Month" : "Mes"}</th>
+                        <th className="pb-2 pr-4">{lang === "en" ? "Sample" : "Muestra"}</th>
+                        <th className="pb-2">{txt.zonesMedianPpm2}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {chartRows.map((row) => (
+                        <tr
+                          key={row.month}
+                          className="border-b border-slate-100 dark:border-slate-800"
+                        >
+                          <td className="py-2 pr-4 font-medium text-foreground">{row.month}</td>
+                          <td className="py-2 pr-4 tabular-nums text-muted">
+                            {row.sample.toLocaleString(locale)}
+                          </td>
+                          <td className="py-2 tabular-nums text-accent">
+                            {fmtCop(row.medianPpm2, locale)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
                 <MonthlyTrendChart
                   rows={chartRows}
                   locale={locale}
                   noDataLabel={txt.monthlyChartNoData}
                   tooltipLabel={txt.monthlyMedianTooltipLabel}
                 />
+              </Card>
+            ) : null}
+
+            {relatedZones.length > 0 ? (
+              <Card className="mb-6">
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                  {lang === "en" ? "Related neighborhoods" : "Barrios relacionados"}
+                </h2>
+                <ul className="mt-4 flex flex-wrap gap-2">
+                  {relatedZones.map((z) => (
+                    <li key={z.slug}>
+                      <Link
+                        href={lp(`/zones/${z.citySlug}/${z.slug}`)}
+                        className="inline-flex rounded-full border border-slate-200/90 bg-surface px-3 py-1.5 text-sm font-medium text-foreground transition hover:border-teal-300 dark:border-slate-700/80"
+                      >
+                        {z.displayName}
+                      </Link>
+                    </li>
+                  ))}
+                </ul>
               </Card>
             ) : null}
 
@@ -396,7 +468,7 @@ export default function ZoneDossier({ citySlug, zoneSlug, initialData }: Props) 
         ) : null}
       </main>
 
-      <PageFooter />
+      <PageFooter locale={lang} />
     </div>
   );
 }

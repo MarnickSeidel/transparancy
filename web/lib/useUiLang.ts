@@ -1,7 +1,14 @@
 "use client";
 
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
+import {
+  isIndexablePath,
+  parseLocaleFromPath,
+  switchLocalePath,
+  type Locale,
+} from "@/lib/locale";
 import { type Lang } from "@/lib/i18n";
 
 const KEY = "ui_lang";
@@ -13,10 +20,12 @@ function readStoredLang(): Lang | null {
 }
 
 /**
- * Keep initial `lang` aligned with SSR (always `defaultLang`), then sync from localStorage
- * in an effect — same pattern as useUiTheme — to avoid hydration mismatches on data-heavy pages.
+ * Sync UI language with URL locale on indexable routes; localStorage elsewhere.
  */
 export function useUiLang(defaultLang: Lang = "es") {
+  const pathname = usePathname();
+  const router = useRouter();
+  const urlLang = parseLocaleFromPath(pathname) as Lang;
   const [lang, setLang] = useState<Lang>(defaultLang);
   const syncedRef = useRef(false);
 
@@ -24,16 +33,28 @@ export function useUiLang(defaultLang: Lang = "es") {
     let next = lang;
     if (!syncedRef.current) {
       syncedRef.current = true;
-      next = readStoredLang() ?? defaultLang;
-      if (next !== lang) {
-        setLang(next);
+      if (isIndexablePath(pathname)) {
+        next = urlLang;
+      } else {
+        next = readStoredLang() ?? defaultLang;
       }
+      if (next !== lang) setLang(next);
+    } else if (isIndexablePath(pathname)) {
+      next = urlLang;
+      if (next !== lang) setLang(next);
     }
     window.localStorage.setItem(KEY, next);
-    document.documentElement.lang = next;
-  }, [lang, defaultLang]);
+    document.documentElement.lang = next === "en" ? "en" : "es";
+  }, [lang, defaultLang, pathname, urlLang]);
 
-  const toggleLang = () => setLang((prev) => (prev === "es" ? "en" : "es"));
+  const toggleLang = () => {
+    const next: Locale = lang === "es" ? "en" : "es";
+    if (isIndexablePath(pathname)) {
+      router.push(switchLocalePath(pathname, next));
+    } else {
+      setLang(next);
+    }
+  };
 
   return { lang, setLang, toggleLang };
 }

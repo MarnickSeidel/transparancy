@@ -17,10 +17,10 @@ export type NavTextKey =
   | "analyzeUrlNav"
 
 export const navItems: Array<{ key: NavKey; href: string; textKey: NavTextKey }> = [
-  { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
-  { key: "opportunities", href: "/opportunities", textKey: "opportunitiesNav" },
-  { key: "explore", href: "/explore", textKey: "exploreNav" },
   { key: "zones", href: "/zones", textKey: "zonesNav" },
+  { key: "explore", href: "/explore", textKey: "exploreNav" },
+  { key: "opportunities", href: "/opportunities", textKey: "opportunitiesNav" },
+  { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
   { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
   { key: "analyzeUrl", href: "/analyze-url", textKey: "analyzeUrlNav" },
   { key: "estimate", href: "/estimate", textKey: "estimateNav" },

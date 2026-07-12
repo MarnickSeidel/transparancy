@@ -9,6 +9,7 @@ import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
+import { localePath, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -43,19 +44,22 @@ function fmtTemplate(template: string, vars: Record<string, string | number>) {
 }
 
 type Props = {
+  locale?: Locale;
   initialCities?: string[];
   initialCity?: string;
   initialData?: ZonesResponse;
 };
 
 export default function ZonesIndex({
+  locale: pageLocale = "es",
   initialCities,
   initialCity,
   initialData,
 }: Props = {}) {
-  const { lang, toggleLang } = useUiLang("es");
+  const { lang, toggleLang } = useUiLang(pageLocale);
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
+  const lp = (path: string) => localePath(lang, path);
 
   const [city, setCity] = useState(initialCity ?? DEFAULT_ZONE_CITY);
   const [cities, setCities] = useState<string[]>(initialCities ?? [DEFAULT_ZONE_CITY]);
@@ -136,6 +140,12 @@ export default function ZonesIndex({
               </option>
             ))}
           </select>
+          <Link
+            href={lp(`/zones/${citySlug}`)}
+            className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
+          >
+            {lang === "en" ? `View all ${city} neighborhoods →` : `Ver todos los barrios en ${city} →`}
+          </Link>
         </Card>
 
         {loading ? (
@@ -153,7 +163,7 @@ export default function ZonesIndex({
             {zones.map((zone) => (
               <Link
                 key={zone.slug}
-                href={`/zones/${citySlug}/${zone.slug}`}
+                href={lp(`/zones/${citySlug}/${zone.slug}`)}
                 className="group block"
               >
                 <Card className="h-full border-slate-200/90 shadow-card transition-transform group-hover:-translate-y-0.5">
@@ -194,7 +204,7 @@ export default function ZonesIndex({
         )}
       </main>
 
-      <PageFooter />
+      <PageFooter locale={lang} />
     </div>
   );
 }

@@ -1,55 +1,78 @@
 import type { Metadata } from "next";
 
+import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
+import { localePath, ogLocale, type Locale } from "@/lib/locale";
 import { absoluteUrl } from "@/lib/siteUrl";
 import type { ZoneDossier } from "@/lib/zones";
 
-function fmtCopShort(v: number | null | undefined): string {
+function fmtCopShort(v: number | null | undefined, locale: Locale): string {
   if (v == null || Number.isNaN(v)) return "";
-  return `$${Math.round(v).toLocaleString("es-CO")}`;
+  const loc = locale === "es" ? "es-CO" : "en-US";
+  return `$${Math.round(v).toLocaleString(loc)}`;
 }
 
 export function zonePagePath(dossier: Pick<ZoneDossier, "citySlug" | "slug">): string {
   return `/zones/${encodeURIComponent(dossier.citySlug)}/${encodeURIComponent(dossier.slug)}`;
 }
 
-export function zonePageMetadata(dossier: ZoneDossier): Metadata {
-  const { displayName, city } = dossier;
-  const ppm2 = fmtCopShort(dossier.medianPricePerM2);
-  const title = `Precio m² en ${displayName}, ${city} | Habidata`;
-  const description = ppm2
-    ? `Mediana de precio por m² en ${displayName} (${city}): ${ppm2}. ${dossier.listingCount.toLocaleString("es-CO")} publicaciones activas, ${dossier.opportunityCount} oportunidades detectadas. Datos de anuncios Finca Raíz.`
-    : `Dossier de mercado inmobiliario en ${displayName}, ${city}: publicaciones activas, mediana de precio/m² y tendencia mensual. Habidata.`;
+export function zonePageMetadata(dossier: ZoneDossier, locale: Locale = "es"): Metadata {
+  const { displayName, city, published } = dossier;
+  const path = zonePagePath(dossier);
+  const alt = hreflangAlternates(path);
+  const ppm2 = fmtCopShort(dossier.medianPricePerM2, locale);
 
-  const url = absoluteUrl(zonePagePath(dossier));
+  let title: string;
+  let description: string;
+
+  if (locale === "en") {
+    title = `${displayName}, ${city} — Price per m² | Habidata`;
+    description = ppm2
+      ? `Median asking price per m² in ${displayName}, ${city}: ${ppm2} COP. ${dossier.listingCount.toLocaleString("en-US")} active listings, ${dossier.opportunityCount} opportunities flagged. Finca Raíz data for US and international investors.`
+      : `Real estate market dossier for ${displayName}, ${city}, Colombia: active listings, median price/m², and monthly trends. Habidata.`;
+  } else {
+    title = `Precio m² en ${displayName}, ${city} | Habidata`;
+    description = ppm2
+      ? `Mediana de precio por m² en ${displayName} (${city}): ${ppm2}. ${dossier.listingCount.toLocaleString("es-CO")} publicaciones activas, ${dossier.opportunityCount} oportunidades detectadas. Datos de anuncios Finca Raíz.`
+      : `Dossier de mercado inmobiliario en ${displayName}, ${city}: publicaciones activas, mediana de precio/m² y tendencia mensual. Habidata.`;
+  }
+
+  const canonical = canonicalForLocale(path, locale);
 
   return {
     title,
     description,
-    alternates: { canonical: url },
+    ...(!published ? { robots: { index: false, follow: true } } : {}),
+    alternates: { canonical, languages: alt.languages },
     openGraph: {
       title,
       description,
-      url,
+      url: canonical,
       siteName: "Habidata",
-      locale: "es_CO",
+      locale: ogLocale(locale),
       type: "article",
     },
-    twitter: {
-      card: "summary",
-      title,
-      description,
-    },
+    twitter: { card: "summary", title, description },
   };
 }
 
-export function zoneJsonLd(dossier: ZoneDossier) {
-  const url = absoluteUrl(zonePagePath(dossier));
+export function zoneJsonLd(dossier: ZoneDossier, locale: Locale = "es") {
+  const path = zonePagePath(dossier);
+  const url = canonicalForLocale(path, locale);
+  const name =
+    locale === "en"
+      ? `${dossier.displayName}, ${dossier.city} — price per m²`
+      : `Precio m² en ${dossier.displayName}, ${dossier.city}`;
+
   return {
     "@context": "https://schema.org",
     "@type": "Dataset",
-    name: `Precio m² en ${dossier.displayName}, ${dossier.city}`,
-    description: `Mediana de precio por metro cuadrado y estadísticas de publicaciones activas en ${dossier.displayName}, ${dossier.city}, Colombia.`,
+    name,
+    description:
+      locale === "en"
+        ? `Median asking price per square meter and active listing statistics for ${dossier.displayName}, ${dossier.city}, Colombia.`
+        : `Mediana de precio por metro cuadrado y estadísticas de publicaciones activas en ${dossier.displayName}, ${dossier.city}, Colombia.`,
     url,
+    inLanguage: locale === "en" ? "en-US" : "es-CO",
     creator: {
       "@type": "Organization",
       name: "Habidata",
@@ -72,16 +95,63 @@ export function zoneJsonLd(dossier: ZoneDossier) {
   };
 }
 
-export function zonesIndexMetadata(): Metadata {
+export function zonesIndexMetadata(locale: Locale = "es"): Metadata {
+  const path = "/zones";
+  const alt = hreflangAlternates(path);
+
+  if (locale === "en") {
+    const title = "Neighborhood dossiers — price per m² by zone | Habidata";
+    const description =
+      "Explore median price per m², active listings, and trends by neighborhood in Bogotá, Medellín, Cali, Pereira, and more Colombian cities. Data for local and US investors.";
+    return {
+      title,
+      description,
+      alternates: { canonical: canonicalForLocale(path, locale), languages: alt.languages },
+      openGraph: {
+        title,
+        description,
+        url: canonicalForLocale(path, locale),
+        siteName: "Habidata",
+        locale: ogLocale(locale),
+      },
+      twitter: { card: "summary", title, description },
+    };
+  }
+
   const title = "Dossiers de barrios — precio m² por zona | Habidata";
   const description =
     "Explora mediana de precio por m², publicaciones activas y tendencias por barrio en Bogotá, Medellín, Cali, Pereira y más ciudades de Colombia.";
-  const url = absoluteUrl("/zones");
   return {
     title,
     description,
-    alternates: { canonical: url },
-    openGraph: { title, description, url, siteName: "Habidata", locale: "es_CO" },
+    alternates: { canonical: alt.canonical, languages: alt.languages },
+    openGraph: {
+      title,
+      description,
+      url: alt.canonical,
+      siteName: "Habidata",
+      locale: ogLocale(locale),
+    },
     twitter: { card: "summary", title, description },
   };
+}
+
+export function zoneBreadcrumbItems(
+  dossier: ZoneDossier,
+  locale: Locale,
+): Array<{ label: string; href: string }> {
+  const home = locale === "en" ? "Home" : "Inicio";
+  const zones = locale === "en" ? "Neighborhoods" : "Barrios";
+  return [
+    { label: home, href: localePath(locale, "/") },
+    { label: zones, href: localePath(locale, "/zones") },
+    {
+      label: dossier.city,
+      href: localePath(locale, `/zones/${dossier.citySlug}`),
+    },
+    {
+      label: dossier.displayName,
+      href: localePath(locale, zonePagePath(dossier)),
+    },
+  ];
 }

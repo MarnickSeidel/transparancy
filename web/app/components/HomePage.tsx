@@ -11,6 +11,8 @@ import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
+import type { HomePageData } from "@/lib/getHomeStats"
+import { localePath, type Locale } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { uiText } from "@/lib/i18n"
 import { useUiLang } from "@/lib/useUiLang"
@@ -101,46 +103,71 @@ type ZonePreview = {
   listingCount: number
 }
 
-export default function HomePage() {
+type Props = {
+  locale?: Locale;
+  initialData?: HomePageData;
+};
+
+export default function HomePage({ locale: pageLocale = "es", initialData }: Props) {
   const router = useRouter()
-  const { lang, toggleLang } = useUiLang("es")
+  const { lang, toggleLang } = useUiLang(pageLocale)
   const { theme, toggleTheme } = useUiTheme("light")
   const txt = uiText[lang]
   const copy = useMemo(() => content[lang], [lang])
-  const locale = lang === "es" ? "es-CO" : "en-US"
+  const localeFmt = lang === "es" ? "es-CO" : "en-US"
+  const lp = (path: string) => localePath(lang, path)
 
   const [inlineUrl, setInlineUrl] = useState("")
   const [highlights, setHighlights] = useState<
     Array<{ label: string; value: string; loading: boolean }>
-  >([
-    { label: copy.statsListingsLabel, value: "", loading: true },
-    { label: copy.statsNeighborhoodsLabel, value: "", loading: true },
-    { label: copy.statsCitiesLabel, value: "", loading: true },
-  ])
+  >(() =>
+    initialData
+      ? [
+          {
+            label: copy.statsListingsLabel,
+            value: initialData.totalListings.toLocaleString(localeFmt),
+            loading: false,
+          },
+          {
+            label: copy.statsNeighborhoodsLabel,
+            value: initialData.neighborhoodCount.toLocaleString(localeFmt),
+            loading: false,
+          },
+          {
+            label: copy.statsCitiesLabel,
+            value: initialData.cityCount.toLocaleString(localeFmt),
+            loading: false,
+          },
+        ]
+      : [
+          { label: copy.statsListingsLabel, value: "", loading: true },
+          { label: copy.statsNeighborhoodsLabel, value: "", loading: true },
+          { label: copy.statsCitiesLabel, value: "", loading: true },
+        ],
+  )
   const [cards, setCards] = useState<
     Array<{ zone: string; type: string; value: string; score: string; href: string }>
   >([])
-  const [zonePreviews, setZonePreviews] = useState<ZonePreview[]>([])
+  const zonePreviews: ZonePreview[] =
+    initialData?.featuredZones.slice(0, 3).map((z) => ({
+      slug: z.slug,
+      displayName: z.displayName,
+      citySlug: z.citySlug,
+      medianPricePerM2: z.medianPricePerM2,
+      listingCount: z.listingCount,
+    })) ?? []
   const [statsFailed, setStatsFailed] = useState(false)
 
   useEffect(() => {
-    setHighlights([
-      { label: copy.statsListingsLabel, value: "", loading: true },
-      { label: copy.statsNeighborhoodsLabel, value: "", loading: true },
-      { label: copy.statsCitiesLabel, value: "", loading: true },
-    ])
-  }, [copy.statsCitiesLabel, copy.statsListingsLabel, copy.statsNeighborhoodsLabel])
-
-  useEffect(() => {
+    if (initialData) return
     let cancelled = false
 
     async function loadLiveData() {
       setStatsFailed(false)
       try {
-        const [summaryRes, oppRes, zonesRes] = await Promise.all([
+        const [summaryRes, oppRes] = await Promise.all([
           fetch("/api/summary"),
           fetch("/api/opportunities"),
-          fetch("/api/zones?city=Pereira&minDataPoints=20"),
         ])
         if (!summaryRes.ok) {
           if (!cancelled) setStatsFailed(true)
@@ -152,17 +179,17 @@ export default function HomePage() {
         setHighlights([
           {
             label: copy.statsListingsLabel,
-            value: Number(summary.totalListings ?? 0).toLocaleString(locale),
+            value: Number(summary.totalListings ?? 0).toLocaleString(localeFmt),
             loading: false,
           },
           {
             label: copy.statsNeighborhoodsLabel,
-            value: Number(summary.neighborhoodCount ?? 0).toLocaleString(locale),
+            value: Number(summary.neighborhoodCount ?? 0).toLocaleString(localeFmt),
             loading: false,
           },
           {
             label: copy.statsCitiesLabel,
-            value: Number(summary.cityCount ?? 0).toLocaleString(locale),
+            value: Number(summary.cityCount ?? 0).toLocaleString(localeFmt),
             loading: false,
           },
         ])
@@ -183,7 +210,7 @@ export default function HomePage() {
                 }) => ({
                   zone: o.neighborhood?.trim() || o.city,
                   type: propertyTypeLabel(o.propertyType, lang),
-                  value: `COP ${Number(String(o.priceCop).replace(/\D/g, "")).toLocaleString(locale)}`,
+                  value: `COP ${Number(String(o.priceCop).replace(/\D/g, "")).toLocaleString(localeFmt)}`,
                   score:
                     o.dealScore != null && Number.isFinite(o.dealScore)
                       ? `${Math.round(o.dealScore)}/100`
@@ -193,18 +220,6 @@ export default function HomePage() {
               ),
             )
           }
-        }
-
-        if (zonesRes.ok) {
-          const zonesJson = await zonesRes.json()
-          const topZones = (zonesJson.zones ?? [])
-            .slice()
-            .sort(
-              (a: ZonePreview, b: ZonePreview) =>
-                (b.listingCount ?? 0) - (a.listingCount ?? 0),
-            )
-            .slice(0, 3)
-          if (!cancelled) setZonePreviews(topZones)
         }
       } catch {
         if (!cancelled) {
@@ -218,7 +233,7 @@ export default function HomePage() {
     return () => {
       cancelled = true
     }
-  }, [copy, lang, locale])
+  }, [copy, lang, localeFmt, initialData])
 
   const handleInlineAnalyze = (e: React.FormEvent) => {
     e.preventDefault()
@@ -231,6 +246,7 @@ export default function HomePage() {
     <div className="app-shell flex min-h-screen flex-col">
       <MarketingHeader
         lang={lang}
+        homeHref={lp("/")}
         onToggleLang={toggleLang}
         theme={theme}
         onToggleTheme={toggleTheme}
@@ -335,6 +351,26 @@ export default function HomePage() {
           </aside>
         </div>
 
+        {initialData && initialData.featuredCities.length > 0 ? (
+          <section className="mt-14">
+            <h2 className="text-lg font-semibold text-foreground">
+              {lang === "en" ? "Explore by city" : "Explorar por ciudad"}
+            </h2>
+            <div className="mt-4 flex flex-wrap gap-2">
+              {initialData.featuredCities.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={lp(`/zones/${c.slug}`)}
+                  className="rounded-full border border-slate-200/90 bg-elevated px-4 py-2 text-sm font-semibold text-foreground transition hover:border-teal-300 dark:border-slate-700/80"
+                >
+                  {c.name}{" "}
+                  <span className="text-muted">({c.zoneCount})</span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        ) : null}
+
         {zonePreviews.length > 0 ? (
           <section className="mt-14">
             <h2 className="text-lg font-semibold text-foreground">
@@ -344,16 +380,16 @@ export default function HomePage() {
               {zonePreviews.map((z) => (
                 <Link
                   key={z.slug}
-                  href={`/zones/${z.citySlug}/${z.slug}`}
+                  href={lp(`/zones/${z.citySlug}/${z.slug}`)}
                   className="rounded-xl border border-slate-200/90 bg-elevated p-4 transition hover:border-teal-300 dark:border-slate-700/80"
                 >
                   <p className="font-semibold text-foreground">{z.displayName}</p>
                   <p className="mt-1 text-sm text-muted">
-                    {z.listingCount.toLocaleString(locale)} {txt.activeListings.toLowerCase()}
+                    {z.listingCount.toLocaleString(localeFmt)} {txt.activeListings.toLowerCase()}
                   </p>
                   {z.medianPricePerM2 != null ? (
                     <p className="mt-2 text-sm font-semibold tabular-nums text-foreground">
-                      {txt.medianPriceM2}: ${Math.round(z.medianPricePerM2).toLocaleString(locale)}
+                      {txt.medianPriceM2}: ${Math.round(z.medianPricePerM2).toLocaleString(localeFmt)}
                     </p>
                   ) : null}
                   <p className="mt-2 text-xs font-semibold text-accent">
@@ -374,7 +410,7 @@ export default function HomePage() {
           </Card>
         ))}
       </section>
-      <PageFooter />
+      <PageFooter locale={lang} />
     </div>
   )
 }

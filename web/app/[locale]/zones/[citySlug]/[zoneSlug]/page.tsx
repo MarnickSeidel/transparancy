@@ -1,0 +1,94 @@
+import { notFound } from "next/navigation";
+
+import ZoneDossier from "@/app/components/ZoneDossier";
+import { getRelatedZones } from "@/lib/getRelatedZones";
+import { getZoneDossier } from "@/lib/getZoneDossier";
+import { breadcrumbJsonLd } from "@/lib/trustSeo";
+import { LOCALES, stripLocalePrefix, type Locale } from "@/lib/locale";
+import { zoneIntroParagraphs } from "@/lib/zoneCopy";
+import {
+  zoneBreadcrumbItems,
+  zoneJsonLd,
+  zonePageMetadata,
+} from "@/lib/zoneSeo";
+import { DEFAULT_MIN_ZONE_DATA_POINTS } from "@/lib/zones";
+
+export const revalidate = 300;
+
+type Props = {
+  params: { locale: string; citySlug: string; zoneSlug: string };
+};
+
+export async function generateMetadata({ params }: Props) {
+  const locale = params.locale as Locale;
+  try {
+    const dossier = await getZoneDossier(
+      params.citySlug,
+      params.zoneSlug,
+      DEFAULT_MIN_ZONE_DATA_POINTS,
+    );
+    if (!dossier) {
+      return { title: locale === "en" ? "Neighborhood not found" : "Barrio no encontrado" };
+    }
+    return zonePageMetadata(dossier, locale);
+  } catch {
+    return { title: locale === "en" ? "Neighborhood dossier" : "Dossier de barrio" };
+  }
+}
+
+export default async function ZoneDetailPage({ params }: Props) {
+  const locale = params.locale as Locale;
+  if (!LOCALES.includes(locale)) notFound();
+
+  let dossier;
+  try {
+    dossier = await getZoneDossier(
+      params.citySlug,
+      params.zoneSlug,
+      DEFAULT_MIN_ZONE_DATA_POINTS,
+    );
+  } catch {
+    notFound();
+  }
+
+  if (!dossier) notFound();
+
+  const relatedZones = dossier.published
+    ? await getRelatedZones(dossier.city, dossier.slug)
+    : [];
+
+  const introParagraphs = zoneIntroParagraphs(dossier, locale);
+  const breadcrumbItems = zoneBreadcrumbItems(dossier, locale);
+
+  const jsonLd = [
+    zoneJsonLd(dossier, locale),
+    breadcrumbJsonLd(
+      breadcrumbItems.map((b) => ({
+        name: b.label,
+        path: stripLocalePrefix(b.href),
+      })),
+      locale,
+    ),
+  ];
+
+  return (
+    <>
+      {jsonLd.map((schema, i) => (
+        <script
+          key={i}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
+      <ZoneDossier
+        citySlug={params.citySlug}
+        zoneSlug={params.zoneSlug}
+        locale={locale}
+        initialData={dossier}
+        introParagraphs={introParagraphs}
+        breadcrumbItems={breadcrumbItems}
+        relatedZones={relatedZones}
+      />
+    </>
+  );
+}
