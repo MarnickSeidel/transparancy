@@ -2,29 +2,37 @@ import { createHash } from "crypto";
 
 type Json = Record<string, unknown>;
 
+export type TechnicalSheetEntry = {
+  field: string
+  value: string
+  label?: string
+}
+
 export type ParsedListing = {
-  externalId: string;
-  url: string;
-  title: string;
-  priceCop: number;
-  areaM2: number;
-  areaBuiltM2: number | null;
-  areaTerrainM2: number | null;
-  estrato: number | null;
-  neighborhood: string | null;
-  city: string;
-  department: string;
-  propertyType: string | null;
-  operationType: string | null;
-  bedrooms: number | null;
-  bathrooms: number | null;
-  latitude: number | null;
-  longitude: number | null;
-  imageUrl: string | null;
-  description: string | null;
-  locationPath: string[];
-  sourceFingerprint: string;
-};
+  externalId: string
+  url: string
+  title: string
+  priceCop: number
+  areaM2: number
+  areaBuiltM2: number | null
+  areaTerrainM2: number | null
+  estrato: number | null
+  neighborhood: string | null
+  city: string
+  department: string
+  propertyType: string | null
+  operationType: string | null
+  bedrooms: number | null
+  bathrooms: number | null
+  latitude: number | null
+  longitude: number | null
+  imageUrl: string | null
+  description: string | null
+  address: string | null
+  technicalSheet: TechnicalSheetEntry[] | null
+  locationPath: string[]
+  sourceFingerprint: string
+}
 
 const ALLOWED_HOSTS = new Set(["www.fincaraiz.com.co", "fincaraiz.com.co"]);
 
@@ -165,13 +173,86 @@ function extractLocationPath(raw: unknown): string[] {
 }
 
 function parseFromDescription(desc: string | null) {
-  if (!desc) return { areaBuiltM2: null as number | null, areaTerrainM2: null as number | null };
-  const built = desc.match(/(\d[\d.,]*)\s*(?:m2|mts2|m²)\s*(?:de\s+ellos\s+)?construid/i);
-  const terrain = desc.match(/(?:area\s+total|terreno)[^\d]{0,20}(\d[\d.,]*)\s*(?:m2|mts2|m²)/i);
+  if (!desc) return { areaBuiltM2: null as number | null, areaTerrainM2: null as number | null }
+  const built = desc.match(/(\d[\d.,]*)\s*(?:m2|mts2|m²)\s*(?:de\s+ellos\s+)?construid/i)
+  const terrain = desc.match(/(?:area\s+total|terreno)[^\d]{0,20}(\d[\d.,]*)\s*(?:m2|mts2|m²)/i)
   return {
     areaBuiltM2: built ? parseNumber(built[1]) : null,
     areaTerrainM2: terrain ? parseNumber(terrain[1]) : null,
-  };
+  }
+}
+
+function normalizeNamedField(value: unknown): string | null {
+  if (typeof value === "string") {
+    const s = value.trim()
+    return s || null
+  }
+  if (value != null && typeof value === "object" && !Array.isArray(value)) {
+    const obj = value as Json
+    for (const key of ["name", "label", "title"]) {
+      if (typeof obj[key] === "string") {
+        const s = (obj[key] as string).trim()
+        if (s) return s
+      }
+    }
+  }
+  return null
+}
+
+function serializeTechnicalSheetValue(value: unknown): string | null {
+  if (value == null) return null
+  if (typeof value === "string") {
+    const s = value.trim()
+    return s ? s.slice(0, 500) : null
+  }
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value)
+  }
+  if (typeof value === "object") {
+    try {
+      const s = JSON.stringify(value)
+      return s ? s.slice(0, 500) : null
+    } catch {
+      return null
+    }
+  }
+  const s = String(value).trim()
+  return s ? s.slice(0, 500) : null
+}
+
+function extractTechnicalSheet(item: Json): TechnicalSheetEntry[] | null {
+  const sheet = item.technicalSheet
+  if (!Array.isArray(sheet) || sheet.length === 0) return null
+  const out: TechnicalSheetEntry[] = []
+  for (const row of sheet) {
+    if (row == null || typeof row !== "object" || Array.isArray(row)) continue
+    const obj = row as Json
+    const field = typeof obj.field === "string" ? obj.field.trim() : ""
+    if (!field) continue
+    const value = serializeTechnicalSheetValue(obj.value)
+    if (!value) continue
+    const entry: TechnicalSheetEntry = { field: field.slice(0, 120), value }
+    const label = normalizeNamedField(obj.label) ?? normalizeNamedField(obj.name)
+    if (label) entry.label = label.slice(0, 200)
+    out.push(entry)
+  }
+  return out.length > 0 ? out : null
+}
+
+function extractListingAddress(item: Json): string | null {
+  const raw = item.address
+  if (typeof raw === "string") {
+    const s = raw.trim().replace(/\s+/g, " ")
+    return s ? s.slice(0, 500) : null
+  }
+  if (raw != null && typeof raw === "object" && !Array.isArray(raw)) {
+    const obj = raw as Json
+    for (const key of ["address", "full", "street", "name", "label"]) {
+      const val = normalizeNamedField(obj[key])
+      if (val) return val.slice(0, 500)
+    }
+  }
+  return null
 }
 
 export function parseSingleListingFromHtml(inputUrl: string, html: string): ParsedListing {
@@ -277,7 +358,10 @@ export function parseSingleListingFromHtml(inputUrl: string, html: string): Pars
 
   const fingerprint = createHash("sha1")
     .update(`${canonical}|${title}|${priceCop}|${areaM2}`)
-    .digest("hex");
+    .digest("hex")
+
+  const address = extractListingAddress(item as Json)
+  const technicalSheet = extractTechnicalSheet(item as Json)
 
   return {
     externalId: externalId.trim(),
@@ -299,7 +383,9 @@ export function parseSingleListingFromHtml(inputUrl: string, html: string): Pars
     longitude,
     imageUrl,
     description,
+    address,
+    technicalSheet,
     locationPath: path,
     sourceFingerprint: fingerprint,
-  };
+  }
 }

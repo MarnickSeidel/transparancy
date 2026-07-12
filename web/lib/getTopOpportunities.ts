@@ -111,6 +111,8 @@ export type OpportunityRow = {
   url: string
   imageUrl: string | null
   sourceUpdatedAt: string | null
+  latitude: number | null
+  longitude: number | null
 }
 
 function parseExcludeNeighborhoods(values: string[]): Set<string> {
@@ -356,6 +358,8 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
       url: row.url,
       imageUrl: row.imageUrl,
       sourceUpdatedAt: row.sourceUpdatedAt?.toISOString() ?? null,
+      latitude: row.latitude,
+      longitude: row.longitude,
     })
   }
 

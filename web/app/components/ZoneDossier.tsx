@@ -6,6 +6,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
 import Breadcrumbs from "@/app/components/Breadcrumbs";
+import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection";
 import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
 import Skeleton from "@/app/components/ui/Skeleton";
@@ -307,6 +308,20 @@ export default function ZoneDossier({
                 </p>
               </Card>
             </div>
+
+            {data.geoListingCount >= 3 &&
+            data.centroidLatitude != null &&
+            data.centroidLongitude != null ? (
+              <div className="mb-6">
+                <p className="mb-2 text-xs text-muted">{txt.nearbyAmenitiesZoneSubtitle}</p>
+                <NearbyAmenitiesSection
+                  latitude={data.centroidLatitude}
+                  longitude={data.centroidLongitude}
+                  lang={lang}
+                  locale={locale}
+                />
+              </div>
+            ) : null}
 
             <div className="mb-6 grid gap-4 lg:grid-cols-3">
               <Card className="lg:col-span-2">

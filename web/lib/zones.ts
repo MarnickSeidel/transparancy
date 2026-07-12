@@ -59,6 +59,9 @@ export type ZoneDossier = PublishableZone & {
   exploreNeighborhood: string;
   monthlyTrend: ZoneMonthlyTrend[];
   lastUpdatedAt: string | null;
+  centroidLatitude: number | null;
+  centroidLongitude: number | null;
+  geoListingCount: number;
 };
 
 export function effectivePpm2(

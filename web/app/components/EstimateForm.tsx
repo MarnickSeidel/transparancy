@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
+import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection";
 import PriceRangeBar from "@/app/components/PriceRangeBar";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
@@ -868,6 +869,15 @@ export default function EstimateForm() {
               </Link>
               <p className="text-xs text-muted">{txt.estimateDisclaimer}</p>
             </Card>
+
+            {submitted.useGeo && mapMarker ? (
+              <NearbyAmenitiesSection
+                latitude={mapMarker.lat}
+                longitude={mapMarker.lng}
+                lang={lang}
+                locale={locale}
+              />
+            ) : null}
 
             {resultLinks ? (
               <div className="space-y-4">

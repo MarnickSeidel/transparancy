@@ -147,6 +147,10 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
                 float(area_private) if area_private else None,
                 ppm2_private,
                 r.get("description"),
+                r.get("address"),
+                Json(r.get("technical_sheet"))
+                if r.get("technical_sheet") is not None
+                else None,
                 r.get("garage"),
                 r.get("floor"),
                 r.get("antiquity"),
@@ -201,7 +205,8 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           price_per_m2, price_per_m2_built,
           price_per_m2_terrain, deal_score, url, image_url, date_scraped, is_deal, is_active,
           property_type, operation_type, area_built_m2, area_terrain_m2, area_terrace_m2,
-          area_private_m2, price_per_m2_private, description, garage, floor, antiquity,
+          area_private_m2, price_per_m2_private, description, address, technical_sheet,
+          garage, floor, antiquity,
           accepts_barter, construction_state, owner_id, owner_name, owner_type, owner_particular,
           neighborhood_source_id, zone_name, commune_name, facilities, image_count,
           price_admin_included, highlight, relevance, paid_quota, is_project,
@@ -302,6 +307,14 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           description = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.description
             ELSE COALESCE(listings.description, EXCLUDED.description)
+          END,
+          address = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.address
+            ELSE COALESCE(listings.address, EXCLUDED.address)
+          END,
+          technical_sheet = CASE
+            WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.technical_sheet
+            ELSE COALESCE(listings.technical_sheet, EXCLUDED.technical_sheet)
           END,
           garage = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.garage

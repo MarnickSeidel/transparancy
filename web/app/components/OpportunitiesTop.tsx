@@ -5,6 +5,7 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 import PageFooter from "@/app/components/PageFooter";
 import CollapsibleSection from "@/app/components/CollapsibleSection";
 import OpportunityMobileCard from "@/app/components/OpportunityMobileCard";
+import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
@@ -49,6 +50,8 @@ type OpportunityRow = {
   url: string;
   sourceUpdatedAt: string | null;
   imageUrl?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 };
 
 function fmtCop(v: number | null | undefined, locale: string) {
@@ -720,6 +723,14 @@ export default function OpportunitiesTop() {
                                 locale={locale}
                               />
                             ) : null}
+                            <NearbyAmenitiesSection
+                              latitude={r.latitude}
+                              longitude={r.longitude}
+                              lang={lang}
+                              locale={locale}
+                              enabled={isExpanded}
+                              compact
+                            />
                           </div>
                         </td>
                       </tr>
@@ -781,6 +792,14 @@ export default function OpportunitiesTop() {
                         locale={locale}
                       />
                     ) : null}
+                    <NearbyAmenitiesSection
+                      latitude={r.latitude}
+                      longitude={r.longitude}
+                      lang={lang}
+                      locale={locale}
+                      enabled={isExpanded}
+                      compact
+                    />
                   </OpportunityMobileCard>
                 )
               })

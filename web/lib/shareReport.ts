@@ -23,6 +23,8 @@ export type SharedAnalyzePayload = {
     pricePerM2: number | null
     constructionState?: string | null
     facilities?: unknown
+    latitude?: number | null
+    longitude?: number | null
   }
   analysis: {
     dealScore: number | null

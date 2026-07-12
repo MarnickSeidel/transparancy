@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react"
 import PageFooter from "@/app/components/PageFooter"
 import ShareReportActions from "@/app/components/ShareReportActions"
 import DomBadge from "@/app/components/DomBadge"
+import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection"
 import VerdictBanner from "@/app/components/VerdictBanner"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
@@ -49,6 +50,8 @@ type AnalyzeResponse = {
     pricePerM2: number | null
     constructionState: string | null
     facilities: unknown
+    latitude: number | null
+    longitude: number | null
   }
   analysis: {
     dealScore: number | null
@@ -444,6 +447,13 @@ export default function AnalyzeUrlForm() {
                 </div>
               </Card>
             ) : null}
+
+            <NearbyAmenitiesSection
+              latitude={data.listing.latitude}
+              longitude={data.listing.longitude}
+              lang={lang}
+              locale={locale}
+            />
 
             {priceTimelinePoints.length >= 2 ? (
               <Card className="border-slate-200/90 shadow-card">

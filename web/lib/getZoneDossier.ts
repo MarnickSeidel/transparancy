@@ -37,6 +37,9 @@ export async function getZoneDossier(
       provisional_count: bigint;
       weak_count: bigint;
       missing_count: bigint;
+      centroid_lat: number | null;
+      centroid_lng: number | null;
+      geo_count: bigint;
     }>
   >(Prisma.sql`
     WITH tagged AS (
@@ -44,6 +47,8 @@ export async function getZoneDossier(
         ${sqlBucketKey()} AS bucket_key,
         l.city,
         l.neighborhood,
+        l.latitude,
+        l.longitude,
         l.price_cop::float8 AS price_cop,
         ${sqlEffectivePpm2()} AS ppm2,
         COALESCE(l.quality_flags->>'neighborhood_confidence', 'missing') AS confidence
@@ -66,7 +71,10 @@ export async function getZoneDossier(
       COUNT(*) FILTER (WHERE confidence = 'source_id')::bigint AS source_id_count,
       COUNT(*) FILTER (WHERE confidence = 'provisional')::bigint AS provisional_count,
       COUNT(*) FILTER (WHERE confidence = 'weak')::bigint AS weak_count,
-      COUNT(*) FILTER (WHERE confidence = 'missing')::bigint AS missing_count
+      COUNT(*) FILTER (WHERE confidence = 'missing')::bigint AS missing_count,
+      AVG(latitude) FILTER (WHERE latitude IS NOT NULL)::float8 AS centroid_lat,
+      AVG(longitude) FILTER (WHERE longitude IS NOT NULL)::float8 AS centroid_lng,
+      COUNT(*) FILTER (WHERE latitude IS NOT NULL AND longitude IS NOT NULL)::bigint AS geo_count
     FROM bucket
     GROUP BY bucket_key
   `);
@@ -167,5 +175,8 @@ export async function getZoneDossier(
     exploreNeighborhood,
     monthlyTrend,
     lastUpdatedAt: freshnessRows[0]?.last_updated?.toISOString() ?? null,
+    centroidLatitude: summary.centroid_lat,
+    centroidLongitude: summary.centroid_lng,
+    geoListingCount: Number(summary.geo_count),
   };
 }

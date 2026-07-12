@@ -3,6 +3,7 @@
 import dynamic from "next/dynamic"
 
 import DomBadge from "@/app/components/DomBadge"
+import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection"
 import ShareReportActions from "@/app/components/ShareReportActions"
 import VerdictBanner from "@/app/components/VerdictBanner"
 import Button from "@/app/components/ui/Button"
@@ -152,6 +153,13 @@ export default function SharedReportView({
           </ul>
         ) : null}
       </Card>
+
+      <NearbyAmenitiesSection
+        latitude={payload.listing.latitude}
+        longitude={payload.listing.longitude}
+        lang={lang}
+        locale={locale}
+      />
 
       {priceTimelinePoints.length >= 2 ? (
         <Card className="border-slate-200/90 shadow-card">

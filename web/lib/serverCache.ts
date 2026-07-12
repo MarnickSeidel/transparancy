@@ -10,9 +10,15 @@ import {
   type OpportunityQuery,
   type OpportunityRow,
 } from "@/lib/getTopOpportunities"
+import {
+  fetchNearbyAmenities,
+  roundCoordForCache,
+  type NearbyAmenitiesResult,
+} from "@/lib/nearbyAmenities"
 import { queryMonthlyTrends } from "@/lib/monthlyTrends"
 
 const REVALIDATE_SECONDS = 90
+const NEARBY_AMENITIES_REVALIDATE = 86400
 const OPPORTUNITIES_REVALIDATE = 60
 const FILTERS_REVALIDATE = 120
 const HEATMAP_REVALIDATE = 120
@@ -110,3 +116,23 @@ export const getCachedMonthlyTrends = (params: {
     ],
     { revalidate: REVALIDATE_SECONDS },
   )()
+
+export const getCachedNearbyAmenities = (
+  lat: number,
+  lng: number,
+  radiusM: number,
+): Promise<NearbyAmenitiesResult> => {
+  const latKey = String(roundCoordForCache(lat))
+  const lngKey = String(roundCoordForCache(lng))
+  return unstable_cache(
+    async () => {
+      const result = await fetchNearbyAmenities(lat, lng, radiusM)
+      if (result.unavailable) {
+        throw new Error("nearby_amenities_unavailable")
+      }
+      return result
+    },
+    ["nearby-amenities", latKey, lngKey, String(radiusM)],
+    { revalidate: NEARBY_AMENITIES_REVALIDATE },
+  )().catch(() => fetchNearbyAmenities(lat, lng, radiusM))
+}

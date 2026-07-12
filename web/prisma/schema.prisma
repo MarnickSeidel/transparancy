@@ -41,6 +41,8 @@ model Listing {
   areaPrivateM2         Float?   @map("area_private_m2")
   pricePerM2Private     Float?   @map("price_per_m2_private")
   description           String?  @db.Text
+  address               String?  @db.VarChar(500)
+  technicalSheet        Json?    @map("technical_sheet")
   garage                Int?
   floor                 Int?
   antiquity             Int?

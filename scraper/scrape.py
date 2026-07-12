@@ -231,6 +231,60 @@ def parse_technical_sheet_fields(item: dict[str, Any]) -> dict[str, Any]:
     return out
 
 
+def _serialize_technical_sheet_value(value: Any) -> str | None:
+    if value is None:
+        return None
+    if isinstance(value, str):
+        s = value.strip()
+        return s[:500] if s else None
+    if isinstance(value, (int, float, bool)):
+        return str(value)
+    if isinstance(value, (dict, list)):
+        try:
+            s = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+            return s[:500] if s else None
+        except (TypeError, ValueError):
+            return None
+    s = str(value).strip()
+    return s[:500] if s else None
+
+
+def extract_technical_sheet_json(item: dict[str, Any]) -> list[dict[str, str]] | None:
+    """Full Finca Raíz technicalSheet as JSON-safe rows (field / value / optional label)."""
+    sheet = item.get("technicalSheet")
+    if not isinstance(sheet, list) or not sheet:
+        return None
+    out: list[dict[str, str]] = []
+    for row in sheet:
+        if not isinstance(row, dict):
+            continue
+        field = str(row.get("field") or "").strip()
+        if not field:
+            continue
+        value_str = _serialize_technical_sheet_value(row.get("value"))
+        if not value_str:
+            continue
+        entry: dict[str, str] = {"field": field[:120], "value": value_str}
+        label = row.get("label") or row.get("name")
+        if isinstance(label, str) and label.strip():
+            entry["label"] = label.strip()[:200]
+        out.append(entry)
+    return out or None
+
+
+def extract_listing_address(item: dict[str, Any]) -> str | None:
+    raw = item.get("address")
+    if isinstance(raw, str):
+        s = " ".join(raw.strip().split())
+        return s[:500] if s else None
+    if isinstance(raw, dict):
+        for key in ("address", "full", "street", "name", "label"):
+            val = normalize_named_field(raw.get(key))
+            if val:
+                return val[:500]
+    return None
+
+
 _TERRACE_AREA_RES = (
     re.compile(
         r"(?i)terraza\s+(?:de\s+)?([\d.,]+)\s*m(?:²|2|\b)",
@@ -931,6 +985,8 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         return None
 
     tech_fields = parse_technical_sheet_fields(item)
+    technical_sheet = extract_technical_sheet_json(item)
+    address = extract_listing_address(item)
     accepts_barter = parse_barter_flag(item, tech_fields)
     owner_fields = extract_owner_fields(item)
     location_enrichment = extract_location_enrichment(item)
@@ -1086,6 +1142,7 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
             and nb_resolution.confidence in {"weak", "missing"}
         ),
         "missing_geo": lat is None or lon is None,
+        "missing_address": not bool(address),
         "missing_admin_fee": admin_fee_cop is None,
         "missing_source_updated_at": source_updated_at is None,
         "missing_area_terrain": area_terrain is None,
@@ -1162,6 +1219,8 @@ def listing_to_row(item: dict[str, Any]) -> dict[str, Any] | None:
         "area_terrace_m2": area_terrace,
         "area_private_m2": area_private,
         "description": description_stored,
+        "address": address,
+        "technical_sheet": technical_sheet,
         "garage": garage,
         "floor": floor,
         "antiquity": antiquity,
