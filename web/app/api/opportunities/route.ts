@@ -164,6 +164,22 @@ export async function GET(req: Request) {
 
         const whyDeal = buildWhyDeal(analysis, subject);
 
+        const listingEvents = priceEventsByListing.get(row.id) ?? [];
+        const priceTimeline = listingEvents.map((e) => ({
+          recordedAt: e.recordedAt.toISOString(),
+          priceCop: e.priceCop.toString(),
+        }));
+        const currentPriceStr = row.priceCop.toString();
+        if (
+          priceTimeline.length === 0 ||
+          priceTimeline[priceTimeline.length - 1]?.priceCop !== currentPriceStr
+        ) {
+          priceTimeline.push({
+            recordedAt: (row.sourceUpdatedAt ?? new Date()).toISOString(),
+            priceCop: currentPriceStr,
+          });
+        }
+
         return {
           id: row.id,
           title: row.title,
@@ -187,6 +203,7 @@ export async function GET(req: Request) {
           discountVsRefPct: analysis.discountVsRefPct,
           priceDropPct: analysis.priceDropPct,
           domDays: analysis.domDays,
+          priceTimeline,
           acceptsBarter: row.acceptsBarter,
           terraceHeavy: row.terraceHeavyFlag,
           isProject: row.isProject,

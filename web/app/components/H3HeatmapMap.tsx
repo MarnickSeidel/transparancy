@@ -70,13 +70,12 @@ export default function H3HeatmapMap({
   center,
   cells,
   onCellSelect,
-  formatPpm2,
   tooltipForCell,
 }: {
   center: [number, number];
   cells: H3HeatCell[];
   onCellSelect: (cell: CellProps) => void;
-  formatPpm2: (v: number) => string;
+  formatPpm2?: (v: number) => string;
   tooltipForCell: (cell: CellProps) => string;
 }) {
   const [ready, setReady] = useState(false);

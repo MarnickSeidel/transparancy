@@ -29,6 +29,7 @@ export type PublishableZone = {
   dataPointCount: number;
   medianPricePerM2: number | null;
   confidenceMix: ConfidenceMix;
+  dominantConfidence: ZoneConfidence;
 };
 
 export type ZoneAlias = {
@@ -49,7 +50,10 @@ export type ZoneMonthlyTrend = {
 };
 
 export type ZoneDossier = PublishableZone & {
+  published: boolean;
+  minDataPoints: number;
   medianPriceCop: number | null;
+  opportunityCount: number;
   propertyTypes: ZonePropertyTypeStat[];
   aliases: ZoneAlias[];
   exploreNeighborhood: string;
@@ -254,6 +258,13 @@ type RawZoneRow = {
 
 export function mapRawZoneRow(row: RawZoneRow, citySlug: string): PublishableZone {
   const bucketKey = row.bucket_key;
+  const confidenceMix = {
+    catalog: Number(row.catalog_count),
+    source_id: Number(row.source_id_count),
+    provisional: Number(row.provisional_count),
+    weak: Number(row.weak_count),
+    missing: Number(row.missing_count),
+  };
   return {
     slug: zoneSlugFromBucketKey(bucketKey),
     displayName: row.display_name?.trim() || bucketKey.split(":").slice(1).join(":"),
@@ -263,12 +274,24 @@ export function mapRawZoneRow(row: RawZoneRow, citySlug: string): PublishableZon
     listingCount: Number(row.listing_count),
     dataPointCount: Number(row.data_point_count),
     medianPricePerM2: row.median_ppm2,
-    confidenceMix: {
-      catalog: Number(row.catalog_count),
-      source_id: Number(row.source_id_count),
-      provisional: Number(row.provisional_count),
-      weak: Number(row.weak_count),
-      missing: Number(row.missing_count),
-    },
+    confidenceMix,
+    dominantConfidence: dominantConfidence(confidenceMix),
   };
+}
+
+/** Highest-count neighborhood confidence tier in a zone aggregate. */
+export function dominantConfidence(mix: ConfidenceMix): ZoneConfidence {
+  const entries = Object.entries(mix) as [ZoneConfidence, number][];
+  if (entries.every(([, n]) => n === 0)) return "missing";
+  entries.sort((a, b) => b[1] - a[1]);
+  return entries[0][0];
+}
+
+export function isApartmentType(type: string): boolean {
+  const t = type.trim().toLowerCase();
+  return t.includes("apartamento") || t.includes("apto");
+}
+
+export function isHouseType(type: string): boolean {
+  return type.trim().toLowerCase().includes("casa");
 }

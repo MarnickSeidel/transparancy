@@ -80,11 +80,8 @@ export async function GET(req: Request, { params }: RouteContext) {
     `);
 
     const summary = summaryRows[0];
-    if (!summary || Number(summary.data_point_count) < minDataPoints) {
-      return NextResponse.json(
-        { error: "Zone not found or below publish threshold." },
-        { status: 404 },
-      );
+    if (!summary) {
+      return NextResponse.json({ error: "Zone not found." }, { status: 404 });
     }
 
     if (citySlugFromBucketKey(summary.bucket_key) !== citySlug) {
@@ -95,9 +92,11 @@ export async function GET(req: Request, { params }: RouteContext) {
       return NextResponse.json({ error: "Zone not found." }, { status: 404 });
     }
 
+    const dataPointCount = Number(summary.data_point_count);
+    const published = dataPointCount >= minDataPoints;
     const exploreNeighborhood = summary.display_name?.trim() || zoneSlug;
 
-    const [aliasRows, typeRows, trendResult] = await Promise.all([
+    const [aliasRows, typeRows, trendResult, opportunityRows] = await Promise.all([
       prisma.$queryRaw<Array<{ label: string; count: bigint }>>(Prisma.sql`
         SELECT
           btrim(l.neighborhood_raw) AS label,
@@ -134,6 +133,14 @@ export async function GET(req: Request, { params }: RouteContext) {
         neighborhood: exploreNeighborhood,
         months: 6,
       }),
+      prisma.$queryRaw<Array<{ n: bigint }>>(Prisma.sql`
+        SELECT COUNT(*)::bigint AS n
+        FROM listings l
+        WHERE l.is_active = true
+          AND ${sqlBucketKey()} = ${bucketKey}
+          AND l.is_deal = true
+          AND l.operation_type ILIKE '%venta%'
+      `),
     ]);
 
     const aliases: ZoneAlias[] = aliasRows
@@ -160,14 +167,17 @@ export async function GET(req: Request, { params }: RouteContext) {
     const base = mapRawZoneRow(summary, citySlug);
     const dossier: ZoneDossier = {
       ...base,
+      published,
+      minDataPoints,
       medianPriceCop: summary.median_price_cop,
+      opportunityCount: Number(opportunityRows[0]?.n ?? 0),
       propertyTypes,
       aliases,
       exploreNeighborhood,
       monthlyTrend,
     };
 
-    return NextResponse.json(dossier);
+    return NextResponse.json(dossier, { status: published ? 200 : 202 });
   } catch (e) {
     console.error(e);
     return NextResponse.json(

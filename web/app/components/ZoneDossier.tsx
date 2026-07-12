@@ -9,7 +9,12 @@ import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { buildFincaRaizSearchUrl } from "@/lib/fincaraizSearch";
-import { DEFAULT_MIN_ZONE_DATA_POINTS } from "@/lib/zones";
+import {
+  DEFAULT_MIN_ZONE_DATA_POINTS,
+  isApartmentType,
+  isHouseType,
+  type ZoneConfidence,
+} from "@/lib/zones";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -27,6 +32,10 @@ type ZoneDossierData = {
   dataPointCount: number;
   medianPricePerM2: number | null;
   medianPriceCop: number | null;
+  published: boolean;
+  minDataPoints: number;
+  opportunityCount: number;
+  dominantConfidence: ZoneConfidence;
   confidenceMix: Record<string, number>;
   propertyTypes: Array<{
     type: string;
@@ -42,6 +51,8 @@ type Props = {
   citySlug: string;
   zoneSlug: string;
 };
+
+type PropertyTab = "all" | "apt" | "house";
 
 function fmtCop(v: number | null | undefined, locale: string) {
   if (v == null || Number.isNaN(v)) return "—";
@@ -63,6 +74,14 @@ const CONFIDENCE_LABELS: Record<string, { es: string; en: string }> = {
   missing: { es: "Sin barrio", en: "Missing" },
 };
 
+const CONFIDENCE_BADGE: Record<ZoneConfidence, string> = {
+  catalog: "bg-emerald-100 text-emerald-900 ring-emerald-200/80 dark:bg-emerald-950/50 dark:text-emerald-200 dark:ring-emerald-800/60",
+  source_id: "bg-teal-100 text-teal-900 ring-teal-200/80 dark:bg-teal-950/50 dark:text-teal-200 dark:ring-teal-800/60",
+  provisional: "bg-amber-100 text-amber-900 ring-amber-200/80 dark:bg-amber-950/50 dark:text-amber-200 dark:ring-amber-800/60",
+  weak: "bg-orange-100 text-orange-900 ring-orange-200/80 dark:bg-orange-950/50 dark:text-orange-200 dark:ring-orange-800/60",
+  missing: "bg-slate-100 text-slate-700 ring-slate-200/80 dark:bg-slate-800/60 dark:text-slate-300 dark:ring-slate-700/60",
+};
+
 export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
@@ -72,6 +91,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [propertyTab, setPropertyTab] = useState<PropertyTab>("all");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -86,7 +106,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
         setData(null);
         return;
       }
-      if (!res.ok) throw new Error("load");
+      if (!res.ok && res.status !== 202) throw new Error("load");
       setData((await res.json()) as ZoneDossierData);
     } catch {
       setError(txt.couldNotLoad);
@@ -105,6 +125,14 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
     p.set("city", data.city);
     p.set("neighborhood", data.exploreNeighborhood);
     return `/explore?${p.toString()}`;
+  }, [data]);
+
+  const opportunitiesHref = useMemo(() => {
+    if (!data) return "/opportunities";
+    const p = new URLSearchParams();
+    p.set("city", data.city);
+    p.set("neighborhood", data.exploreNeighborhood);
+    return `/opportunities?${p.toString()}`;
   }, [data]);
 
   const fincaRaizHref = useMemo(() => {
@@ -132,7 +160,19 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
       .sort((a, b) => b[1] - a[1]);
   }, [data]);
 
+  const filteredPropertyTypes = useMemo(() => {
+    if (!data) return [];
+    if (propertyTab === "apt") {
+      return data.propertyTypes.filter((r) => isApartmentType(r.type));
+    }
+    if (propertyTab === "house") {
+      return data.propertyTypes.filter((r) => isHouseType(r.type));
+    }
+    return data.propertyTypes;
+  }, [data, propertyTab]);
+
   const title = data?.displayName ?? zoneSlug;
+  const published = data?.published !== false;
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -149,14 +189,14 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
         <p className="mb-6">
           <Link
             href="/zones"
-            className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
+            className="text-sm font-medium text-accent hover:underline"
           >
             {txt.zonesBackToList}
           </Link>
         </p>
 
         {error ? (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
+          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
             {error}
           </div>
         ) : null}
@@ -173,6 +213,35 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
           </div>
         ) : data ? (
           <>
+            {!published ? (
+              <Card className="mb-6 border-amber-200/80 bg-amber-50/50 dark:border-amber-800/50 dark:bg-amber-950/20">
+                <h2 className="text-lg font-semibold text-foreground">{txt.zonesUnpublishedTitle}</h2>
+                <p className="mt-2 text-sm text-foreground">
+                  {fmtTemplate(txt.zonesUnpublishedBody, {
+                    n: data.dataPointCount,
+                    min: data.minDataPoints,
+                  })}
+                </p>
+                <p className="mt-2 text-xs text-muted">{txt.zonesUnpublishedWhy}</p>
+              </Card>
+            ) : null}
+
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              <span
+                className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ring-1 ${CONFIDENCE_BADGE[data.dominantConfidence]}`}
+              >
+                {txt.zonesConfidenceBadge}: {CONFIDENCE_LABELS[data.dominantConfidence]?.[lang] ?? data.dominantConfidence}
+              </span>
+              {data.opportunityCount > 0 ? (
+                <Link
+                  href={opportunitiesHref}
+                  className="text-sm font-semibold text-accent hover:underline"
+                >
+                  {fmtTemplate(txt.zonesDealsInBarrio, { n: data.opportunityCount })} · {txt.zonesDealsLink}
+                </Link>
+              ) : null}
+            </div>
+
             <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               <Card>
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">
@@ -194,7 +263,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
                 <p className="text-xs font-semibold uppercase tracking-wide text-muted">
                   {txt.zonesMedianPpm2}
                 </p>
-                <p className="mt-2 text-3xl font-semibold tabular-nums text-teal-700 dark:text-teal-300">
+                <p className="mt-2 text-3xl font-semibold tabular-nums text-accent">
                   {fmtCop(data.medianPricePerM2, locale)}
                 </p>
               </Card>
@@ -210,10 +279,34 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
 
             <div className="mb-6 grid gap-4 lg:grid-cols-3">
               <Card className="lg:col-span-2">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-                  {txt.zonesPropertyMix}
-                </h2>
-                {data.propertyTypes.length === 0 ? (
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                    {txt.zonesPropertyMix}
+                  </h2>
+                  <div className="flex gap-1 rounded-xl border border-slate-200/90 bg-surface/60 p-1 dark:border-slate-700/80">
+                    {(
+                      [
+                        ["all", txt.zonesTabAll],
+                        ["apt", txt.zonesTabApt],
+                        ["house", txt.zonesTabHouse],
+                      ] as const
+                    ).map(([tab, label]) => (
+                      <button
+                        key={tab}
+                        type="button"
+                        className={
+                          propertyTab === tab
+                            ? "rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-accent-fg"
+                            : "rounded-lg px-3 py-1 text-xs font-medium text-muted hover:text-foreground"
+                        }
+                        onClick={() => setPropertyTab(tab)}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {filteredPropertyTypes.length === 0 ? (
                   <p className="mt-3 text-sm text-muted">{txt.noDataForFilters}</p>
                 ) : (
                   <div className="mt-4 overflow-x-auto">
@@ -226,7 +319,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
                         </tr>
                       </thead>
                       <tbody>
-                        {data.propertyTypes.map((row) => (
+                        {filteredPropertyTypes.map((row) => (
                           <tr
                             key={row.type}
                             className="border-b border-slate-100 dark:border-slate-800"
@@ -237,7 +330,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
                             <td className="py-2 pr-4 tabular-nums text-muted">
                               {row.count.toLocaleString(locale)}
                             </td>
-                            <td className="py-2 tabular-nums text-teal-700 dark:text-teal-300">
+                            <td className="py-2 tabular-nums text-accent">
                               {fmtCop(row.medianPricePerM2, locale)}
                             </td>
                           </tr>
@@ -278,7 +371,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
               </Card>
             ) : null}
 
-            {chartRows.length >= 1 ? (
+            {published && chartRows.length >= 1 ? (
               <Card className="mb-6">
                 <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
                   {txt.zonesMonthlyTrend}
@@ -296,7 +389,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
                 <Link
                   href={exploreHref}
-                  className="inline-flex text-base font-semibold text-teal-800 hover:text-teal-950 dark:text-teal-200 dark:hover:text-teal-50"
+                  className="inline-flex text-base font-semibold text-accent hover:underline"
                 >
                   {fmtTemplate(txt.zonesExploreCta, { barrio: data.displayName })} →
                 </Link>
@@ -305,7 +398,7 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
                     href={fincaRaizHref}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex text-base font-semibold text-teal-800 hover:text-teal-950 dark:text-teal-200 dark:hover:text-teal-50"
+                    className="inline-flex text-base font-semibold text-accent hover:underline"
                   >
                     {fmtTemplate(txt.zonesFincaRaizCta, { barrio: data.displayName })} →
                   </a>

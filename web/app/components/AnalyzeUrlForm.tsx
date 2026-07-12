@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
@@ -7,8 +8,17 @@ import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import SiteHeader from "@/app/components/SiteHeader";
+import WhyDealPanel from "@/app/components/WhyDealPanel";
+import type { WhyDeal } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
+
+const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
+  ssr: false,
+  loading: () => <div className="h-52 animate-pulse rounded-xl bg-surface" />,
+});
+
+type PriceTimelinePoint = { recordedAt: string; priceCop: string };
 
 type AnalyzeResponse = {
   listing: {
@@ -21,8 +31,16 @@ type AnalyzeResponse = {
     priceCop: string;
     areaM2: number;
     areaBuiltM2: number | null;
+    areaPrivateM2: number | null;
     areaTerrainM2: number | null;
+    areaTerraceM2: number | null;
+    estrato: number | null;
+    bedrooms: number | null;
+    bathrooms: number | null;
+    garage: number | null;
     pricePerM2: number | null;
+    constructionState: string | null;
+    facilities: unknown;
   };
   analysis: {
     dealScore: number | null;
@@ -34,7 +52,9 @@ type AnalyzeResponse = {
     referencePpm2Nearby?: number | null;
     referencePpm2Neighborhood?: number | null;
     sampleSize: number;
+    whyDeal?: WhyDeal | null;
   };
+  priceTimeline?: PriceTimelinePoint[];
   comps: Array<{
     id: string;
     title: string;
@@ -68,6 +88,21 @@ function confidenceLabel(
   return txt.confidenceLow;
 }
 
+function formatFacilities(raw: unknown): string | null {
+  if (!raw) return null;
+  if (Array.isArray(raw) && raw.length > 0) {
+    return raw.map(String).join(", ");
+  }
+  if (typeof raw === "object" && raw !== null) {
+    const entries = Object.entries(raw as Record<string, unknown>).filter(
+      ([, v]) => v === true || (typeof v === "string" && v.trim()),
+    );
+    if (entries.length === 0) return null;
+    return entries.map(([k, v]) => (v === true ? k : `${k}: ${v}`)).join(", ");
+  }
+  return null;
+}
+
 export default function AnalyzeUrlForm() {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
@@ -85,6 +120,50 @@ export default function AnalyzeUrlForm() {
     if (data.listing.propertyType) p.set("propertyType", data.listing.propertyType);
     return `/opportunities?${p.toString()}`;
   }, [data]);
+
+  const priceTimelinePoints = useMemo(
+    () =>
+      (data?.priceTimeline ?? []).map((p) => ({
+        recordedAt: p.recordedAt,
+        priceCop: Number(p.priceCop),
+      })),
+    [data?.priceTimeline],
+  );
+
+  const enrichmentRows = useMemo(() => {
+    if (!data) return [];
+    const l = data.listing;
+    const rows: { label: string; value: string }[] = [];
+    if (l.areaTerraceM2 != null && l.areaTerraceM2 > 0) {
+      rows.push({
+        label: txt.analyzeEnrichmentTerrace,
+        value: `${l.areaTerraceM2.toFixed(1)} m²`,
+      });
+    }
+    if (l.areaPrivateM2 != null && l.areaPrivateM2 > 0) {
+      rows.push({
+        label: txt.opportunitiesMetricPrivate,
+        value: `${l.areaPrivateM2.toFixed(1)} m²`,
+      });
+    }
+    if (l.garage != null && l.garage > 0) {
+      rows.push({
+        label: txt.analyzeEnrichmentGarage,
+        value: String(l.garage),
+      });
+    }
+    if (l.constructionState?.trim()) {
+      rows.push({
+        label: txt.analyzeEnrichmentConstruction,
+        value: l.constructionState,
+      });
+    }
+    const facilities = formatFacilities(l.facilities);
+    if (facilities) {
+      rows.push({ label: txt.analyzeEnrichmentFacilities, value: facilities });
+    }
+    return rows;
+  }, [data, txt]);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,7 +223,7 @@ export default function AnalyzeUrlForm() {
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
         {error ? (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
+          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
             {error}
           </div>
         ) : null}
@@ -161,7 +240,7 @@ export default function AnalyzeUrlForm() {
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
-          <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{txt.analyzeUrlExample}</p>
+          <p className="mt-2 text-xs text-muted">{txt.analyzeUrlExample}</p>
           <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
             <Button type="submit" disabled={loading} className="hidden bg-accent py-2.5 text-accent-fg hover:bg-accent-hover disabled:opacity-60 sm:inline-flex">
               {loading ? txt.analyzeUrlLoading : txt.analyzeUrlSubmit}
@@ -174,7 +253,7 @@ export default function AnalyzeUrlForm() {
         {data ? (
           <div className="space-y-6">
             <Card className="border-slate-200/90 shadow-card">
-              <h2 className="text-lg font-semibold">{txt.analyzeListingSnapshot}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{txt.analyzeListingSnapshot}</h2>
               <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <p><span className="text-muted">{txt.listing}:</span> {data.listing.title}</p>
                 <p><span className="text-muted">{txt.city}:</span> {data.listing.city}</p>
@@ -191,8 +270,31 @@ export default function AnalyzeUrlForm() {
               </a>
             </Card>
 
+            {enrichmentRows.length > 0 ? (
+              <Card className="border-slate-200/90 shadow-card">
+                <h2 className="text-lg font-semibold text-foreground">{txt.analyzeEnrichment}</h2>
+                <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                  {enrichmentRows.map((row) => (
+                    <p key={row.label}>
+                      <span className="text-muted">{row.label}:</span> {row.value}
+                    </p>
+                  ))}
+                </div>
+              </Card>
+            ) : null}
+
             <Card className="border-slate-200/90 shadow-card">
-              <h2 className="text-lg font-semibold">{txt.analyzeDealAssessment}</h2>
+              <h2 className="text-lg font-semibold text-foreground">{txt.analyzePriceTimeline}</h2>
+              <PriceTimelineChart
+                points={priceTimelinePoints}
+                locale={locale}
+                noDataLabel={txt.analyzePriceTimelineEmpty}
+                tooltipLabel={txt.analyzePriceTimelineTooltip}
+              />
+            </Card>
+
+            <Card className="border-slate-200/90 shadow-card">
+              <h2 className="text-lg font-semibold text-foreground">{txt.analyzeDealAssessment}</h2>
               <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <p><span className="text-muted">{txt.analyzeVerdict}:</span> {labelVerdict(data.analysis.verdict, txt)}</p>
                 <p><span className="text-muted">{txt.opportunitiesConfidence}:</span> {confidenceLabel(data.analysis.confidence, txt)}</p>
@@ -205,12 +307,12 @@ export default function AnalyzeUrlForm() {
               <Button
                 href={opportunitiesHref}
                 variant="secondary"
-                className="mt-4 inline-flex bg-surface px-4 py-2 text-slate-800 shadow-sm hover:bg-slate-100"
+                className="mt-4 inline-flex bg-surface px-4 py-2 text-foreground shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 {txt.analyzeFindSimilar}
               </Button>
               {data.analysis.warnings.length > 0 ? (
-                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-900">
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-900 dark:text-amber-200">
                   {data.analysis.warnings.map((w) => (
                     <li key={w}>{w}</li>
                   ))}
@@ -218,25 +320,34 @@ export default function AnalyzeUrlForm() {
               ) : null}
             </Card>
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-              <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
+            {data.analysis.whyDeal ? (
+              <WhyDealPanel
+                whyDeal={data.analysis.whyDeal}
+                title={txt.analyzeWhyDeal}
+                lang={lang}
+                locale={locale}
+              />
+            ) : null}
+
+            <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card dark:border-slate-700/80">
+              <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground dark:border-slate-700/80">
                 {txt.analyzeComparableListings}
               </div>
               <div className="overflow-x-auto">
                 <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
-                  <thead className="bg-slate-50/80">
+                  <thead className="bg-surface/80">
                     <tr>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.listing}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.neighborhood}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.distance}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.price}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.pricePerM2}</th>
+                      <th className="px-4 py-3 font-medium text-muted">{txt.listing}</th>
+                      <th className="px-4 py-3 font-medium text-muted">{txt.neighborhood}</th>
+                      <th className="px-4 py-3 font-medium text-muted">{txt.distance}</th>
+                      <th className="px-4 py-3 font-medium text-muted">{txt.price}</th>
+                      <th className="px-4 py-3 font-medium text-muted">{txt.pricePerM2}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100">
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {data.comps.length === 0 ? (
                       <tr>
-                        <td className="px-4 py-4 text-slate-500" colSpan={5}>{txt.analyzeNoComps}</td>
+                        <td className="px-4 py-4 text-muted" colSpan={5}>{txt.analyzeNoComps}</td>
                       </tr>
                     ) : (
                       data.comps.map((c) => (

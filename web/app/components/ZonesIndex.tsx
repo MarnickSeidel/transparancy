@@ -9,7 +9,7 @@ import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
-import { priorityCities, uiText } from "@/lib/i18n";
+import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
 type ZoneRow = {
@@ -48,6 +48,7 @@ export default function ZonesIndex() {
   const locale = lang === "es" ? "es-CO" : "en-US";
 
   const [city, setCity] = useState(DEFAULT_ZONE_CITY);
+  const [cities, setCities] = useState<string[]>([DEFAULT_ZONE_CITY]);
   const [data, setData] = useState<ZonesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -56,10 +57,18 @@ export default function ZonesIndex() {
     setLoading(true);
     setError(null);
     try {
-      const zonesRes = await fetch(
-        `/api/zones?city=${encodeURIComponent(city)}&minDataPoints=${DEFAULT_MIN_ZONE_DATA_POINTS}`,
-      );
+      const [citiesRes, zonesRes] = await Promise.all([
+        fetch(`/api/zones/cities?minDataPoints=${DEFAULT_MIN_ZONE_DATA_POINTS}`),
+        fetch(
+          `/api/zones?city=${encodeURIComponent(city)}&minDataPoints=${DEFAULT_MIN_ZONE_DATA_POINTS}`,
+        ),
+      ]);
       if (!zonesRes.ok) throw new Error("load");
+      if (citiesRes.ok) {
+        const citiesJson = (await citiesRes.json()) as { cities?: string[] };
+        const list = citiesJson.cities ?? [];
+        if (list.length > 0) setCities(list);
+      }
       const zonesJson = (await zonesRes.json()) as ZonesResponse;
       setData(zonesJson);
     } catch {
@@ -110,7 +119,7 @@ export default function ZonesIndex() {
             value={city}
             onChange={(e) => setCity(e.target.value)}
           >
-            {priorityCities.map((c) => (
+            {cities.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>

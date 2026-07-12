@@ -8,6 +8,7 @@ import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
+import Skeleton from "@/app/components/ui/Skeleton";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
 import { resolveNeighborhoodLabel } from "@/lib/neighborhoods";
@@ -18,11 +19,13 @@ type ListingRow = {
   title: string;
   city: string;
   neighborhood: string | null;
+  neighborhoodRaw: string | null;
   propertyType: string | null;
   estrato: number | null;
   priceCop: string;
   areaM2: number;
   pricePerM2: number | null;
+  dealScore: number | null;
   url: string;
   priceBucket: PriceBucket | null;
   deltaVsRefPct: number | null;
@@ -75,6 +78,39 @@ function signalMeta(
   }
 }
 
+function NeighborhoodCell({
+  neighborhood,
+  neighborhoodRaw,
+  txt,
+}: {
+  neighborhood: string | null;
+  neighborhoodRaw: string | null;
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"];
+}) {
+  const label = neighborhood ?? txt.unknown;
+  const raw = neighborhoodRaw?.trim();
+  const showTooltip =
+    raw &&
+    raw.toLowerCase() !== (neighborhood ?? "").trim().toLowerCase();
+
+  if (!showTooltip) {
+    return <>{label}</>;
+  }
+
+  return (
+    <span className="group relative inline-flex cursor-help items-center gap-1">
+      {label}
+      <span
+        className="rounded bg-surface px-1 text-[10px] font-medium text-muted ring-1 ring-slate-200 dark:ring-slate-700"
+        title={`${txt.exploreNeighborhoodRawTooltip}: ${raw}`}
+        aria-label={`${txt.exploreNeighborhoodRaw}: ${raw}`}
+      >
+        FR
+      </span>
+    </span>
+  );
+}
+
 export default function ListingExplorer() {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
@@ -90,7 +126,7 @@ export default function ListingExplorer() {
   const [propertyType, setPropertyType] = useState(() => initialParam("propertyType"));
   const [estrato, setEstrato] = useState(() => initialParam("estrato"));
   const [maxPriceCop, setMaxPriceCop] = useState("");
-  const [sortBy, setSortBy] = useState<"date" | "price" | "pricePerM2" | "area">("date");
+  const [sortBy, setSortBy] = useState<"date" | "price" | "pricePerM2" | "area" | "dealScore">("date");
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState<ListingsResponse | null>(null);
@@ -111,6 +147,32 @@ export default function ListingExplorer() {
     p.set("page", String(page));
     return p.toString();
   }, [city, estrato, maxPriceCop, neighborhood, page, propertyType, sortBy]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; onClear: () => void }[] = [];
+    if (city !== "all") {
+      chips.push({ key: "city", label: `${txt.city}: ${city}`, onClear: () => { setCity("all"); setNeighborhood("all"); } });
+    }
+    if (neighborhood !== "all") {
+      chips.push({ key: "neighborhood", label: `${txt.neighborhood}: ${neighborhood}`, onClear: () => setNeighborhood("all") });
+    }
+    if (propertyType !== "all") {
+      chips.push({ key: "type", label: `${txt.type}: ${propertyType}`, onClear: () => setPropertyType("all") });
+    }
+    if (estrato !== "all") {
+      chips.push({ key: "estrato", label: `${txt.estrato}: ${estrato}`, onClear: () => setEstrato("all") });
+    }
+    const maxDigits = maxPriceCop.replace(/\D/g, "");
+    const maxParsed = maxDigits ? Number.parseInt(maxDigits, 10) : Number.NaN;
+    if (Number.isFinite(maxParsed) && maxParsed >= 1) {
+      chips.push({
+        key: "maxPrice",
+        label: `${txt.opportunitiesMaxPrice}: ${fmtCop(maxParsed, locale)}`,
+        onClear: () => setMaxPriceCop(""),
+      });
+    }
+    return chips;
+  }, [city, estrato, locale, maxPriceCop, neighborhood, propertyType, txt]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -168,6 +230,15 @@ export default function ListingExplorer() {
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(page * pageSize, total);
 
+  const clearAllFilters = () => {
+    setCity("all");
+    setNeighborhood("all");
+    setPropertyType("all");
+    setEstrato("all");
+    setMaxPriceCop("");
+    setSortBy("date");
+  };
+
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <SiteHeader
@@ -181,23 +252,17 @@ export default function ListingExplorer() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {error ? (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
+          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
             {error}
           </div>
         ) : null}
 
         <p className="mb-6 flex flex-wrap items-center gap-4">
-          <Link
-            href="/zones"
-            className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
-          >
+          <Link href="/zones" className="text-sm font-medium text-accent hover:underline">
             {txt.zonesLink}
           </Link>
           {dossierHref ? (
-            <Link
-              href={dossierHref}
-              className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
-            >
+            <Link href={dossierHref} className="text-sm font-medium text-accent hover:underline">
               {txt.viewBarrioDossier}
             </Link>
           ) : null}
@@ -309,6 +374,7 @@ export default function ListingExplorer() {
                 <option value="date">{txt.exploreSortDate}</option>
                 <option value="price">{txt.exploreSortPrice}</option>
                 <option value="pricePerM2">{txt.exploreSortPpm2}</option>
+                <option value="dealScore">{txt.exploreSortDealScore}</option>
                 <option value="area">{txt.exploreSortArea}</option>
               </select>
             </div>
@@ -316,12 +382,47 @@ export default function ListingExplorer() {
               {loading ? "…" : txt.refresh}
             </Button>
           </div>
+
+          {activeFilterChips.length > 0 ? (
+            <div className="mt-4 border-t border-slate-200/80 pt-4 dark:border-slate-700/80">
+              <div className="mb-2 flex flex-wrap items-center gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-muted">
+                  {txt.exploreFilterChips}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-accent hover:underline"
+                  onClick={clearAllFilters}
+                >
+                  {txt.exploreClearFilters}
+                </button>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {activeFilterChips.map((chip) => (
+                  <span
+                    key={chip.key}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-surface px-3 py-1 text-sm text-foreground dark:border-slate-700"
+                  >
+                    {chip.label}
+                    <button
+                      type="button"
+                      className="rounded-full px-1 text-muted hover:bg-slate-200 hover:text-foreground dark:hover:bg-slate-700"
+                      aria-label={txt.exploreClearFilters}
+                      onClick={chip.onClear}
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          ) : null}
         </Card>
 
         <Card className="overflow-hidden border-slate-200/90 shadow-card">
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/80">
             <div>
-              <p className="text-sm font-semibold text-slate-900 dark:text-slate-50">
+              <p className="text-sm font-semibold text-foreground">
                 {txt.exploreResults}
               </p>
               <p className="text-xs text-muted">
@@ -334,13 +435,17 @@ export default function ListingExplorer() {
           </div>
 
           {loading ? (
-            <div className="px-4 py-10 text-center text-sm text-muted">…</div>
+            <div className="space-y-2 px-4 py-4">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <Skeleton key={i} className="h-14 w-full rounded-xl" />
+              ))}
+            </div>
           ) : rows.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted">{txt.exploreEmpty}</div>
           ) : (
             <div className="overflow-x-auto">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-slate-50 text-xs uppercase tracking-wide text-muted dark:bg-slate-900/60">
+                <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
                   <tr>
                     <th className="px-4 py-3">{txt.explorePriceSignal}</th>
                     <th className="px-4 py-3">{txt.type}</th>
@@ -348,6 +453,7 @@ export default function ListingExplorer() {
                     <th className="px-4 py-3">{txt.neighborhood}</th>
                     <th className="px-4 py-3">{txt.medianPriceM2}</th>
                     <th className="px-4 py-3">{txt.exploreSortPrice}</th>
+                    <th className="px-4 py-3">{txt.dealScore}</th>
                     <th className="px-4 py-3">{txt.exploreSortArea}</th>
                     <th className="px-4 py-3" />
                   </tr>
@@ -383,18 +489,27 @@ export default function ListingExplorer() {
                           </p>
                         </td>
                         <td className="px-4 py-3">
-                          <p className="font-medium text-slate-900 dark:text-slate-100">
+                          <p className="font-medium text-foreground">
                             {row.propertyType ?? txt.unknown}
                           </p>
                           <p className="mt-1 max-w-xs truncate text-xs text-muted">{row.title}</p>
                         </td>
                         <td className="px-4 py-3">{row.city}</td>
-                        <td className="px-4 py-3">{row.neighborhood ?? txt.unknown}</td>
+                        <td className="px-4 py-3">
+                          <NeighborhoodCell
+                            neighborhood={row.neighborhood}
+                            neighborhoodRaw={row.neighborhoodRaw}
+                            txt={txt}
+                          />
+                        </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {fmtCop(row.pricePerM2, locale)}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {fmtCop(Number(row.priceCop), locale)}
+                        </td>
+                        <td className="px-4 py-3 tabular-nums">
+                          {row.dealScore?.toFixed(1) ?? "—"}
                         </td>
                         <td className="px-4 py-3 whitespace-nowrap">
                           {row.areaM2.toLocaleString(locale)} m²
@@ -404,7 +519,7 @@ export default function ListingExplorer() {
                             href={row.url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-xs font-semibold text-teal-700 hover:text-teal-600 dark:text-teal-300"
+                            className="text-xs font-semibold text-accent hover:underline"
                           >
                             {txt.exploreOpenListing}
                           </a>
@@ -417,7 +532,7 @@ export default function ListingExplorer() {
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 px-4 py-3 dark:border-slate-700">
+          <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 px-4 py-3 dark:border-slate-700/80">
             <Button
               variant="secondary"
               disabled={loading || page <= 1}

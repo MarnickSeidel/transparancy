@@ -87,10 +87,7 @@ export default function SiteHeader({
                 />
               )}
             </Link>
-            <div className="mb-2 flex flex-wrap items-center gap-2">
-              <span className="rounded-full border border-teal-200 bg-teal-50 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-teal-700 dark:border-teal-800 dark:bg-teal-950/60 dark:text-teal-300">
-                {txt.menuLabel}
-              </span>
+            <div className="mb-2 flex max-w-full gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
               {navItems.map((item) => {
                 const isActive = item.key === active;
                 return (
@@ -99,8 +96,8 @@ export default function SiteHeader({
                     href={item.href}
                     className={
                       isActive
-                        ? "rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
-                        : "rounded-full border border-slate-200 bg-elevated px-3 py-1.5 text-xs font-semibold text-slate-700 shadow-sm transition-colors hover:bg-surface dark:border-slate-600 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-slate-700/80"
+                        ? "shrink-0 rounded-full bg-gradient-to-r from-teal-600 to-cyan-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
+                        : "shrink-0 rounded-full border border-slate-200 bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground shadow-sm transition-colors hover:bg-surface dark:border-slate-600 dark:bg-slate-800/70 dark:hover:bg-slate-700/80"
                     }
                   >
                     {txt[item.textKey]}
@@ -108,7 +105,7 @@ export default function SiteHeader({
                 );
               })}
             </div>
-            <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-50 md:text-3xl">
+            <h1 className="text-2xl font-semibold tracking-tight text-foreground md:text-3xl">
               {title}
             </h1>
             {subtitle ? (

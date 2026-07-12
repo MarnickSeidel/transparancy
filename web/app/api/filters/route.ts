@@ -4,7 +4,7 @@ import { priorityCities } from "@/lib/i18n";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 120;
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -120,14 +120,21 @@ export async function GET(req: Request) {
       .map((r) => r.operationType)
       .filter((t): t is string => t != null && t.trim().length > 0);
 
-    return NextResponse.json({
-      cities,
-      neighborhoods,
-      estratos,
-      propertyTypes,
-      operationTypes,
-      conjuntos,
-    });
+    return NextResponse.json(
+      {
+        cities,
+        neighborhoods,
+        estratos,
+        propertyTypes,
+        operationTypes,
+        conjuntos,
+      },
+      {
+        headers: {
+          "Cache-Control": "public, s-maxage=120, stale-while-revalidate=300",
+        },
+      },
+    );
   } catch (e) {
     console.error(e);
     return NextResponse.json(

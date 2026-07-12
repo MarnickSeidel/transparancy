@@ -1,14 +1,22 @@
 "use client";
+import dynamic from "next/dynamic";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
+import Skeleton from "@/app/components/ui/Skeleton";
 import SiteHeader from "@/app/components/SiteHeader";
-import type { DealFlag, DealScoreBreakdown, WhyDeal } from "@/lib/dealEngine";
+import WhyDealPanel from "@/app/components/WhyDealPanel";
+import type { WhyDeal } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
+
+const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
+  ssr: false,
+  loading: () => <div className="h-24 animate-pulse rounded-lg bg-surface" />,
+});
 
 type OpportunityRow = {
   id: string;
@@ -24,12 +32,12 @@ type OpportunityRow = {
   compSampleSize?: number;
   compMethod?: string;
   dealScore: number | null;
-  scoreBreakdown?: DealScoreBreakdown | null;
   whyDeal?: WhyDeal | null;
   discountVsRefPct: number | null;
   confidence?: "high" | "medium" | "low";
   confidenceReasons?: string[];
   priceDropPct?: number | null;
+  priceTimeline?: Array<{ recordedAt: string; priceCop: string }>;
   acceptsBarter?: boolean;
   isProject?: boolean;
   url: string;
@@ -59,182 +67,6 @@ function metricTypeLabel(
   if (t === "built") return txt.opportunitiesMetricBuilt;
   if (t === "terrain") return txt.opportunitiesMetricTerrain;
   return txt.opportunitiesMetricGeneric;
-}
-
-function compMethodLabel(method: string | undefined, lang: "es" | "en") {
-  if (!method) return "—";
-  const labels: Record<string, { es: string; en: string }> = {
-    geo_1km: { es: "geo 1 km", en: "geo 1 km" },
-    zone: { es: "zona", en: "zone" },
-    neighborhood: { es: "barrio", en: "neighborhood" },
-    city: { es: "ciudad", en: "city" },
-  };
-  return labels[method]?.[lang] ?? method;
-}
-
-function dealFlagLabel(
-  flag: DealFlag,
-  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
-): string {
-  const key = `dealFlag_${flag}` as keyof typeof txt;
-  return (txt[key] as string | undefined) ?? flag;
-}
-
-function dealNoteLabel(
-  note: string,
-  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
-): string {
-  const key = `dealNote_${note}` as keyof typeof txt;
-  return (txt[key] as string | undefined) ?? note;
-}
-
-function scoreDrivers(
-  bd: DealScoreBreakdown | null | undefined,
-  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
-): { label: string; value: number }[] {
-  if (!bd) return [];
-  const rows: { label: string; value: number }[] = [];
-  if (bd.discountComponent !== 0) {
-    rows.push({ label: txt.dealScoreDriver_discount, value: bd.discountComponent });
-  }
-  if (bd.freshnessComponent !== 0) {
-    rows.push({ label: txt.dealScoreDriver_freshness, value: bd.freshnessComponent });
-  }
-  if (bd.completenessComponent !== 0) {
-    rows.push({ label: txt.dealScoreDriver_completeness, value: bd.completenessComponent });
-  }
-  if (bd.priceDropBonus !== 0) {
-    rows.push({ label: txt.dealScoreDriver_price_drop, value: bd.priceDropBonus });
-  }
-  if (bd.domBonus !== 0) {
-    rows.push({ label: txt.dealScoreDriver_dom, value: bd.domBonus });
-  }
-  if (bd.barterPenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_barter, value: -bd.barterPenalty });
-  }
-  if (bd.projectPenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_project, value: -bd.projectPenalty });
-  }
-  if (bd.promotedPenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_promoted, value: -bd.promotedPenalty });
-  }
-  if (bd.lowSamplePenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_low_sample, value: -bd.lowSamplePenalty });
-  }
-  if (bd.highAdminPenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_high_admin, value: -bd.highAdminPenalty });
-  }
-  if (bd.terrainRiskPenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_terrain_risk, value: -bd.terrainRiskPenalty });
-  }
-  if (bd.typeLocationPenalty !== 0) {
-    rows.push({ label: txt.dealScoreDriver_type_location, value: -bd.typeLocationPenalty });
-  }
-  return rows;
-}
-
-function WhyDealPanel({
-  row,
-  txt,
-  locale,
-  lang,
-}: {
-  row: OpportunityRow;
-  txt: (typeof uiText)["es"] | (typeof uiText)["en"];
-  locale: string;
-  lang: "es" | "en";
-}) {
-  const why = row.whyDeal;
-  if (!why) return null;
-
-  const drivers = scoreDrivers(why.scoreBreakdown, txt);
-
-  return (
-    <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 px-4 py-3">
-      <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
-        {txt.opportunitiesWhyDeal}
-      </p>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div>
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyCompMethod}</p>
-          <p className="mt-0.5 text-sm text-foreground">
-            {compMethodLabel(why.compMethod, lang)}
-          </p>
-          <p className="mt-1 text-xs text-muted">
-            {txt.opportunitiesWhyCompCount}: {why.compSampleSize}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyDiscount}</p>
-          <p className="mt-0.5 text-sm font-medium tabular-nums text-foreground">
-            {why.discountPct == null ? "—" : `${why.discountPct.toFixed(1)}%`}
-          </p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyMedianComp}</p>
-          <p className="mt-0.5 text-sm tabular-nums text-foreground">
-            {fmtCop(why.medianCompPricePerM2, locale)}
-          </p>
-          <p className="mt-1 text-xs text-muted">{metricTypeLabel(why.metricType, txt)}</p>
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesConfidence}</p>
-          <p className="mt-0.5 text-sm text-foreground">{confidenceLabel(why.confidence, txt)}</p>
-        </div>
-      </div>
-
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <div>
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyFlags}</p>
-          {why.flags.length > 0 ? (
-            <div className="mt-2 flex flex-wrap gap-1.5">
-              {why.flags.map((flag) => (
-                <span
-                  key={flag}
-                  className="rounded-full bg-amber-50 px-2.5 py-0.5 text-xs text-amber-900 ring-1 ring-amber-200/80"
-                >
-                  {dealFlagLabel(flag, txt)}
-                </span>
-              ))}
-            </div>
-          ) : (
-            <p className="mt-1 text-sm text-muted">{txt.opportunitiesWhyNoFlags}</p>
-          )}
-        </div>
-        <div>
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyConfidence}</p>
-          {why.confidenceNotes.length > 0 ? (
-            <ul className="mt-2 list-inside list-disc space-y-0.5 text-sm text-foreground">
-              {why.confidenceNotes.map((note) => (
-                <li key={note}>{dealNoteLabel(note, txt)}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="mt-1 text-sm text-muted">{txt.opportunitiesWhyNoNotes}</p>
-          )}
-        </div>
-      </div>
-
-      {drivers.length > 0 ? (
-        <div className="mt-4 border-t border-slate-200/80 pt-3">
-          <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyScoreDrivers}</p>
-          <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
-            {drivers.map((d) => (
-              <span
-                key={d.label}
-                className={`text-xs tabular-nums ${
-                  d.value >= 0 ? "text-emerald-800" : "text-rose-800"
-                }`}
-              >
-                {d.value >= 0 ? "+" : ""}
-                {d.value.toFixed(1)} {d.label}
-              </span>
-            ))}
-          </div>
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 function signalTags(
@@ -667,11 +499,15 @@ export default function OpportunitiesTop() {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {loading ? (
-                  <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={11}>
-                      {txt.estimateCalculating}
-                    </td>
-                  </tr>
+                  <>
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <tr key={`skel-${i}`}>
+                        <td className="px-4 py-3" colSpan={11}>
+                          <Skeleton className="h-10 w-full rounded-lg" />
+                        </td>
+                      </tr>
+                    ))}
+                  </>
                 ) : sortedRows.length === 0 ? (
                   <tr>
                     <td className="px-4 py-4 text-slate-500" colSpan={11}>
@@ -756,7 +592,33 @@ export default function OpportunitiesTop() {
                     {isExpanded ? (
                       <tr className="bg-surface/30">
                         <td className="px-4 py-3" colSpan={11}>
-                          <WhyDealPanel row={r} txt={txt} locale={locale} lang={lang} />
+                          <div className="space-y-4">
+                            {r.priceTimeline && r.priceTimeline.length > 1 ? (
+                              <div className="rounded-xl border border-slate-200/90 bg-elevated px-3 py-2 dark:border-slate-700/80">
+                                <p className="mb-1 text-xs font-medium text-muted">
+                                  {txt.priceTimelineTitle}
+                                </p>
+                                <PriceTimelineChart
+                                  points={r.priceTimeline.map((p) => ({
+                                    recordedAt: p.recordedAt,
+                                    priceCop: Number(p.priceCop),
+                                  }))}
+                                  locale={locale}
+                                  noDataLabel={txt.analyzePriceTimelineEmpty}
+                                  tooltipLabel={txt.analyzePriceTimelineTooltip}
+                                  compact
+                                />
+                              </div>
+                            ) : null}
+                            {r.whyDeal ? (
+                              <WhyDealPanel
+                                whyDeal={r.whyDeal}
+                                title={txt.opportunitiesWhyDeal}
+                                lang={lang}
+                                locale={locale}
+                              />
+                            ) : null}
+                          </div>
                         </td>
                       </tr>
                     ) : null}

@@ -103,6 +103,8 @@ function buildOrderBy(
       return { pricePerM2: dir };
     case "area":
       return { areaM2: dir };
+    case "dealScore":
+      return { dealScore: dir };
     case "title":
       return { title: dir };
     default:
@@ -159,11 +161,13 @@ export async function GET(req: Request) {
           title: true,
           city: true,
           neighborhood: true,
+          neighborhoodRaw: true,
           propertyType: true,
           estrato: true,
           priceCop: true,
           areaM2: true,
           pricePerM2: true,
+          dealScore: true,
           url: true,
           imageUrl: true,
           dateScraped: true,
@@ -278,11 +282,13 @@ export async function GET(req: Request) {
         title: row.title,
         city: row.city,
         neighborhood: row.neighborhood,
+        neighborhoodRaw: row.neighborhoodRaw,
         propertyType: row.propertyType,
         estrato: row.estrato,
         priceCop: row.priceCop.toString(),
         areaM2: row.areaM2,
         pricePerM2: ppm2,
+        dealScore: row.dealScore,
         url: row.url,
         imageUrl: row.imageUrl,
         dateScraped: row.dateScraped.toISOString(),

@@ -3,6 +3,7 @@ import type { Listing } from "@prisma/client";
 
 import {
   analyzeDeal,
+  buildWhyDeal,
   toDealListingInput,
 } from "@/lib/dealEngine";
 import { prisma } from "@/lib/prisma";
@@ -64,6 +65,24 @@ async function buildAnalyzeResponse(upserted: Listing) {
     .slice(0, 12);
 
   const verdict = verdictFromDiscount(analysis.discountVsRefPct);
+  const whyDeal = buildWhyDeal(analysis, subject);
+
+  const priceTimeline = [
+    ...priceEvents.map((e) => ({
+      recordedAt: e.recordedAt.toISOString(),
+      priceCop: e.priceCop.toString(),
+    })),
+  ];
+  const currentPriceStr = upserted.priceCop.toString();
+  const hasCurrent =
+    priceTimeline.length === 0 ||
+    priceTimeline[priceTimeline.length - 1]?.priceCop !== currentPriceStr;
+  if (hasCurrent) {
+    priceTimeline.push({
+      recordedAt: (upserted.sourceUpdatedAt ?? new Date()).toISOString(),
+      priceCop: currentPriceStr,
+    });
+  }
 
   return {
     listing: {
@@ -81,11 +100,15 @@ async function buildAnalyzeResponse(upserted: Listing) {
       areaBuiltM2: upserted.areaBuiltM2,
       areaPrivateM2: upserted.areaPrivateM2,
       areaTerrainM2: upserted.areaTerrainM2,
+      areaTerraceM2: upserted.areaTerraceM2,
       estrato: upserted.estrato,
       bedrooms: upserted.bedrooms,
       bathrooms: upserted.bathrooms,
+      garage: upserted.garage,
       pricePerM2: analysis.subjectPpm2,
       acceptsBarter: upserted.acceptsBarter,
+      facilities: upserted.facilities,
+      constructionState: upserted.constructionState,
     },
     analysis: {
       dealScore: analysis.dealScore,
@@ -104,7 +127,9 @@ async function buildAnalyzeResponse(upserted: Listing) {
       scoreBreakdown: analysis.breakdown,
       priceDropPct: analysis.priceDropPct,
       domDays: analysis.domDays,
+      whyDeal,
     },
+    priceTimeline,
     comps: comps.slice(0, 8).map((c) => ({
       id: c.id,
       title: c.title,
