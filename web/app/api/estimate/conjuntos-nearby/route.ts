@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { haversineWithinMetersSql } from "@/lib/geoHaversine";
+import { groupConjuntoNames } from "@/lib/conjuntos";
 import { prisma } from "@/lib/prisma";
 
 export const dynamic = "force-dynamic";
@@ -53,10 +54,15 @@ export async function GET(req: Request) {
       LIMIT 40
     `);
 
+    const grouped = groupConjuntoNames(
+      rows.map((r) => ({ name: r.name, count: Number(r.cnt) })),
+    ).slice(0, 40);
+
     return NextResponse.json({
-      conjuntos: rows.map((r) => ({
-        name: r.name,
-        count: Number(r.cnt),
+      conjuntos: grouped.map((g) => ({
+        name: g.canonical,
+        count: g.count,
+        variants: g.variants.length,
       })),
     });
   } catch (e) {

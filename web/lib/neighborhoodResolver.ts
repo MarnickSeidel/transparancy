@@ -93,6 +93,41 @@ export function catalogKeyForCity(
   return null;
 }
 
+/** Canonical catalog barrios that have active listings in this city (deduped). */
+export function catalogNeighborhoodOptionsForCity(
+  city: string,
+  listingNeighborhoods: string[],
+): string[] | null {
+  const cityKey = catalogKeyForCity(city);
+  if (!cityKey) return null;
+  const catalog = CATALOGS[cityKey];
+  const canonicalNames = catalog?.neighborhoods ?? [];
+  if (canonicalNames.length === 0) return null;
+
+  const { foldToCanonical } = buildFoldMaps(cityKey);
+  const canonicalSet = new Set<string>();
+
+  for (const raw of listingNeighborhoods) {
+    const trimmed = raw?.trim();
+    if (!trimmed) continue;
+    const fromFold = foldToCanonical.get(fold(trimmed));
+    if (fromFold) {
+      canonicalSet.add(fromFold);
+      continue;
+    }
+    const key = normalizeNeighborhoodKey(trimmed);
+    if (!key) continue;
+    for (const name of canonicalNames) {
+      if (normalizeNeighborhoodKey(name) === key) {
+        canonicalSet.add(name);
+        break;
+      }
+    }
+  }
+
+  return canonicalNames.filter((name) => canonicalSet.has(name));
+}
+
 export function isRuralLocation(
   locationType?: string | null,
   slug?: string | null,

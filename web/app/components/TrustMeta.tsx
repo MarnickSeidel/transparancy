@@ -2,6 +2,7 @@ type Props = {
   sampleSize?: number | null
   minSample?: number
   confidence?: "high" | "medium" | "low" | null
+  confidenceText?: string | null
   updatedAt?: string | null
   source?: string
   labels: {
@@ -17,6 +18,7 @@ export default function TrustMeta({
   sampleSize,
   minSample,
   confidence,
+  confidenceText,
   updatedAt,
   source,
   labels,
@@ -29,8 +31,9 @@ export default function TrustMeta({
     items.push(`${labels.sample}: n=${sampleSize}${suffix}`)
   }
 
-  if (confidence) {
-    items.push(`${labels.confidence}: ${confidence}`)
+  const confidenceDisplay = confidenceText ?? confidence
+  if (confidenceDisplay) {
+    items.push(`${labels.confidence}: ${confidenceDisplay}`)
   }
 
   if (updatedAt) {

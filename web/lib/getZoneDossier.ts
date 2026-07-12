@@ -81,7 +81,7 @@ export async function getZoneDossier(
   const published = dataPointCount >= minDataPoints;
   const exploreNeighborhood = summary.display_name?.trim() || zoneSlug;
 
-  const [aliasRows, typeRows, trendResult, opportunityRows] = await Promise.all([
+  const [aliasRows, typeRows, trendResult, opportunityRows, freshnessRows] = await Promise.all([
     prisma.$queryRaw<Array<{ label: string; count: bigint }>>(Prisma.sql`
       SELECT
         btrim(l.neighborhood_raw) AS label,
@@ -126,6 +126,12 @@ export async function getZoneDossier(
         AND l.is_deal = true
         AND l.operation_type ILIKE '%venta%'
     `),
+    prisma.$queryRaw<Array<{ last_updated: Date | null }>>(Prisma.sql`
+      SELECT MAX(l.date_scraped) AS last_updated
+      FROM listings l
+      WHERE l.is_active = true
+        AND ${sqlBucketKey()} = ${bucketKey}
+    `),
   ]);
 
   const aliases: ZoneAlias[] = aliasRows
@@ -160,5 +166,6 @@ export async function getZoneDossier(
     aliases,
     exploreNeighborhood,
     monthlyTrend,
+    lastUpdatedAt: freshnessRows[0]?.last_updated?.toISOString() ?? null,
   };
 }

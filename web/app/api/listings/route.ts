@@ -2,9 +2,45 @@ import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
 import { MIN_ANALYTICS_AREA_M2, MIN_SAMPLE_SIZE } from "@/lib/analytics";
+import { domDaysFromFirstSeen } from "@/lib/formatDom";
 import { pricePerM2Bucket, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { resolveNeighborhoodFilter } from "@/lib/neighborhoodAliases";
 import { prisma } from "@/lib/prisma";
+import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants";
+
+function parseOptionalInt(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  const n = Number.parseInt(raw.replace(/\D/g, ""), 10);
+  return Number.isFinite(n) && n >= 1 ? n : null;
+}
+
+function parseOptionalFloat(raw: string | null): number | null {
+  if (!raw?.trim()) return null;
+  const n = Number.parseFloat(raw);
+  return Number.isFinite(n) ? n : null;
+}
+
+function applyGeoBBox(
+  where: Prisma.ListingWhereInput,
+  lat: number,
+  lng: number,
+  radiusM: number,
+): void {
+  const latDelta = radiusM / 111_320;
+  const lngDelta =
+    radiusM / (111_320 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)));
+  const geoClause: Prisma.ListingWhereInput = {
+    latitude: { not: null, gte: lat - latDelta, lte: lat + latDelta },
+    longitude: { not: null, gte: lng - lngDelta, lte: lng + lngDelta },
+  };
+  if (Array.isArray(where.AND)) {
+    where.AND.push(geoClause);
+  } else if (where.AND) {
+    where.AND = [where.AND, geoClause];
+  } else {
+    where.AND = [geoClause];
+  }
+}
 
 export const revalidate = 60;
 
@@ -38,7 +74,10 @@ function buildWhere(searchParams: URLSearchParams): Prisma.ListingWhereInput {
   const city = searchParams.get("city");
   const estrato = searchParams.get("estrato");
   const propertyType = searchParams.get("propertyType");
+  const minPriceRaw = searchParams.get("minPriceCop");
   const maxPriceRaw = searchParams.get("maxPriceCop");
+  const minArea = parseOptionalInt(searchParams.get("minAreaM2"));
+  const maxArea = parseOptionalInt(searchParams.get("maxAreaM2"));
 
   if (city && city !== "all") where.city = city;
   if (propertyType && propertyType !== "all") where.propertyType = propertyType;
@@ -47,12 +86,57 @@ function buildWhere(searchParams: URLSearchParams): Prisma.ListingWhereInput {
     if (!Number.isNaN(e)) where.estrato = e;
   }
 
-  const maxPrice = maxPriceRaw ? Number.parseInt(maxPriceRaw.replace(/\D/g, ""), 10) : Number.NaN;
-  if (Number.isFinite(maxPrice) && maxPrice >= 1) {
-    where.priceCop = { lte: BigInt(maxPrice) };
+  const minPrice = parseOptionalInt(minPriceRaw);
+  const maxPrice = parseOptionalInt(maxPriceRaw);
+  if (minPrice != null || maxPrice != null) {
+    where.priceCop = {
+      ...(minPrice != null ? { gte: BigInt(minPrice) } : {}),
+      ...(maxPrice != null ? { lte: BigInt(maxPrice) } : {}),
+    };
+  }
+
+  if (minArea != null || maxArea != null) {
+    where.areaM2 = {
+      ...(minArea != null ? { gte: Math.max(MIN_ANALYTICS_AREA_M2, minArea) } : { gte: MIN_ANALYTICS_AREA_M2 }),
+      ...(maxArea != null ? { lte: maxArea } : {}),
+    };
+  }
+
+  const lat = parseOptionalFloat(searchParams.get("latitude"));
+  const lng = parseOptionalFloat(searchParams.get("longitude"));
+  const radiusM = parseOptionalInt(searchParams.get("radiusMeters"));
+  if (lat != null && lng != null && radiusM != null) {
+    applyGeoBBox(where, lat, lng, radiusM);
   }
 
   return where;
+}
+
+async function applyConjuntoFilter(
+  where: Prisma.ListingWhereInput,
+  conjunto: string | null,
+  city: string | null,
+): Promise<void> {
+  if (!conjunto?.trim()) return;
+
+  const cityName =
+    city && city !== "all"
+      ? city
+      : typeof where.city === "string"
+        ? where.city
+        : null;
+
+  if (!cityName) {
+    where.conjunto = conjunto.trim();
+    return;
+  }
+
+  const variants = await resolveConjuntoVariants(cityName, conjunto);
+  if (variants.length > 1) {
+    where.conjunto = { in: variants };
+    return;
+  }
+  where.conjunto = variants[0] ?? conjunto.trim();
 }
 
 async function applyNeighborhoodFilter(
@@ -123,6 +207,11 @@ export async function GET(req: Request) {
   try {
     const where = buildWhere(searchParams);
     await applyNeighborhoodFilter(where, searchParams.get("neighborhood"));
+    await applyConjuntoFilter(
+      where,
+      searchParams.get("conjunto"),
+      searchParams.get("city"),
+    );
     const orderBy = buildOrderBy(
       searchParams.get("sortBy"),
       searchParams.get("sortDir"),
@@ -150,6 +239,7 @@ export async function GET(req: Request) {
           url: true,
           imageUrl: true,
           dateScraped: true,
+          firstSeenAt: true,
         },
       }),
     ]);
@@ -271,6 +361,7 @@ export async function GET(req: Request) {
         url: row.url,
         imageUrl: row.imageUrl,
         dateScraped: row.dateScraped.toISOString(),
+        domDays: domDaysFromFirstSeen(row.firstSeenAt),
         priceBucket,
         refMedian,
         deltaVsRefPct,

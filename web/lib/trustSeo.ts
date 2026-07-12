@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
+import { methodologyFaqJsonLdFromCopy } from "@/lib/methodologyCopy";
 import { ogLocale, type Locale } from "@/lib/locale";
 
 type TrustPage = "methodology" | "privacy" | "about";
@@ -72,46 +73,7 @@ export function trustPageMetadata(page: TrustPage, locale: Locale): Metadata {
 }
 
 export function methodologyFaqJsonLd(locale: Locale) {
-  const faqs =
-    locale === "es"
-      ? [
-          {
-            q: "¿De dónde provienen los datos?",
-            a: "De publicaciones activas e históricas de Finca Raíz, recopiladas periódicamente mediante scraping automatizado.",
-          },
-          {
-            q: "¿Es esto una tasación?",
-            a: "No. Habidata muestra estadísticas agregadas de precios publicados. No sustituye una valoración profesional.",
-          },
-          {
-            q: "¿Con qué frecuencia se actualizan los datos?",
-            a: "El scraper se ejecuta de forma continua. Las páginas de barrio se regeneran cada pocos minutos (ISR).",
-          },
-        ]
-      : [
-          {
-            q: "Where does the data come from?",
-            a: "From active and historical Finca Raíz listings, collected periodically via automated scraping.",
-          },
-          {
-            q: "Is this an appraisal?",
-            a: "No. Habidata shows aggregated asking-price statistics. It does not replace a professional valuation or investment advice.",
-          },
-          {
-            q: "How often is data updated?",
-            a: "The scraper runs continuously. Neighborhood pages revalidate every few minutes.",
-          },
-        ];
-
-  return {
-    "@context": "https://schema.org",
-    "@type": "FAQPage",
-    mainEntity: faqs.map(({ q, a }) => ({
-      "@type": "Question",
-      name: q,
-      acceptedAnswer: { "@type": "Answer", text: a },
-    })),
-  };
+  return methodologyFaqJsonLdFromCopy(locale);
 }
 
 export function homeJsonLd(locale: Locale) {

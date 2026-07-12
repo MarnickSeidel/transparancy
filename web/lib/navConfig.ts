@@ -6,6 +6,7 @@ export type NavKey =
   | "zones"
   | "heatmap"
   | "analyzeUrl"
+  | "priceDrops"
 
 export type NavTextKey =
   | "dashboardNav"
@@ -15,6 +16,7 @@ export type NavTextKey =
   | "zonesNav"
   | "heatmapNav"
   | "analyzeUrlNav"
+  | "priceDropsNav"
 
 export type NavGroupId = "research" | "analyze" | "market"
 
@@ -49,6 +51,7 @@ export const navGroups: NavGroup[] = [
       { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
       { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
       { key: "opportunities", href: "/opportunities", textKey: "opportunitiesNav" },
+      { key: "priceDrops", href: "/price-drops", textKey: "priceDropsNav" },
     ],
   },
 ]

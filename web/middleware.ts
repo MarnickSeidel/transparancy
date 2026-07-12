@@ -10,6 +10,7 @@ const TOOL_PREFIXES = [
   "/heatmap",
   "/estimate",
   "/analyze-url",
+  "/price-drops",
 ];
 
 function isToolPath(pathname: string): boolean {

@@ -29,6 +29,14 @@ const opportunityCacheKey = (query: OpportunityQuery): string[] => [
   query.excludeProjects ? "1" : "0",
   String(query.minDiscountPct ?? 0),
   query.maxPriceCop?.toString() ?? "none",
+  query.minPriceCop?.toString() ?? "none",
+  String(query.minAreaM2 ?? ""),
+  String(query.maxAreaM2 ?? ""),
+  String(query.estrato ?? ""),
+  query.conjunto ?? "",
+  String(query.latitude ?? ""),
+  String(query.longitude ?? ""),
+  String(query.radiusMeters ?? ""),
   String(query.limit ?? 10),
 ]
 

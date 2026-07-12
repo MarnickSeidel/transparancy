@@ -58,6 +58,7 @@ export type ZoneDossier = PublishableZone & {
   aliases: ZoneAlias[];
   exploreNeighborhood: string;
   monthlyTrend: ZoneMonthlyTrend[];
+  lastUpdatedAt: string | null;
 };
 
 export function effectivePpm2(

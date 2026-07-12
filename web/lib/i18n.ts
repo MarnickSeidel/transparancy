@@ -167,16 +167,22 @@ export const uiText = {
     estimateLiveInConjuntoHint:
       "Si lo marcas, comparamos solo publicaciones de ese conjunto (mas preciso). Con mapa, sugerimos conjuntos cerca del pin.",
     estimateConjuntoSelect: "Conjunto",
+    estimateConjuntoSearchPlaceholder: "Escribe cualquier palabra del nombre…",
+    estimateConjuntoSearchHint:
+      "Busca por cualquier parte del nombre (ej. nogal, club residencial). No hace falta escribirlo completo.",
     estimateConjuntoNearbyEmpty:
       "No hay conjuntos con coordenadas cerca del pin. Elige de la lista de la ciudad o amplia el radio.",
     estimateConjuntoRequired: "Selecciona tu conjunto o desmarca la opcion.",
     estimateConjuntoLoading: "Buscando conjuntos cerca del pin…",
     estimateConjuntoApplied: "Filtro por conjunto: {name}",
+    estimateConjuntoVariants: "({n} variantes del nombre en anuncios)",
     estimateTagline:
       "Indica area y filtros: obtienes un rango bajo–medio–alto basado en publicaciones similares.",
     estimatePurpose:
       "Calcula un rango de precio orientativo usando comparables del mercado de publicaciones.",
     requiredFieldLegend: "* Campo obligatorio",
+    searchableSelectPlaceholder: "Selecciona o escribe para filtrar…",
+    searchableSelectNoMatch: "Sin coincidencias",
     estimateSectionLocation: "1) Ubicacion",
     estimateSectionProperty: "2) Datos del inmueble",
     estimateSectionAdvanced: "3) Ajustes avanzados (opcional)",
@@ -185,6 +191,47 @@ export const uiText = {
     estimateRangeExplain:
       "El rango muestra escenarios conservador (P25), central (mediana) y alto (P75).",
     estimateLoadingMap: "Cargando mapa...",
+    estimateLocationModeBarrio: "Por barrio",
+    estimateLocationModeMap: "En el mapa",
+    estimateLocationMapRecommend:
+      "En Colombia los nombres de barrio varían entre portales. Un pin en el mapa suele ser más fiel que elegir barrio.",
+    estimateUseMyLocation: "Usar mi ubicación",
+    estimateUseMyLocationLoading: "Obteniendo ubicación…",
+    estimateGeolocationDenied:
+      "No pudimos acceder a tu ubicación. Revisa los permisos del navegador o coloca el pin manualmente.",
+    estimateGeolocationError:
+      "No se pudo obtener tu ubicación. Intenta de nuevo o coloca el pin en el mapa.",
+    estimateGeolocationUnsupported:
+      "Tu navegador no soporta geolocalización. Coloca el pin en el mapa.",
+    estimateGeolocationCitySet: "Ciudad sugerida según tu ubicación: {city}.",
+    estimateGeolocationCityMismatch:
+      "Tu ubicación parece más cerca de {city}. Revisa la ciudad si hace falta.",
+    estimateLocationPromptTitle: "¿Estás en Colombia?",
+    estimateLocationPromptBody:
+      "Puedes usar la ubicación de tu dispositivo para colocar el pin en el mapa, o elegir ciudad y barrio manualmente.",
+    estimateLocationPromptUse: "Usar mi ubicación",
+    estimateLocationPromptDismiss: "Elegir manualmente",
+    estimateFallbackNeighborhood: "barrio",
+    estimateFallbackPropertyType: "tipo de inmueble",
+    estimateFallbackEstrato: "estrato",
+    estimateFallbackConjunto: "conjunto",
+    estimateResultHeadline: "Rango orientativo para {area} m²",
+    estimateResultMedian: "Precio central (mediana)",
+    estimateResultMethodology: "Cómo calculamos este rango →",
+    estimateResultNextTitle: "Siguientes pasos",
+    estimateResultNextZone: "Ver dossier del barrio",
+    estimateResultNextExplore: "Explorar publicaciones similares",
+    estimateResultNextOpportunities: "Ver oportunidades con descuento (misma zona)",
+    estimateResultAnalyzeTitle: "¿Tienes un anuncio de Finca Raíz?",
+    estimateResultAnalyzeBody:
+      "Pega la URL del anuncio y lo comparamos con el rango que acabas de calcular en esta zona.",
+    estimateResultAnalyzeButton: "Analizar anuncio",
+    estimateResultMarketTitle: "Explorar el mercado",
+    estimateSubscribeTitle: "Avisos por email (próximamente)",
+    estimateSubscribeHint:
+      "Guardamos tu correo para avisarte cuando lancemos alertas en {city}. Aún no enviamos correos automáticos.",
+    estimateResultFreshness: "Basado en publicaciones activas actualizadas el {date}.",
+    estimateSectionConjunto: "3) Conjunto (opcional)",
     subscribeTitle: "Lista de espera",
     subscribeHint:
       "Guardamos tu correo para avisarte cuando lancemos alertas por email. Por ahora no enviamos correos automaticos.",
@@ -201,6 +248,10 @@ export const uiText = {
     opportunitiesPurpose:
       "Encuentra anuncios con potencial descuento frente a referencias comparables.",
     opportunitiesTop10: "Top 10 oportunidades",
+    opportunitiesSimilarBannerTitle: "Oportunidades cerca de tu estimación",
+    opportunitiesSimilarBannerBody:
+      "Filtramos por la misma zona (mapa o barrio), área, precio y tipo que usaste en el estimador. Quita el filtro para ver toda la ciudad.",
+    opportunitiesSimilarClear: "Ver toda la ciudad",
     opportunitiesEmpty: "No hay oportunidades para este filtro por ciudad.",
     opportunityDiscount: "Descuento vs referencia",
     opportunitiesExcludeNeighborhoods: "Excluir barrios",
@@ -309,6 +360,21 @@ export const uiText = {
     analyzeVerdictGood: "Buena oportunidad",
     analyzeVerdictFair: "Precio razonable",
     analyzeVerdictOverpriced: "Sobrevalorado",
+    analyzeVerdictSummaryGood:
+      "Este inmueble está ~{pct}% por debajo de la referencia de comparables en {context}.",
+    analyzeVerdictSummaryFair:
+      "El precio por m² está en línea con la mediana de comparables similares en {context}.",
+    analyzeVerdictSummaryOver:
+      "Este inmueble está ~{pct}% por encima de la referencia de comparables en {context}.",
+    analyzeVerdictListingPpm2: "Anuncio / m²",
+    analyzeVerdictReferencePpm2: "Referencia / m²",
+    analyzeVerdictTotalPrice: "Precio de venta",
+    analyzeVerdictCompBasis: "Base de comparables",
+    analyzeVerdictCompLine: "{count} comps · {method} · {metric}",
+    analyzeVerdictComparison: "Anuncio vs referencia (precio/m²)",
+    analyzeVerdictPriceDrop: "Bajó {pct}% recientemente",
+    analyzeVerdictHowWeCalculate: "Cómo calculamos esto →",
+    analyzeVerdictConfidenceLabel: "Confianza",
     analyzeReferencePpm2: "Referencia comparable / m²",
     analyzeReferencePpm2Nearby: "Referencia comparable / m² (cercanos 1km)",
     analyzeReferencePpm2Neighborhood: "Referencia comparable / m² en barrio",
@@ -352,6 +418,10 @@ export const uiText = {
       "Busca y filtra anuncios activos. El color indica precio/m² vs la mediana del barrio (o ciudad).",
     explorePurpose:
       "Navega el mercado con señales de precio por publicacion y enlace directo al anuncio.",
+    exploreSimilarBannerTitle: "Filtros de tu estimación",
+    exploreSimilarBannerBody:
+      "Mostramos publicaciones con área, precio y ubicación parecidos a lo que calculaste. Quita este filtro para ver más anuncios.",
+    exploreSimilarClear: "Quitar filtro de similitud",
     exploreResults: "Resultados",
     exploreShowing: "Mostrando {from}-{to} de {total}",
     explorePage: "Pagina {page} de {pages}",
@@ -403,6 +473,44 @@ export const uiText = {
     zonesEmpty: "Aún no hay barrios publicables para esta ciudad.",
     siteFooterTagline:
       "Habidata · Colombia · Datos de publicaciones (no tasación oficial).",
+    shareReportTitle: "Compartir informe",
+    shareReportHint:
+      "Genera un enlace público para enviar por WhatsApp o guardar este análisis.",
+    shareReportCopy: "Copiar enlace",
+    shareReportCopied: "Enlace copiado",
+    shareReportCreating: "Generando enlace…",
+    shareReportWhatsApp: "Compartir en WhatsApp",
+    shareReportOpen: "Abrir enlace público",
+    shareReportError: "No pudimos crear el enlace. Intenta de nuevo.",
+    shareReportPageTitle: "Informe compartido",
+    shareReportPageSubtitle: "Análisis de precio vs comparables del barrio.",
+    shareReportNotFound: "No encontramos este informe o el enlace expiró.",
+    shareReportExpired: "Este informe expiró. Analiza el anuncio de nuevo.",
+    shareReportGenerated: "Generado",
+    shareReportAnalyzeAnother: "Analizar otro anuncio",
+    priceDropsTitle: "Bajadas de precio",
+    priceDropsPurpose:
+      "Publicaciones activas cuyo precio de pedido bajó recientemente.",
+    priceDropsHint:
+      "Basado en cambios detectados en Finca Raíz durante el último mes. Precios de pedido, no ventas cerradas.",
+    priceDropsEmpty: "No hay bajadas de precio recientes para este filtro.",
+    priceDropsRecorded: "Detectado",
+    priceDropsSaved: "Reducción",
+    priceDropsAnalyzeCta:
+      "¿Viste una bajada interesante? Pega el enlace del anuncio para un diagnóstico completo.",
+    priceDropsNav: "Bajadas de precio",
+    dataFreshnessLabel: "Datos actualizados",
+    dataFreshnessNote:
+      "Actualizamos el inventario periódicamente desde anuncios activos de Finca Raíz (no en tiempo real).",
+    zonesAnalyzeCtaTitle: "¿Tienes un anuncio en {barrio}?",
+    zonesAnalyzeCtaBody:
+      "Pega el enlace de Finca Raíz y compara el precio/m² contra este barrio en segundos.",
+    zonesAnalyzeCtaButton: "Analizar anuncio",
+    zonesEstimateCtaTitle: "¿Quieres estimar un inmueble en {barrio}?",
+    zonesEstimateCtaBody:
+      "Indica el área en m² y obtén un rango de precio basado en publicaciones comparables cerca de este barrio.",
+    zonesEstimateCtaButton: "Abrir estimador",
+    domDaysLabel: "Días en mercado",
   },
   en: {
     title: "Habidata — market transparency",
@@ -561,16 +669,22 @@ export const uiText = {
     estimateLiveInConjuntoHint:
       "When checked, we only use listings from that conjunto (more precise). With the map, we suggest nearby conjuntos.",
     estimateConjuntoSelect: "Complex (conjunto)",
+    estimateConjuntoSearchPlaceholder: "Type any word from the name…",
+    estimateConjuntoSearchHint:
+      "Search by any part of the name (e.g. nogal, club residencial). The full name is not required.",
     estimateConjuntoNearbyEmpty:
       "No conjuntos with coordinates near the pin. Pick from the city list or widen the radius.",
     estimateConjuntoRequired: "Select your conjunto or uncheck the option.",
     estimateConjuntoLoading: "Finding complexes near the pin…",
     estimateConjuntoApplied: "Conjunto filter: {name}",
+    estimateConjuntoVariants: "({n} listing name variants included)",
     estimateTagline:
       "Enter area and filters: you get a low–mid–high range from similar listings.",
     estimatePurpose:
       "Estimate a guidance price range using comparable listing-market data.",
     requiredFieldLegend: "* Required field",
+    searchableSelectPlaceholder: "Select or type to filter…",
+    searchableSelectNoMatch: "No matches",
     estimateSectionLocation: "1) Location",
     estimateSectionProperty: "2) Property details",
     estimateSectionAdvanced: "3) Advanced options (optional)",
@@ -579,6 +693,47 @@ export const uiText = {
     estimateRangeExplain:
       "The range shows conservative (P25), central (median), and high (P75) scenarios.",
     estimateLoadingMap: "Loading map...",
+    estimateLocationModeBarrio: "By neighborhood",
+    estimateLocationModeMap: "On the map",
+    estimateLocationMapRecommend:
+      "In Colombia, neighborhood names vary across portals. A map pin is often more reliable than picking a barrio label.",
+    estimateUseMyLocation: "Use my location",
+    estimateUseMyLocationLoading: "Getting location…",
+    estimateGeolocationDenied:
+      "We could not access your location. Check browser permissions or place the pin manually.",
+    estimateGeolocationError:
+      "Could not get your location. Try again or place the pin on the map.",
+    estimateGeolocationUnsupported:
+      "Your browser does not support geolocation. Place the pin on the map.",
+    estimateGeolocationCitySet: "Suggested city from your location: {city}.",
+    estimateGeolocationCityMismatch:
+      "Your location seems closer to {city}. Double-check the city if needed.",
+    estimateLocationPromptTitle: "Are you in Colombia?",
+    estimateLocationPromptBody:
+      "You can use your device location to place a map pin, or pick city and neighborhood manually.",
+    estimateLocationPromptUse: "Use my location",
+    estimateLocationPromptDismiss: "Choose manually",
+    estimateFallbackNeighborhood: "neighborhood",
+    estimateFallbackPropertyType: "property type",
+    estimateFallbackEstrato: "estrato",
+    estimateFallbackConjunto: "complex (conjunto)",
+    estimateResultHeadline: "Guidance range for {area} m²",
+    estimateResultMedian: "Central price (median)",
+    estimateResultMethodology: "How we calculate this range →",
+    estimateResultNextTitle: "Next steps",
+    estimateResultNextZone: "View neighborhood dossier",
+    estimateResultNextExplore: "Browse similar listings",
+    estimateResultNextOpportunities: "See discounted deals (same area)",
+    estimateResultAnalyzeTitle: "Have a Finca Raíz listing?",
+    estimateResultAnalyzeBody:
+      "Paste the listing URL and we compare its price to the range you just calculated for this area.",
+    estimateResultAnalyzeButton: "Analyze listing",
+    estimateResultMarketTitle: "Explore the market",
+    estimateSubscribeTitle: "Email alerts (coming soon)",
+    estimateSubscribeHint:
+      "We save your email to notify you when alerts launch in {city}. We do not send automated emails yet.",
+    estimateResultFreshness: "Based on active listings updated on {date}.",
+    estimateSectionConjunto: "3) Complex (optional)",
     subscribeTitle: "Waitlist",
     subscribeHint:
       "We save your email to notify you when email alerts launch. We do not send automated emails yet.",
@@ -595,6 +750,10 @@ export const uiText = {
     opportunitiesPurpose:
       "Find listings with potential discount versus comparable market references.",
     opportunitiesTop10: "Top 10 opportunities",
+    opportunitiesSimilarBannerTitle: "Deals near your estimate",
+    opportunitiesSimilarBannerBody:
+      "Filtered to the same area (map or neighborhood), size, price band, and type from your estimate. Remove the filter to see the whole city.",
+    opportunitiesSimilarClear: "See whole city",
     opportunitiesEmpty: "No opportunities for this city filter.",
     opportunityDiscount: "Discount vs reference",
     opportunitiesExcludeNeighborhoods: "Exclude neighborhoods",
@@ -703,6 +862,21 @@ export const uiText = {
     analyzeVerdictGood: "Good deal",
     analyzeVerdictFair: "Fairly priced",
     analyzeVerdictOverpriced: "Overpriced",
+    analyzeVerdictSummaryGood:
+      "This listing is ~{pct}% below the comparable reference in {context}.",
+    analyzeVerdictSummaryFair:
+      "The price per m² is in line with the median for similar comparables in {context}.",
+    analyzeVerdictSummaryOver:
+      "This listing is ~{pct}% above the comparable reference in {context}.",
+    analyzeVerdictListingPpm2: "Listing / m²",
+    analyzeVerdictReferencePpm2: "Reference / m²",
+    analyzeVerdictTotalPrice: "Asking price",
+    analyzeVerdictCompBasis: "Comparable basis",
+    analyzeVerdictCompLine: "{count} comps · {method} · {metric}",
+    analyzeVerdictComparison: "Listing vs reference (price/m²)",
+    analyzeVerdictPriceDrop: "Down {pct}% recently",
+    analyzeVerdictHowWeCalculate: "How we calculate this →",
+    analyzeVerdictConfidenceLabel: "Confidence",
     analyzeReferencePpm2: "Comparable reference / m²",
     analyzeReferencePpm2Nearby: "Comparable reference / m² (nearby 1km)",
     analyzeReferencePpm2Neighborhood: "Comparable reference / m² in neighborhood",
@@ -746,6 +920,10 @@ export const uiText = {
       "Search and filter active listings. Color shows price/m² vs neighborhood (or city) median.",
     explorePurpose:
       "Browse the market with per-listing price signals and direct links to source ads.",
+    exploreSimilarBannerTitle: "Filters from your estimate",
+    exploreSimilarBannerBody:
+      "Showing listings with area, price, and location similar to your estimate. Remove this filter to see more ads.",
+    exploreSimilarClear: "Remove similarity filter",
     exploreResults: "Results",
     exploreShowing: "Showing {from}-{to} of {total}",
     explorePage: "Page {page} of {pages}",
@@ -797,5 +975,42 @@ export const uiText = {
     zonesEmpty: "No publishable barrios for this city yet.",
     siteFooterTagline:
       "Habidata · Colombia · Listing-market data (not an official appraisal).",
+    shareReportTitle: "Share report",
+    shareReportHint:
+      "Create a public link to send via WhatsApp or save this analysis.",
+    shareReportCopy: "Copy link",
+    shareReportCopied: "Link copied",
+    shareReportCreating: "Creating link…",
+    shareReportWhatsApp: "Share on WhatsApp",
+    shareReportOpen: "Open public link",
+    shareReportError: "Could not create the link. Try again.",
+    shareReportPageTitle: "Shared report",
+    shareReportPageSubtitle: "Price analysis vs neighborhood comparables.",
+    shareReportNotFound: "We could not find this report or the link expired.",
+    shareReportExpired: "This report expired. Analyze the listing again.",
+    shareReportGenerated: "Generated",
+    shareReportAnalyzeAnother: "Analyze another listing",
+    priceDropsTitle: "Price drops",
+    priceDropsPurpose: "Active listings whose asking price dropped recently.",
+    priceDropsHint:
+      "Based on price changes detected on Finca Raíz in the last 30 days. Asking prices, not closed sales.",
+    priceDropsEmpty: "No recent price drops for this filter.",
+    priceDropsRecorded: "Detected",
+    priceDropsSaved: "Reduction",
+    priceDropsAnalyzeCta:
+      "Spotted an interesting drop? Paste the listing URL for a full diagnosis.",
+    priceDropsNav: "Price drops",
+    dataFreshnessLabel: "Data updated",
+    dataFreshnessNote:
+      "We refresh inventory periodically from active Finca Raíz ads (not real-time).",
+    zonesAnalyzeCtaTitle: "Have a listing in {barrio}?",
+    zonesAnalyzeCtaBody:
+      "Paste the Finca Raíz URL and compare price/m² against this neighborhood in seconds.",
+    zonesAnalyzeCtaButton: "Analyze listing",
+    zonesEstimateCtaTitle: "Want to estimate a property in {barrio}?",
+    zonesEstimateCtaBody:
+      "Enter area in m² and get a price range from comparable listings near this neighborhood.",
+    zonesEstimateCtaButton: "Open estimator",
+    domDaysLabel: "Days on market",
   },
 } as const;

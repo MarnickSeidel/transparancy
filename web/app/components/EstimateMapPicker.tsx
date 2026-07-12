@@ -1,7 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { MapContainer, Marker, TileLayer, useMapEvents } from "react-leaflet";
+import {
+  MapContainer,
+  Marker,
+  TileLayer,
+  useMap,
+  useMapEvents,
+} from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -30,6 +36,21 @@ function MapClickLayer({
       onPick(e.latlng.lat, e.latlng.lng);
     },
   });
+  return null;
+}
+
+function FlyToMarker({
+  marker,
+}: {
+  marker: { lat: number; lng: number } | null;
+}) {
+  const map = useMap();
+  useEffect(() => {
+    if (!marker) return;
+    map.flyTo([marker.lat, marker.lng], Math.max(map.getZoom(), 14), {
+      duration: 0.75,
+    });
+  }, [marker, map]);
   return null;
 }
 
@@ -72,6 +93,7 @@ export default function EstimateMapPicker({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapClickLayer onPick={onPick} />
+      <FlyToMarker marker={marker} />
       {marker ? <Marker position={[marker.lat, marker.lng]} /> : null}
     </MapContainer>
   );

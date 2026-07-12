@@ -20,3 +20,25 @@ export const CITY_MAP_CENTER: Record<string, [number, number]> = {
 export function mapCenterForCity(city: string): [number, number] {
   return CITY_MAP_CENTER[city] ?? [4.65, -74.05];
 }
+
+/** Closest catalog city center to a WGS84 point (for geolocation → city pick). */
+export function nearestCityFromCoords(
+  lat: number,
+  lng: number,
+): { city: string; distanceM: number } | null {
+  let best: { city: string; distanceM: number } | null = null;
+  for (const [city, [cLat, cLng]] of Object.entries(CITY_MAP_CENTER)) {
+    const dLat = ((cLat - lat) * Math.PI) / 180;
+    const dLng = ((cLng - lng) * Math.PI) / 180;
+    const a =
+      Math.sin(dLat / 2) ** 2 +
+      Math.cos((lat * Math.PI) / 180) *
+        Math.cos((cLat * Math.PI) / 180) *
+        Math.sin(dLng / 2) ** 2;
+    const distanceM = 6371000 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    if (!best || distanceM < best.distanceM) {
+      best = { city, distanceM };
+    }
+  }
+  return best;
+}

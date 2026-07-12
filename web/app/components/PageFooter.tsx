@@ -1,6 +1,9 @@
-import Link from "next/link";
+"use client";
 
-import { localePath, type Locale } from "@/lib/locale";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+import { localePath, stripLocalePrefix, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 
 type Props = {
@@ -8,9 +11,11 @@ type Props = {
 };
 
 export default function PageFooter({ locale = "es" }: Props) {
+  const pathname = usePathname();
   const txt = uiText[locale];
   const year = new Date().getFullYear();
   const lp = (path: string) => localePath(locale, path);
+  const pathForLang = stripLocalePrefix(pathname || "/");
 
   return (
     <footer className="mt-auto border-t border-border-subtle bg-elevated/90">
@@ -41,8 +46,13 @@ export default function PageFooter({ locale = "es" }: Props) {
                 </Link>
               </li>
               <li>
-                <Link href="/heatmap" className="text-foreground hover:text-accent">
-                  {txt.heatmapNav}
+                <Link href="/opportunities" className="text-foreground hover:text-accent">
+                  {txt.opportunitiesNav}
+                </Link>
+              </li>
+              <li>
+                <Link href="/price-drops" className="text-foreground hover:text-accent">
+                  {txt.priceDropsNav}
                 </Link>
               </li>
             </ul>
@@ -71,12 +81,12 @@ export default function PageFooter({ locale = "es" }: Props) {
             <p className="text-meta font-semibold">{locale === "en" ? "Language" : "Idioma"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                <Link href="/" className="text-foreground hover:text-accent">
+                <Link href={localePath("es", pathForLang)} className="text-foreground hover:text-accent">
                   Español
                 </Link>
               </li>
               <li>
-                <Link href="/en" className="text-foreground hover:text-accent">
+                <Link href={localePath("en", pathForLang)} className="text-foreground hover:text-accent">
                   English
                 </Link>
               </li>

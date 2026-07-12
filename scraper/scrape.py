@@ -706,6 +706,10 @@ def normalize_conjunto(value: str | None) -> str | None:
     if not value:
         return None
     s = " ".join(value.strip().split())
+    prev = ""
+    while s != prev:
+        prev = s
+        s = _CONJUNTO_STRIP_RE.sub("", s).strip()
     parts = s.split()
     while parts and parts[0].casefold() in _CONJUNTO_LEADING_STOPWORDS:
         parts.pop(0)

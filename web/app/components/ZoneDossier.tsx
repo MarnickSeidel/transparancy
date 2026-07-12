@@ -9,7 +9,9 @@ import Breadcrumbs from "@/app/components/Breadcrumbs";
 import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
 import Skeleton from "@/app/components/ui/Skeleton";
+import Button from "@/app/components/ui/Button";
 import { buildFincaRaizSearchUrl } from "@/lib/fincaraizSearch";
+import { formatFreshnessDate } from "@/lib/getDataFreshness";
 import {
   DEFAULT_MIN_ZONE_DATA_POINTS,
   isApartmentType,
@@ -136,6 +138,27 @@ export default function ZoneDossier({
     return buildFincaRaizSearchUrl(data.city, data.exploreNeighborhood);
   }, [data]);
 
+  const analyzeHref = useMemo(() => {
+    if (!data) return "/analyze-url";
+    const p = new URLSearchParams();
+    p.set("city", data.city);
+    if (data.exploreNeighborhood) p.set("neighborhood", data.exploreNeighborhood);
+    return `/analyze-url?${p.toString()}`;
+  }, [data]);
+
+  const estimateHref = useMemo(() => {
+    if (!data) return "/estimate";
+    const p = new URLSearchParams();
+    p.set("city", data.city);
+    if (data.exploreNeighborhood) p.set("neighborhood", data.exploreNeighborhood);
+    return `/estimate?${p.toString()}`;
+  }, [data]);
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!data?.lastUpdatedAt) return null;
+    return formatFreshnessDate(new Date(data.lastUpdatedAt), locale);
+  }, [data?.lastUpdatedAt, locale]);
+
   const chartRows = useMemo(
     () =>
       (data?.monthlyTrend ?? []).map((row) => ({
@@ -243,6 +266,11 @@ export default function ZoneDossier({
               >
                 {txt.zonesConfidenceBadge}: {CONFIDENCE_LABELS[data.dominantConfidence]?.[lang] ?? data.dominantConfidence}
               </span>
+              {lastUpdatedLabel ? (
+                <span className="text-xs text-muted">
+                  {txt.dataFreshnessLabel}: {lastUpdatedLabel}
+                </span>
+              ) : null}
               {data.opportunityCount > 0 ? (
                 <Link
                   href={opportunitiesHref}
@@ -434,6 +462,28 @@ export default function ZoneDossier({
                 </ul>
               </Card>
             ) : null}
+
+            <p className="mb-6 text-xs text-muted">{txt.dataFreshnessNote}</p>
+
+            <Card className="mb-6 border-accent/30 bg-accent/5 shadow-card">
+              <h2 className="text-base font-semibold text-foreground">
+                {fmtTemplate(txt.zonesAnalyzeCtaTitle, { barrio: data.displayName })}
+              </h2>
+              <p className="mt-2 text-sm text-muted">{txt.zonesAnalyzeCtaBody}</p>
+              <Button href={analyzeHref} className="mt-4">
+                {txt.zonesAnalyzeCtaButton}
+              </Button>
+            </Card>
+
+            <Card className="mb-6 border-teal-200/80 bg-teal-50/40 shadow-card dark:border-teal-900/60 dark:bg-teal-950/20">
+              <h2 className="text-base font-semibold text-foreground">
+                {fmtTemplate(txt.zonesEstimateCtaTitle, { barrio: data.displayName })}
+              </h2>
+              <p className="mt-2 text-sm text-muted">{txt.zonesEstimateCtaBody}</p>
+              <Button href={estimateHref} className="mt-4">
+                {txt.zonesEstimateCtaButton}
+              </Button>
+            </Card>
 
             <Card className="border-teal-200/80 bg-teal-50/40 dark:border-teal-900/60 dark:bg-teal-950/20">
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

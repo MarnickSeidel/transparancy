@@ -12,6 +12,7 @@ import Skeleton from "@/app/components/ui/Skeleton";
 import SiteHeader from "@/app/components/SiteHeader";
 import WhyDealPanel from "@/app/components/WhyDealPanel";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
+import { formatDomDays } from "@/lib/formatDom";
 import type { WhyDeal } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
 import { propertyTypeOptions } from "@/lib/propertyTypes";
@@ -41,6 +42,7 @@ type OpportunityRow = {
   confidence?: "high" | "medium" | "low";
   confidenceReasons?: string[];
   priceDropPct?: number | null;
+  domDays?: number | null;
   priceTimeline?: Array<{ recordedAt: string; priceCop: string }>;
   acceptsBarter?: boolean;
   isProject?: boolean;
@@ -77,12 +79,16 @@ function metricTypeLabel(
 function signalTags(
   row: OpportunityRow,
   txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+  lang: "es" | "en",
 ) {
   const tags: string[] = [];
   if (row.acceptsBarter) tags.push(txt.opportunitiesFlagBarter);
   if (row.isProject) tags.push(txt.opportunitiesFlagProject);
   if (row.priceDropPct != null && row.priceDropPct >= 2) {
     tags.push(txt.opportunitiesFlagPriceDrop.replace("{pct}", row.priceDropPct.toFixed(0)));
+  }
+  if (row.domDays != null && row.domDays >= 45) {
+    tags.push(formatDomDays(row.domDays, lang === "es" ? "es" : "en") ?? "");
   }
   return tags;
 }
@@ -92,6 +98,35 @@ function initialOppParam(name: string): string {
   if (typeof window === "undefined") return "all";
   const v = new URLSearchParams(window.location.search).get(name)?.trim();
   return v && v.length > 0 ? v : "all";
+}
+
+type SimilarFilters = {
+  minAreaM2: string;
+  maxAreaM2: string;
+  minPriceCop: string;
+  maxPriceCop: string;
+  latitude: string;
+  longitude: string;
+  radiusMeters: string;
+  estrato: string;
+  conjunto: string;
+};
+
+function initialSimilarFilters(): SimilarFilters | null {
+  if (typeof window === "undefined") return null;
+  const p = new URLSearchParams(window.location.search);
+  if (p.get("similar") !== "1") return null;
+  return {
+    minAreaM2: p.get("minAreaM2") ?? "",
+    maxAreaM2: p.get("maxAreaM2") ?? "",
+    minPriceCop: p.get("minPriceCop") ?? "",
+    maxPriceCop: p.get("maxPriceCop") ?? "",
+    latitude: p.get("latitude") ?? "",
+    longitude: p.get("longitude") ?? "",
+    radiusMeters: p.get("radiusMeters") ?? "",
+    estrato: p.get("estrato") ?? "",
+    conjunto: p.get("conjunto") ?? "",
+  };
 }
 
 export default function OpportunitiesTop() {
@@ -111,7 +146,13 @@ export default function OpportunitiesTop() {
   );
   const [excludedNeighborhoods, setExcludedNeighborhoods] = useState<string[]>([]);
   const [excludeDraft, setExcludeDraft] = useState("");
-  const [maxPriceCop, setMaxPriceCop] = useState("");
+  const [maxPriceCop, setMaxPriceCop] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("maxPriceCop")?.trim() ?? "";
+  });
+  const [similarFilters, setSimilarFilters] = useState<SimilarFilters | null>(
+    () => initialSimilarFilters(),
+  );
   const [minDiscountPct, setMinDiscountPct] = useState("");
   const [excludeBarter, setExcludeBarter] = useState(false);
   const [excludeProjects, setExcludeProjects] = useState(false);
@@ -146,6 +187,20 @@ export default function OpportunitiesTop() {
     if (Number.isFinite(maxParsed) && maxParsed >= 1) {
       p.set("maxPriceCop", String(maxParsed));
     }
+    if (similarFilters) {
+      p.set("similar", "1");
+      if (similarFilters.minAreaM2) p.set("minAreaM2", similarFilters.minAreaM2);
+      if (similarFilters.maxAreaM2) p.set("maxAreaM2", similarFilters.maxAreaM2);
+      if (similarFilters.minPriceCop) p.set("minPriceCop", similarFilters.minPriceCop);
+      if (similarFilters.maxPriceCop && !maxPriceCop.trim()) {
+        p.set("maxPriceCop", similarFilters.maxPriceCop);
+      }
+      if (similarFilters.latitude) p.set("latitude", similarFilters.latitude);
+      if (similarFilters.longitude) p.set("longitude", similarFilters.longitude);
+      if (similarFilters.radiusMeters) p.set("radiusMeters", similarFilters.radiusMeters);
+      if (similarFilters.estrato) p.set("estrato", similarFilters.estrato);
+      if (similarFilters.conjunto) p.set("conjunto", similarFilters.conjunto);
+    }
     const minDisc = minDiscountPct.trim();
     if (minDisc !== "") {
       const parsed = Number.parseFloat(minDisc);
@@ -170,7 +225,13 @@ export default function OpportunitiesTop() {
     minDiscountPct,
     neighborhood,
     propertyType,
+    similarFilters,
   ]);
+
+  const clearSimilarFilters = () => {
+    setSimilarFilters(null);
+    setMaxPriceCop("");
+  };
 
   const sortedRows = useMemo(() => {
     const confidenceWeight: Record<NonNullable<OpportunityRow["confidence"]>, number> = {
@@ -265,6 +326,26 @@ export default function OpportunitiesTop() {
           <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
             {error}
           </div>
+        ) : null}
+
+        {similarFilters ? (
+          <Card className="mb-6 border-accent/30 bg-accent/5 p-4 shadow-card">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">
+                  {txt.opportunitiesSimilarBannerTitle}
+                </p>
+                <p className="mt-1 text-sm text-muted">{txt.opportunitiesSimilarBannerBody}</p>
+              </div>
+              <button
+                type="button"
+                onClick={clearSimilarFilters}
+                className="shrink-0 rounded-lg border border-slate-200/90 bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface dark:border-slate-700/80"
+              >
+                {txt.opportunitiesSimilarClear}
+              </button>
+            </div>
+          </Card>
         ) : null}
 
         <Card className="mb-6 border-slate-200/90 p-4 shadow-card">
@@ -529,7 +610,7 @@ export default function OpportunitiesTop() {
                   </tr>
                 ) : (
                   sortedRows.map((r) => {
-                    const tags = signalTags(r, txt);
+                    const tags = signalTags(r, txt, lang);
                     const isExpanded = expandedId === r.id;
                     return (
                     <Fragment key={r.id}>
@@ -662,7 +743,7 @@ export default function OpportunitiesTop() {
               </p>
             ) : (
               sortedRows.map((r) => {
-                const tags = signalTags(r, txt)
+                const tags = signalTags(r, txt, lang)
                 const isExpanded = expandedId === r.id
                 return (
                   <OpportunityMobileCard

@@ -1,7 +1,7 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 import {
   isIndexablePath,
@@ -24,36 +24,37 @@ function readStoredLang(): Lang | null {
  */
 export function useUiLang(defaultLang: Lang = "es") {
   const pathname = usePathname();
-  const router = useRouter();
+  const indexable = isIndexablePath(pathname);
   const urlLang = parseLocaleFromPath(pathname) as Lang;
-  const [lang, setLang] = useState<Lang>(defaultLang);
-  const syncedRef = useRef(false);
+  const [toolLang, setToolLang] = useState<Lang>(() => readStoredLang() ?? defaultLang);
+
+  const lang: Lang = indexable ? urlLang : toolLang;
 
   useEffect(() => {
-    let next = lang;
-    if (!syncedRef.current) {
-      syncedRef.current = true;
-      if (isIndexablePath(pathname)) {
-        next = urlLang;
-      } else {
-        next = readStoredLang() ?? defaultLang;
-      }
-      if (next !== lang) setLang(next);
-    } else if (isIndexablePath(pathname)) {
-      next = urlLang;
-      if (next !== lang) setLang(next);
-    }
-    window.localStorage.setItem(KEY, next);
-    document.documentElement.lang = next === "en" ? "en" : "es";
-  }, [lang, defaultLang, pathname, urlLang]);
+    window.localStorage.setItem(KEY, lang);
+    document.documentElement.lang = lang === "en" ? "en" : "es";
+  }, [lang]);
 
   const toggleLang = () => {
-    const next: Locale = lang === "es" ? "en" : "es";
-    if (isIndexablePath(pathname)) {
-      router.push(switchLocalePath(pathname, next));
-    } else {
-      setLang(next);
+    const current: Locale = indexable ? parseLocaleFromPath(pathname) : toolLang;
+    const next: Locale = current === "es" ? "en" : "es";
+    if (indexable) {
+      const target = switchLocalePath(pathname, next);
+      if (target === pathname) return;
+      window.location.assign(target);
+      return;
     }
+    setToolLang(next);
+  };
+
+  const setLang = (next: Lang) => {
+    if (indexable) {
+      const target = switchLocalePath(pathname, next as Locale);
+      if (target === pathname) return;
+      window.location.assign(target);
+      return;
+    }
+    setToolLang(next);
   };
 
   return { lang, setLang, toggleLang };

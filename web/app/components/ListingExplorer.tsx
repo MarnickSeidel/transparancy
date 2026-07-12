@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
+import DomBadge from "@/app/components/DomBadge";
 import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
@@ -13,6 +14,7 @@ import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
 import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
+import { formatDomDays } from "@/lib/formatDom";
 import { resolveNeighborhoodLabel } from "@/lib/neighborhoods";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -31,6 +33,7 @@ type ListingRow = {
   url: string;
   priceBucket: PriceBucket | null;
   deltaVsRefPct: number | null;
+  domDays: number | null;
 };
 
 type ListingsResponse = {
@@ -60,6 +63,40 @@ function initialParam(name: string): string {
   if (typeof window === "undefined") return "all";
   const v = new URLSearchParams(window.location.search).get(name)?.trim();
   return v && v.length > 0 ? v : "all";
+}
+
+type SimilarFilters = {
+  minAreaM2: string;
+  maxAreaM2: string;
+  minPriceCop: string;
+  maxPriceCop: string;
+  latitude: string;
+  longitude: string;
+  radiusMeters: string;
+  conjunto: string;
+};
+
+function initialSimilarFilters(): SimilarFilters | null {
+  if (typeof window === "undefined") return null;
+  const p = new URLSearchParams(window.location.search);
+  if (p.get("similar") !== "1") return null;
+  return {
+    minAreaM2: p.get("minAreaM2") ?? "",
+    maxAreaM2: p.get("maxAreaM2") ?? "",
+    minPriceCop: p.get("minPriceCop") ?? "",
+    maxPriceCop: p.get("maxPriceCop") ?? "",
+    latitude: p.get("latitude") ?? "",
+    longitude: p.get("longitude") ?? "",
+    radiusMeters: p.get("radiusMeters") ?? "",
+    conjunto: p.get("conjunto") ?? "",
+  };
+}
+
+function initialSortBy(): "date" | "price" | "pricePerM2" | "area" | "dealScore" {
+  if (typeof window === "undefined") return "date";
+  const v = new URLSearchParams(window.location.search).get("sortBy")?.trim();
+  if (v === "price" || v === "pricePerM2" || v === "area" || v === "dealScore") return v;
+  return "date";
 }
 
 function signalMeta(
@@ -127,8 +164,16 @@ export default function ListingExplorer() {
   const [neighborhood, setNeighborhood] = useState(() => initialParam("neighborhood"));
   const [propertyType, setPropertyType] = useState(() => initialParam("propertyType"));
   const [estrato, setEstrato] = useState(() => initialParam("estrato"));
-  const [maxPriceCop, setMaxPriceCop] = useState("");
-  const [sortBy, setSortBy] = useState<"date" | "price" | "pricePerM2" | "area" | "dealScore">("date");
+  const [maxPriceCop, setMaxPriceCop] = useState(() => {
+    if (typeof window === "undefined") return "";
+    return new URLSearchParams(window.location.search).get("maxPriceCop")?.trim() ?? "";
+  });
+  const [similarFilters, setSimilarFilters] = useState<SimilarFilters | null>(
+    () => initialSimilarFilters(),
+  );
+  const [sortBy, setSortBy] = useState<"date" | "price" | "pricePerM2" | "area" | "dealScore">(
+    () => initialSortBy(),
+  );
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState<ListingsResponse | null>(null);
@@ -145,10 +190,23 @@ export default function ListingExplorer() {
     const maxDigits = maxPriceCop.replace(/\D/g, "");
     const maxParsed = maxDigits ? Number.parseInt(maxDigits, 10) : Number.NaN;
     if (Number.isFinite(maxParsed) && maxParsed >= 1) p.set("maxPriceCop", String(maxParsed));
+    if (similarFilters) {
+      p.set("similar", "1");
+      if (similarFilters.minAreaM2) p.set("minAreaM2", similarFilters.minAreaM2);
+      if (similarFilters.maxAreaM2) p.set("maxAreaM2", similarFilters.maxAreaM2);
+      if (similarFilters.minPriceCop) p.set("minPriceCop", similarFilters.minPriceCop);
+      if (similarFilters.maxPriceCop && !maxPriceCop.trim()) {
+        p.set("maxPriceCop", similarFilters.maxPriceCop);
+      }
+      if (similarFilters.latitude) p.set("latitude", similarFilters.latitude);
+      if (similarFilters.longitude) p.set("longitude", similarFilters.longitude);
+      if (similarFilters.radiusMeters) p.set("radiusMeters", similarFilters.radiusMeters);
+      if (similarFilters.conjunto) p.set("conjunto", similarFilters.conjunto);
+    }
     if (sortBy !== "date") p.set("sortBy", sortBy);
     p.set("page", String(page));
     return p.toString();
-  }, [city, estrato, maxPriceCop, neighborhood, page, propertyType, sortBy]);
+  }, [city, estrato, maxPriceCop, neighborhood, page, propertyType, similarFilters, sortBy]);
 
   const activeFilterChips = useMemo(() => {
     const chips: { key: string; label: string; onClear: () => void }[] = [];
@@ -248,6 +306,13 @@ export default function ListingExplorer() {
     setPropertyType("all");
     setEstrato("all");
     setMaxPriceCop("");
+    setSimilarFilters(null);
+    setSortBy("date");
+  };
+
+  const clearSimilarFilters = () => {
+    setSimilarFilters(null);
+    setMaxPriceCop("");
     setSortBy("date");
   };
 
@@ -266,6 +331,24 @@ export default function ListingExplorer() {
           <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
             {error}
           </div>
+        ) : null}
+
+        {similarFilters ? (
+          <Card className="mb-6 border-accent/30 bg-accent/5 p-4 shadow-card">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">{txt.exploreSimilarBannerTitle}</p>
+                <p className="mt-1 text-sm text-muted">{txt.exploreSimilarBannerBody}</p>
+              </div>
+              <button
+                type="button"
+                onClick={clearSimilarFilters}
+                className="shrink-0 rounded-lg border border-slate-200/90 bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface dark:border-slate-700/80"
+              >
+                {txt.exploreSimilarClear}
+              </button>
+            </div>
+          </Card>
         ) : null}
 
         <p className="mb-6 flex flex-wrap items-center gap-4">
@@ -505,6 +588,14 @@ export default function ListingExplorer() {
                             {row.propertyType ?? txt.unknown}
                           </p>
                           <p className="mt-1 max-w-xs truncate text-xs text-muted">{row.title}</p>
+                          {row.domDays != null ? (
+                            <DomBadge
+                              days={row.domDays}
+                              lang={lang}
+                              label={formatDomDays(row.domDays, lang) ?? ""}
+                              className="mt-2"
+                            />
+                          ) : null}
                         </td>
                         <td className="px-4 py-3">{row.city}</td>
                         <td className="px-4 py-3">
@@ -568,6 +659,14 @@ export default function ListingExplorer() {
                       {propertyTypeLabel(row.propertyType, lang)}
                     </p>
                     <p className="mt-1 text-xs text-muted">{row.title}</p>
+                    {row.domDays != null ? (
+                      <DomBadge
+                        days={row.domDays}
+                        lang={lang}
+                        label={formatDomDays(row.domDays, lang) ?? ""}
+                        className="mt-2"
+                      />
+                    ) : null}
                     <p className="mt-2 text-sm text-muted">
                       {row.city} · {row.neighborhood ?? txt.unknown}
                     </p>

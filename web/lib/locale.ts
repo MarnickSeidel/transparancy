@@ -6,9 +6,10 @@ export const LOCALES: Locale[] = ["es", "en"];
 const INDEXABLE_PREFIXES = ["/zones", "/methodology", "/privacy", "/about"];
 
 export function isIndexablePath(pathname: string): boolean {
-  if (pathname === "/") return true;
+  const path = stripLocalePrefix(pathname);
+  if (path === "/") return true;
   return INDEXABLE_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
+    (p) => path === p || path.startsWith(`${p}/`),
   );
 }
 

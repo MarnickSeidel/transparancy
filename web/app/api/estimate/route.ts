@@ -5,6 +5,7 @@ import { MIN_ANALYTICS_AREA_M2, MIN_SAMPLE_SIZE } from "@/lib/analytics";
 import { haversineWithinMetersSql } from "@/lib/geoHaversine";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
+import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +38,7 @@ function buildConditions(
     propertyType?: string;
     estrato?: number;
     conjunto?: string;
+    conjuntoVariants?: string[];
   },
   active: ActiveFilters,
   geo: GeoFilter | null,
@@ -71,7 +73,13 @@ function buildConditions(
   if (active.estrato && user.estrato != null) {
     parts.push(Prisma.sql`l.estrato = ${user.estrato}`);
   }
-  if (active.conjunto && user.conjunto) {
+  if (active.conjunto && user.conjuntoVariants && user.conjuntoVariants.length > 0) {
+    parts.push(
+      Prisma.sql`l.conjunto IN (${Prisma.join(
+        user.conjuntoVariants.map((v) => Prisma.sql`${v}`),
+      )})`,
+    );
+  } else if (active.conjunto && user.conjunto) {
     parts.push(Prisma.sql`l.conjunto = ${user.conjunto}`);
   }
   return parts;
@@ -132,6 +140,7 @@ async function findComps(
     propertyType?: string;
     estrato?: number;
     conjunto?: string;
+    conjuntoVariants?: string[];
   },
   initial: ActiveFilters,
   geo: { lat: number; lng: number; startRadiusM: number } | null,
@@ -223,6 +232,9 @@ export async function POST(req: Request) {
       typeof body.conjunto === "string" && body.conjunto.trim()
         ? body.conjunto.trim()
         : undefined;
+    const conjuntoVariants = conjunto
+      ? await resolveConjuntoVariants(city, conjunto)
+      : undefined;
     let estrato: number | undefined;
     if (body.estrato != null && body.estrato !== "") {
       const e =
@@ -260,6 +272,7 @@ export async function POST(req: Request) {
       propertyType,
       estrato,
       conjunto,
+      conjuntoVariants,
     };
 
     const initial: ActiveFilters = {
@@ -336,6 +349,8 @@ export async function POST(req: Request) {
       geoDropped,
       appliedConjunto:
         active.conjunto && conjunto ? conjunto : null,
+      conjuntoVariantsMatched:
+        active.conjunto && conjuntoVariants ? conjuntoVariants.length : 0,
       disclaimerKey: "listing_market_asking_only",
     });
   } catch (e) {

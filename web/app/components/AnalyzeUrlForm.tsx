@@ -4,6 +4,8 @@ import dynamic from "next/dynamic"
 import { useEffect, useMemo, useState } from "react"
 
 import PageFooter from "@/app/components/PageFooter"
+import ShareReportActions from "@/app/components/ShareReportActions"
+import DomBadge from "@/app/components/DomBadge"
 import VerdictBanner from "@/app/components/VerdictBanner"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
@@ -13,9 +15,11 @@ import SiteHeader from "@/app/components/SiteHeader"
 import WhyDealPanel from "@/app/components/WhyDealPanel"
 import type { WhyDeal } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
+import { formatDomDays } from "@/lib/formatDom"
 import { uiText } from "@/lib/i18n"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { useUiLang } from "@/lib/useUiLang"
+import type { SharedAnalyzePayload } from "@/lib/shareReport"
 
 const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
   ssr: false,
@@ -56,7 +60,11 @@ type AnalyzeResponse = {
     referencePpm2Nearby?: number | null
     referencePpm2Neighborhood?: number | null
     sampleSize: number
+    compMethod?: string
+    metricType?: string
     whyDeal?: WhyDeal | null
+    domDays?: number | null
+    priceDropPct?: number | null
   }
   priceTimeline?: PriceTimelinePoint[]
   comps: Array<{
@@ -129,6 +137,33 @@ export default function AnalyzeUrlForm() {
       })),
     [data?.priceTimeline],
   )
+
+  const sharePayload = useMemo((): SharedAnalyzePayload | null => {
+    if (!data) return null
+    return {
+      listing: data.listing,
+      analysis: {
+        dealScore: data.analysis.dealScore,
+        verdict: data.analysis.verdict,
+        confidence: data.analysis.confidence,
+        warnings: data.analysis.warnings,
+        discountVsRefPct: data.analysis.discountVsRefPct,
+        referencePpm2: data.analysis.referencePpm2,
+        referencePpm2Nearby: data.analysis.referencePpm2Nearby,
+        referencePpm2Neighborhood: data.analysis.referencePpm2Neighborhood,
+        sampleSize: data.analysis.sampleSize,
+        compMethod: data.analysis.compMethod ?? data.analysis.whyDeal?.compMethod,
+        metricType: data.analysis.metricType ?? data.analysis.whyDeal?.metricType,
+        whyDeal: data.analysis.whyDeal,
+        domDays: data.analysis.domDays ?? null,
+        priceDropPct: data.analysis.priceDropPct ?? null,
+      },
+      priceTimeline: data.priceTimeline,
+      comps: data.comps,
+    }
+  }, [data])
+
+  const domLabel = data ? formatDomDays(data.analysis.domDays, lang) : null
 
   const enrichmentRows = useMemo(() => {
     if (!data) return []
@@ -278,7 +313,29 @@ export default function AnalyzeUrlForm() {
               discountPct={data.analysis.discountVsRefPct}
               sampleSize={data.analysis.sampleSize}
               lang={lang}
+              locale={locale}
+              listingPpm2={data.listing.pricePerM2}
+              referencePpm2={data.analysis.referencePpm2}
+              priceCop={data.listing.priceCop}
+              city={data.listing.city}
+              neighborhood={data.listing.neighborhood}
+              estrato={data.listing.estrato}
+              propertyType={data.listing.propertyType}
+              compMethod={data.analysis.compMethod ?? data.analysis.whyDeal?.compMethod}
+              metricType={data.analysis.metricType ?? data.analysis.whyDeal?.metricType}
+              priceDropPct={data.analysis.priceDropPct}
+              domDays={data.analysis.domDays}
             />
+
+            {sharePayload ? (
+              <Card className="border-slate-200/90 shadow-card">
+                <h2 className="text-sm font-semibold text-foreground">{txt.shareReportTitle}</h2>
+                <p className="mt-1 text-xs text-muted">{txt.shareReportHint}</p>
+                <div className="mt-3">
+                  <ShareReportActions payload={sharePayload} lang={lang} />
+                </div>
+              </Card>
+            ) : null}
 
             {hasCompTypeWarning ? (
               <div className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
@@ -323,7 +380,12 @@ export default function AnalyzeUrlForm() {
             </Card>
 
             <Card className="border-slate-200/90 shadow-card">
-              <h2 className="text-lg font-semibold text-foreground">{txt.analyzeListingSnapshot}</h2>
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-lg font-semibold text-foreground">{txt.analyzeListingSnapshot}</h2>
+                {domLabel ? (
+                  <DomBadge days={data.analysis.domDays} lang={lang} label={domLabel} />
+                ) : null}
+              </div>
               <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <p>
                   <span className="text-muted">{txt.listing}:</span> {data.listing.title}

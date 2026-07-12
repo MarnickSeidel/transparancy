@@ -14,6 +14,7 @@ import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
 import type { HomePageData } from "@/lib/getHomeStats"
+import { formatFreshnessDate } from "@/lib/getDataFreshness"
 import type { OpportunityRow } from "@/lib/getTopOpportunities"
 import { localePath, type Locale } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
@@ -43,7 +44,7 @@ const content: Record<"es" | "en", Content> = {
     eyebrow: "Datos Finca Raíz · Colombia",
     heading: "Precio por m² con contexto de barrio, no solo anuncios.",
     blurb:
-      "Compara cada publicación contra la mediana de su zona, estrato y tipo. Barrios en Pereira, Medellín, Bogotá y más — actualizados desde anuncios activos.",
+      "Compara cada publicación contra la mediana de su zona, estrato y tipo. Barrios en Pereira, Medellín, Bogotá y más — inventario actualizado periódicamente desde Finca Raíz.",
     ctaPrimary: "Pegar URL de anuncio",
     ctaSecondary: "Explorar barrios",
     dealsLabel: "Oportunidades recientes",
@@ -77,7 +78,7 @@ const content: Record<"es" | "en", Content> = {
     eyebrow: "Finca Raíz data · Colombia",
     heading: "Price per m² with neighborhood context — not just listings.",
     blurb:
-      "Compare every listing against its zone median, estrato, and property type. Neighborhoods across Pereira, Medellín, Bogotá, and more — updated from active ads.",
+      "Compare every listing against its zone median, estrato, and property type. Neighborhoods across Pereira, Medellín, Bogotá, and more — inventory refreshed periodically from Finca Raíz.",
     ctaPrimary: "Paste listing URL",
     ctaSecondary: "Browse neighborhoods",
     dealsLabel: "Recent opportunities",
@@ -204,6 +205,12 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
     })) ?? []
   const [statsFailed, setStatsFailed] = useState(false)
 
+  const lastUpdatedLabel = useMemo(() => {
+    const raw = initialData?.lastScrapedAt
+    if (!raw) return null
+    return formatFreshnessDate(new Date(raw), localeFmt)
+  }, [initialData?.lastScrapedAt, localeFmt])
+
   useEffect(() => {
     if (initialData) return
 
@@ -281,6 +288,12 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
               {copy.heading}
             </h1>
             <p className="mt-4 max-w-xl text-base leading-relaxed text-muted md:text-lg">{copy.blurb}</p>
+            {lastUpdatedLabel ? (
+              <p className="mt-2 max-w-xl text-sm text-muted">
+                {txt.dataFreshnessLabel}: <strong className="font-medium text-foreground">{lastUpdatedLabel}</strong>
+                . {txt.dataFreshnessNote}
+              </p>
+            ) : null}
 
             <form
               onSubmit={handleInlineAnalyze}
@@ -306,6 +319,9 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
               <Button href="/analyze-url">{copy.ctaPrimary}</Button>
               <Button href={lp("/zones")} variant="secondary">
                 {copy.ctaSecondary}
+              </Button>
+              <Button href="/price-drops" variant="secondary">
+                {txt.priceDropsNav}
               </Button>
             </div>
 

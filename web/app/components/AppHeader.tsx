@@ -23,6 +23,7 @@ type HeaderText = {
   zonesNav: string
   heatmapNav: string
   analyzeUrlNav: string
+  priceDropsNav: string
   navOpenMenu: string
   navCloseMenu: string
   openPlatform: string

@@ -1,5 +1,7 @@
+import { groupConjuntoNames } from "@/lib/conjuntos"
 import { pickBestNeighborhoodLabel } from "@/lib/filterNeighborhoods"
 import { priorityCities } from "@/lib/i18n"
+import { catalogNeighborhoodOptionsForCity } from "@/lib/neighborhoodResolver"
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 
@@ -58,17 +60,25 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
   ])
 
   let conjuntos: string[] = []
-  try {
-    const conjuntoRows = await prisma.listing.groupBy({
-      by: ["conjunto"],
-      where: { ...baseWhere, conjunto: { not: null } },
-    })
-    conjuntos = conjuntoRows
-      .map((r) => r.conjunto)
-      .filter((c): c is string => c != null && c.trim().length > 0)
-      .sort((a, b) => a.localeCompare(b))
-  } catch (conjuntoErr) {
-    console.error("filters: conjunto groupBy failed (non-fatal)", conjuntoErr)
+  if (city && city !== "all") {
+    try {
+      const conjuntoRows = await prisma.listing.groupBy({
+        by: ["conjunto"],
+        where: { ...baseWhere, conjunto: { not: null } },
+        _count: { _all: true },
+      })
+      const grouped = groupConjuntoNames(
+        conjuntoRows
+          .filter(
+            (r): r is typeof r & { conjunto: string } =>
+              r.conjunto != null && r.conjunto.trim().length > 0,
+          )
+          .map((r) => ({ name: r.conjunto, count: r._count._all })),
+      )
+      conjuntos = grouped.map((g) => g.canonical)
+    } catch (conjuntoErr) {
+      console.error("filters: conjunto groupBy failed (non-fatal)", conjuntoErr)
+    }
   }
 
   const departmentNames = new Set(
@@ -93,9 +103,11 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
   })
 
   const neighborhoodBuckets = new Map<string, { labels: string[]; count: number }>()
+  const rawNeighborhoodLabels: string[] = []
   for (const row of neighborhoodRows) {
     const raw = row.neighborhood?.trim()
     if (!raw) continue
+    rawNeighborhoodLabels.push(raw)
     const key = normalizeNeighborhoodKey(raw)
     if (!key) continue
     const prev = neighborhoodBuckets.get(key)
@@ -107,10 +119,24 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
     prev.labels.push(raw)
     prev.count += count
   }
-  const neighborhoods = Array.from(neighborhoodBuckets.values())
-    .map((b) => pickBestNeighborhoodLabel(b.labels))
-    .filter((n): n is string => n != null)
-    .sort((a, b) => a.localeCompare(b))
+
+  let neighborhoods: string[]
+  if (city && city !== "all") {
+    const catalogOptions = catalogNeighborhoodOptionsForCity(city, rawNeighborhoodLabels)
+    if (catalogOptions && catalogOptions.length > 0) {
+      neighborhoods = catalogOptions
+    } else {
+      neighborhoods = Array.from(neighborhoodBuckets.values())
+        .map((b) => pickBestNeighborhoodLabel(b.labels))
+        .filter((n): n is string => n != null)
+        .sort((a, b) => a.localeCompare(b))
+    }
+  } else {
+    neighborhoods = Array.from(neighborhoodBuckets.values())
+      .map((b) => pickBestNeighborhoodLabel(b.labels))
+      .filter((n): n is string => n != null)
+      .sort((a, b) => a.localeCompare(b))
+  }
 
   const estratos = estratoRows
     .map((r) => r.estrato)

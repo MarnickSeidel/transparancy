@@ -19,6 +19,18 @@ function parseExcludeNeighborhoods(searchParams: URLSearchParams): string[] {
   return Array.from(set)
 }
 
+function parseOptionalInt(raw: string | null): number | null {
+  if (!raw?.trim()) return null
+  const n = Number.parseInt(raw.replace(/\D/g, ""), 10)
+  return Number.isFinite(n) && n >= 1 ? n : null
+}
+
+function parseOptionalFloat(raw: string | null): number | null {
+  if (!raw?.trim()) return null
+  const n = Number.parseFloat(raw)
+  return Number.isFinite(n) ? n : null
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
   const city = searchParams.get("city")
@@ -45,6 +57,28 @@ export async function GET(req: Request) {
     }
   }
 
+  const minPriceRaw = searchParams.get("minPriceCop")
+  let minPriceCop: bigint | null = null
+  if (minPriceRaw != null && minPriceRaw.trim() !== "") {
+    const n = Number.parseInt(minPriceRaw.replace(/\D/g, ""), 10)
+    if (Number.isFinite(n) && n >= 1 && n <= 1_000_000_000_000) {
+      minPriceCop = BigInt(n)
+    }
+  }
+
+  const minAreaM2 = parseOptionalInt(searchParams.get("minAreaM2"))
+  const maxAreaM2 = parseOptionalInt(searchParams.get("maxAreaM2"))
+  const estratoRaw = searchParams.get("estrato")
+  const estrato =
+    estratoRaw != null && estratoRaw.trim() !== "" && estratoRaw !== "all"
+      ? Number.parseInt(estratoRaw, 10)
+      : Number.NaN
+  const estratoFilter = Number.isFinite(estrato) ? estrato : null
+  const conjunto = searchParams.get("conjunto")
+  const latitude = parseOptionalFloat(searchParams.get("latitude"))
+  const longitude = parseOptionalFloat(searchParams.get("longitude"))
+  const radiusMeters = parseOptionalInt(searchParams.get("radiusMeters"))
+
   const limitRaw = searchParams.get("limit")
   const limit =
     limitRaw != null && limitRaw.trim() !== ""
@@ -63,6 +97,14 @@ export async function GET(req: Request) {
       excludeProjects,
       minDiscountPct,
       maxPriceCop,
+      minPriceCop,
+      minAreaM2,
+      maxAreaM2,
+      estrato: estratoFilter,
+      conjunto,
+      latitude,
+      longitude,
+      radiusMeters,
       limit,
     })
 

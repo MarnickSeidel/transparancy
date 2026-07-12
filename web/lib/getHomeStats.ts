@@ -1,5 +1,7 @@
 import type { OpportunityRow } from "@/lib/getTopOpportunities";
-import { getCachedDashboardSummary, getCachedTopOpportunities } from "@/lib/serverCache";import { getZoneCities, getZoneCountsByCity, getZonesForCity } from "@/lib/getZonesIndex";
+import { getGlobalDataFreshness } from "@/lib/getDataFreshness";
+import { getCachedDashboardSummary, getCachedTopOpportunities } from "@/lib/serverCache";
+import { getZoneCities, getZoneCountsByCity, getZonesForCity } from "@/lib/getZonesIndex";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
 import type { PublishableZone } from "@/lib/zones";
 
@@ -8,16 +10,18 @@ export type HomePageData = {
   neighborhoodCount: number;
   cityCount: number;
   activeListings: number;
+  lastScrapedAt: string | null;
   featuredZones: PublishableZone[];
   featuredCities: Array<{ name: string; slug: string; zoneCount: number }>;
   featuredOpportunities: OpportunityRow[];
 };
 
 export async function getHomePageData(): Promise<HomePageData> {
-  const [summary, cities, featuredOpportunities] = await Promise.all([
+  const [summary, cities, featuredOpportunities, freshness] = await Promise.all([
     getCachedDashboardSummary(null),
     getZoneCities(DEFAULT_MIN_ZONE_DATA_POINTS),
     getCachedTopOpportunities({ limit: 3, hideLowConfidence: true }),
+    getGlobalDataFreshness(),
   ]);
 
   const featuredCity = cities.includes(DEFAULT_ZONE_CITY)
@@ -38,6 +42,7 @@ export async function getHomePageData(): Promise<HomePageData> {
     neighborhoodCount: summary.neighborhoodCount,
     cityCount: summary.cityCount,
     activeListings: summary.activeListings,
+    lastScrapedAt: freshness.lastScrapedAt?.toISOString() ?? null,
     featuredZones,
     featuredCities: featuredCities.slice(0, 8),
     featuredOpportunities,

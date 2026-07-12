@@ -10,8 +10,10 @@ import {
 } from "@/lib/dealEngine"
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
+import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
 
 const COMP_POOL_SIZE = 120
+const COMP_POOL_SIZE_TIGHT = 240
 const MAX_CANDIDATES = 72
 const DEFAULT_LIMIT = 10
 
@@ -68,6 +70,14 @@ export type OpportunityQuery = {
   excludeProjects?: boolean
   minDiscountPct?: number
   maxPriceCop?: bigint | null
+  minPriceCop?: bigint | null
+  minAreaM2?: number | null
+  maxAreaM2?: number | null
+  estrato?: number | null
+  conjunto?: string | null
+  latitude?: number | null
+  longitude?: number | null
+  radiusMeters?: number | null
   limit?: number
 }
 
@@ -142,6 +152,21 @@ function minBuiltPpm2ForHouse(pool: DealListingInput[]): number {
   return p15 != null ? Math.max(900_000, p15 * 0.75) : 900_000
 }
 
+function applyGeoBBoxFilter(
+  andFilters: Prisma.ListingWhereInput[],
+  lat: number,
+  lng: number,
+  radiusM: number,
+): void {
+  const latDelta = radiusM / 111_320
+  const lngDelta =
+    radiusM / (111_320 * Math.max(0.2, Math.cos((lat * Math.PI) / 180)))
+  andFilters.push({
+    latitude: { not: null, gte: lat - latDelta, lte: lat + latDelta },
+    longitude: { not: null, gte: lng - lngDelta, lte: lng + lngDelta },
+  })
+}
+
 /** Uses precomputed deal_score index — analyzes at most ~200 rows, not 5k. */
 export async function getTopOpportunities(query: OpportunityQuery): Promise<OpportunityRow[]> {
   const {
@@ -155,11 +180,27 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
     excludeProjects = false,
     minDiscountPct = 0,
     maxPriceCop = null,
+    minPriceCop = null,
+    minAreaM2 = null,
+    maxAreaM2 = null,
+    estrato = null,
+    conjunto = null,
+    latitude = null,
+    longitude = null,
+    radiusMeters = null,
     limit = DEFAULT_LIMIT,
   } = query
 
+  const useGeo =
+    latitude != null &&
+    longitude != null &&
+    radiusMeters != null &&
+    radiusMeters >= 300
+
   const selectedNeighborhoodKey =
-    neighborhood && neighborhood.trim() ? normalizeNeighborhoodKey(neighborhood.trim()) : null
+    !useGeo && neighborhood && neighborhood.trim()
+      ? normalizeNeighborhoodKey(neighborhood.trim())
+      : null
   const excludedNeighborhoodKeys = parseExcludeNeighborhoods(excludeNeighborhoods)
 
   const andFilters: Prisma.ListingWhereInput[] = [
@@ -173,15 +214,43 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
   ]
 
   if (maxPriceCop != null) andFilters.push({ priceCop: { lte: maxPriceCop } })
+  if (minPriceCop != null) andFilters.push({ priceCop: { gte: minPriceCop } })
   if (city && city !== "all") andFilters.push({ city })
   if (propertyType && propertyType.trim()) andFilters.push({ propertyType: propertyType.trim() })
+  if (estrato != null) andFilters.push({ estrato })
+  if (minAreaM2 != null || maxAreaM2 != null) {
+    andFilters.push({
+      areaM2: {
+        ...(minAreaM2 != null
+          ? { gte: Math.max(MIN_ANALYTICS_AREA_M2, minAreaM2) }
+          : { gte: MIN_ANALYTICS_AREA_M2 }),
+        ...(maxAreaM2 != null ? { lte: maxAreaM2 } : {}),
+      },
+    })
+  }
+  if (useGeo) {
+    applyGeoBBoxFilter(andFilters, latitude!, longitude!, radiusMeters!)
+  }
+  if (conjunto?.trim() && city && city !== "all") {
+    const variants = await resolveConjuntoVariants(city, conjunto)
+    if (variants.length > 1) {
+      andFilters.push({ conjunto: { in: variants } })
+    } else {
+      andFilters.push({ conjunto: variants[0] ?? conjunto.trim() })
+    }
+  }
   if (excludeBarter) andFilters.push({ acceptsBarter: false })
   if (excludeProjects) andFilters.push({ isProject: false })
+
+  const poolSize =
+    useGeo || conjunto?.trim() || minAreaM2 != null || maxAreaM2 != null
+      ? COMP_POOL_SIZE_TIGHT
+      : COMP_POOL_SIZE
 
   const rows = await prisma.listing.findMany({
     where: { AND: andFilters },
     orderBy: [{ dealScore: "desc" }, { dateScraped: "desc" }],
-    take: COMP_POOL_SIZE,
+    take: poolSize,
     select: listingSelect,
   })
 
