@@ -1,6 +1,9 @@
 "use client"
 
+import Link from "next/link"
+
 import Badge from "@/app/components/ui/Badge"
+import TrustMeta from "@/app/components/TrustMeta"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
 
@@ -12,24 +15,28 @@ type Props = {
   confidence: Confidence
   dealScore: number | null
   discountPct: number | null
+  sampleSize?: number | null
   lang: Lang
 }
 
 const verdictStyles: Record<Verdict, string> = {
-  good_deal:
-    "border-emerald-200/80 bg-gradient-to-br from-emerald-50 to-teal-50 dark:border-emerald-800/50 dark:from-emerald-950/40 dark:to-teal-950/30",
-  fair:
-    "border-slate-200/80 bg-gradient-to-br from-slate-50 to-slate-100 dark:border-slate-700/60 dark:from-slate-900/60 dark:to-slate-800/40",
-  overpriced:
-    "border-rose-200/80 bg-gradient-to-br from-rose-50 to-orange-50 dark:border-rose-900/50 dark:from-rose-950/40 dark:to-orange-950/30",
+  good_deal: "border-deal-good/30 bg-deal-good/8",
+  fair: "border-border-subtle bg-surface/50",
+  overpriced: "border-deal-bad/30 bg-deal-bad/8",
 }
 
+const verdictBadge: Record<Verdict, "good" | "default" | "bad"> = {
+  good_deal: "good",
+  fair: "default",
+  overpriced: "bad",
+}
 
 export default function VerdictBanner({
   verdict,
   confidence,
   dealScore,
   discountPct,
+  sampleSize,
   lang,
 }: Props) {
   const txt = uiText[lang]
@@ -50,31 +57,25 @@ export default function VerdictBanner({
 
   return (
     <section
-      className={`rounded-2xl border p-5 shadow-card sm:p-6 ${verdictStyles[verdict]}`}
+      className={`surface-hero border p-5 sm:p-6 ${verdictStyles[verdict]}`}
       aria-label={txt.analyzeVerdict}
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-            {txt.analyzeVerdict}
-          </p>
-          <p className="mt-1 text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
-            {verdictLabel}
-          </p>
+          <p className="text-section-label">{txt.analyzeVerdict}</p>
+          <p className="text-display mt-1 text-2xl font-semibold sm:text-3xl">{verdictLabel}</p>
         </div>
-        <Badge className={verdict === "good_deal" ? "border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-300" : verdict === "overpriced" ? "border-rose-200 bg-rose-50 text-rose-800 dark:border-rose-900 dark:bg-rose-950/50 dark:text-rose-300" : ""}>
-          {confidenceLabel}
-        </Badge>
+        <Badge variant={verdictBadge[verdict]}>{confidenceLabel}</Badge>
       </div>
       <dl className="mt-4 grid gap-3 sm:grid-cols-2">
         <div>
-          <dt className="text-xs text-muted">{txt.dealScore}</dt>
+          <dt className="text-meta">{txt.dealScore}</dt>
           <dd className="text-lg font-semibold tabular-nums text-foreground">
             {dealScore != null && Number.isFinite(dealScore) ? dealScore.toFixed(1) : "—"}
           </dd>
         </div>
         <div>
-          <dt className="text-xs text-muted">{txt.opportunityDiscount}</dt>
+          <dt className="text-meta">{txt.opportunityDiscount}</dt>
           <dd className="text-lg font-semibold tabular-nums text-foreground">
             {discountPct != null && Number.isFinite(discountPct)
               ? `${discountPct.toFixed(1)}%`
@@ -82,6 +83,21 @@ export default function VerdictBanner({
           </dd>
         </div>
       </dl>
+      <TrustMeta
+        className="mt-3"
+        sampleSize={sampleSize}
+        labels={{
+          sample: txt.sample,
+          confidence: lang === "en" ? "Confidence" : "Confianza",
+          updated: txt.updated,
+        }}
+      />
+      <Link
+        href={lang === "en" ? "/en/methodology" : "/methodology"}
+        className="mt-2 inline-block text-xs font-medium text-accent hover:underline"
+      >
+        {lang === "en" ? "How we calculate this →" : "Cómo calculamos esto →"}
+      </Link>
     </section>
   )
 }

@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { catalogKeyForCity } from "@/lib/neighborhoodResolver";
 import { prisma } from "@/lib/prisma";
 import {
   DEFAULT_MIN_ZONE_DATA_POINTS,
@@ -118,6 +119,20 @@ export async function getZonesForCity(
 export async function getZoneCities(
   minDataPoints = DEFAULT_MIN_ZONE_DATA_POINTS,
 ): Promise<string[]> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ city: string }>>(Prisma.sql`
+      SELECT city
+      FROM zone_list_aggregates
+      WHERE data_point_count >= ${minDataPoints}
+      GROUP BY city
+      ORDER BY COUNT(*) DESC, city ASC
+    `);
+    const cities = rows.map((r) => r.city);
+    if (cities.length > 0) return cities;
+  } catch {
+    /* fall through to inline aggregation */
+  }
+
   const rows = await prisma.$queryRaw<Array<{ city: string }>>(Prisma.sql`
     WITH tagged AS (
       SELECT
@@ -146,4 +161,39 @@ export async function getZoneCities(
   `);
   const cities = rows.map((r) => r.city);
   return cities.length > 0 ? cities : [DEFAULT_ZONE_CITY];
+}
+
+export async function getZoneCountsByCity(
+  minDataPoints = DEFAULT_MIN_ZONE_DATA_POINTS,
+): Promise<Array<{ name: string; slug: string; zoneCount: number }>> {
+  try {
+    const rows = await prisma.$queryRaw<Array<{ city: string; zone_count: bigint }>>(Prisma.sql`
+      SELECT city, COUNT(*)::bigint AS zone_count
+      FROM zone_list_aggregates
+      WHERE data_point_count >= ${minDataPoints}
+      GROUP BY city
+      ORDER BY zone_count DESC, city ASC
+    `);
+    if (rows.length > 0) {
+      return rows.map((row) => ({
+        name: row.city,
+        slug:
+          catalogKeyForCity(row.city) ??
+          row.city.trim().toLowerCase().replace(/\s+/g, "-"),
+        zoneCount: Number(row.zone_count),
+      }));
+    }
+  } catch {
+    /* fall through */
+  }
+
+  const cities = await getZoneCities(minDataPoints);
+  return Promise.all(
+    cities.slice(0, 8).map(async (name) => {
+      const slug =
+        catalogKeyForCity(name) ?? name.trim().toLowerCase().replace(/\s+/g, "-");
+      const data = await getZonesForCity(name, minDataPoints);
+      return { name, slug, zoneCount: data.zones.length };
+    }),
+  );
 }

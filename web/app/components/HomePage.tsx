@@ -4,7 +4,9 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { useEffect, useMemo, useState } from "react"
 
-import MarketingHeader from "@/app/components/MarketingHeader"
+import AppHeader from "@/app/components/AppHeader"
+import CartographicPreview from "@/app/components/CartographicPreview"
+import DealComparisonBar from "@/app/components/DealComparisonBar"
 import PageFooter from "@/app/components/PageFooter"
 import Badge from "@/app/components/ui/Badge"
 import Button from "@/app/components/ui/Button"
@@ -12,106 +14,145 @@ import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
 import type { HomePageData } from "@/lib/getHomeStats"
+import type { OpportunityRow } from "@/lib/getTopOpportunities"
 import { localePath, type Locale } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { uiText } from "@/lib/i18n"
 import { useUiLang } from "@/lib/useUiLang"
-import { useUiTheme } from "@/lib/useUiTheme"
 
 type Content = {
-  badge: string
+  eyebrow: string
   heading: string
   blurb: string
   ctaPrimary: string
   ctaSecondary: string
-  cardsLabel: string
+  dealsLabel: string
   statsLoading: string
   statsListingsLabel: string
   statsNeighborhoodsLabel: string
   statsCitiesLabel: string
+  mapTitle: string
+  mapView: string
+  mapMedian: string
+  mapListings: string
   features: Array<{ title: string; description: string }>
 }
 
 const content: Record<"es" | "en", Content> = {
   es: {
-    badge: "Plataforma premium para inversionistas",
-    heading: "Detecta propiedades infravaloradas antes que el mercado.",
+    eyebrow: "Datos Finca Raíz · Colombia",
+    heading: "Precio por m² con contexto de barrio, no solo anuncios.",
     blurb:
-      "Habidata integra datos de anuncios, contexto geoespacial y scoring de oportunidad en una experiencia de analitica clara y accionable.",
-    ctaPrimary: "Analizar anuncio ahora",
-    ctaSecondary: "Calcular precio sugerido",
-    cardsLabel: "Vista previa de oportunidades",
+      "Compara cada publicación contra la mediana de su zona, estrato y tipo. Barrios en Pereira, Medellín, Bogotá y más — actualizados desde anuncios activos.",
+    ctaPrimary: "Pegar URL de anuncio",
+    ctaSecondary: "Explorar barrios",
+    dealsLabel: "Oportunidades recientes",
     statsLoading: "Cargando datos…",
     statsListingsLabel: "Anuncios analizados",
-    statsNeighborhoodsLabel: "Barrios cubiertos",
-    statsCitiesLabel: "Ciudades activas",
+    statsNeighborhoodsLabel: "Barrios con datos",
+    statsCitiesLabel: "Ciudades",
+    mapTitle: "Mapa de mercado",
+    mapView: "Ver heatmap",
+    mapMedian: "Mediana/m²",
+    mapListings: "activos",
     features: [
       {
-        title: "Heatmaps de mercado",
+        title: "Dossiers por barrio",
         description:
-          "Visualiza zonas de demanda y variacion de precio en capas faciles de interpretar.",
+          "Mediana de precio/m², tendencia mensual y mix de tipos — con tamaño de muestra visible en cada cifra.",
       },
       {
-        title: "Scoring de oportunidad",
+        title: "Scoring vs comparables",
         description:
-          "Prioriza inmuebles con mejor descuento relativo usando comparables locales.",
+          "Prioriza inmuebles con descuento relativo frente a vecinos del mismo estrato y tipo.",
       },
       {
-        title: "Diagnostico express por URL",
+        title: "Diagnóstico por URL",
         description:
-          "Pega un anuncio y recibe contexto de precio, riesgo y potencial en segundos.",
+          "Pega un enlace de Finca Raíz y recibe veredicto, banda de precio y contexto en segundos.",
       },
     ],
   },
   en: {
-    badge: "Premium platform for investors",
-    heading: "Spot undervalued properties before the market does.",
+    eyebrow: "Finca Raíz data · Colombia",
+    heading: "Price per m² with neighborhood context — not just listings.",
     blurb:
-      "Habidata combines listing data, geospatial context, and deal scoring into one clear, actionable analytics experience.",
-    ctaPrimary: "Analyze listing now",
-    ctaSecondary: "Calculate price range",
-    cardsLabel: "Opportunity preview",
+      "Compare every listing against its zone median, estrato, and property type. Neighborhoods across Pereira, Medellín, Bogotá, and more — updated from active ads.",
+    ctaPrimary: "Paste listing URL",
+    ctaSecondary: "Browse neighborhoods",
+    dealsLabel: "Recent opportunities",
     statsLoading: "Loading live data…",
     statsListingsLabel: "Listings analyzed",
-    statsNeighborhoodsLabel: "Neighborhoods covered",
-    statsCitiesLabel: "Active cities",
+    statsNeighborhoodsLabel: "Neighborhoods tracked",
+    statsCitiesLabel: "Cities",
+    mapTitle: "Market map",
+    mapView: "Open heatmap",
+    mapMedian: "Median/m²",
+    mapListings: "active",
     features: [
       {
-        title: "Market heatmaps",
+        title: "Neighborhood dossiers",
         description:
-          "Visualize demand zones and price variation with layers that are easy to read.",
+          "Median price/m², monthly trends, and property mix — with sample size shown on every figure.",
       },
       {
-        title: "Opportunity scoring",
+        title: "Comparable scoring",
         description:
-          "Prioritize listings with stronger relative discount from local comparables.",
+          "Prioritize listings priced below neighbors of the same estrato and property type.",
       },
       {
-        title: "Instant URL diagnostics",
+        title: "URL diagnostics",
         description:
-          "Paste a listing and get price context, risk, and upside potential in seconds.",
+          "Paste a Finca Raíz link and get a verdict, price band, and context in seconds.",
       },
     ],
   },
 }
 
-type ZonePreview = {
-  slug: string
-  displayName: string
-  citySlug: string
-  medianPricePerM2: number | null
-  listingCount: number
+type OpportunityCard = {
+  zone: string
+  city: string
+  type: string
+  value: string
+  pricePerM2: number | null
+  refAvg: number | null
+  score: string
+  discountPct: number | null
+  sampleSize: number | null
+  imageUrl: string | null
+  href: string
 }
 
 type Props = {
-  locale?: Locale;
-  initialData?: HomePageData;
-};
+  locale?: Locale
+  initialData?: HomePageData
+}
+
+const mapOpportunityCards = (
+  opportunities: OpportunityRow[],
+  lang: "es" | "en",
+  localeFmt: string,
+): OpportunityCard[] =>
+  opportunities.map((o) => ({
+    zone: o.neighborhood?.trim() || o.city,
+    city: o.city,
+    type: propertyTypeLabel(o.propertyType, lang),
+    value: `COP ${Number(String(o.priceCop).replace(/\D/g, "")).toLocaleString(localeFmt)}`,
+    pricePerM2: o.pricePerM2,
+    refAvg: o.refAvgUsed,
+    score:
+      o.dealScore != null && Number.isFinite(o.dealScore)
+        ? `${Math.round(o.dealScore)}/100`
+        : "—",
+    discountPct: o.discountVsRefPct,
+    sampleSize: o.compSampleSize ?? null,
+    imageUrl: o.imageUrl ?? null,
+    href: o.url,
+  }))
 
 export default function HomePage({ locale: pageLocale = "es", initialData }: Props) {
   const router = useRouter()
   const { lang, toggleLang } = useUiLang(pageLocale)
-  const { theme, toggleTheme } = useUiTheme("light")
   const txt = uiText[lang]
   const copy = useMemo(() => content[lang], [lang])
   const localeFmt = lang === "es" ? "es-CO" : "en-US"
@@ -145,14 +186,19 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
           { label: copy.statsCitiesLabel, value: "", loading: true },
         ],
   )
-  const [cards, setCards] = useState<
-    Array<{ zone: string; type: string; value: string; score: string; href: string }>
-  >([])
-  const zonePreviews: ZonePreview[] =
-    initialData?.featuredZones.slice(0, 3).map((z) => ({
-      slug: z.slug,
-      displayName: z.displayName,
-      citySlug: z.citySlug,
+  const [cards, setCards] = useState<OpportunityCard[]>(() =>
+    initialData?.featuredOpportunities?.length
+      ? mapOpportunityCards(initialData.featuredOpportunities, lang, localeFmt)
+      : [],
+  )
+  const featuredCity =
+    initialData?.featuredCities[0]?.name ??
+    initialData?.featuredZones[0]?.displayName ??
+    "Pereira"
+  const zonePreviews =
+    initialData?.featuredZones.slice(0, 6).map((z) => ({
+      name: z.displayName,
+      href: lp(`/zones/${z.citySlug}/${z.slug}`),
       medianPricePerM2: z.medianPricePerM2,
       listingCount: z.listingCount,
     })) ?? []
@@ -160,6 +206,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
 
   useEffect(() => {
     if (initialData) return
+
     let cancelled = false
 
     async function loadLiveData() {
@@ -167,7 +214,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
       try {
         const [summaryRes, oppRes] = await Promise.all([
           fetch("/api/summary"),
-          fetch("/api/opportunities"),
+          fetch("/api/opportunities?limit=3"),
         ])
         if (!summaryRes.ok) {
           if (!cancelled) setStatsFailed(true)
@@ -198,27 +245,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
           const oppJson = await oppRes.json()
           const opportunities = (oppJson.opportunities ?? []).slice(0, 3)
           if (!cancelled && opportunities.length > 0) {
-            setCards(
-              opportunities.map(
-                (o: {
-                  neighborhood: string | null
-                  city: string
-                  propertyType: string | null
-                  priceCop: string
-                  dealScore: number | null
-                  url: string
-                }) => ({
-                  zone: o.neighborhood?.trim() || o.city,
-                  type: propertyTypeLabel(o.propertyType, lang),
-                  value: `COP ${Number(String(o.priceCop).replace(/\D/g, "")).toLocaleString(localeFmt)}`,
-                  score:
-                    o.dealScore != null && Number.isFinite(o.dealScore)
-                      ? `${Math.round(o.dealScore)}/100`
-                      : "—",
-                  href: o.url,
-                }),
-              ),
-            )
+            setCards(mapOpportunityCards(opportunities, lang, localeFmt))
           }
         }
       } catch {
@@ -244,26 +271,20 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
-      <MarketingHeader
-        lang={lang}
-        homeHref={lp("/")}
-        onToggleLang={toggleLang}
-        theme={theme}
-        onToggleTheme={toggleTheme}
-      />
+      <AppHeader variant="marketing" homeHref={lp("/")} lang={lang} onToggleLang={toggleLang} />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-16 pt-8 sm:px-6">
-        <div className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr]">
-          <div className="animate-fade-up">
-            <Badge>{copy.badge}</Badge>
-            <h1 className="mt-4 max-w-xl text-4xl font-bold leading-tight tracking-tight text-foreground md:text-5xl">
+      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-10">
+          <div>
+            <Badge variant="default">{copy.eyebrow}</Badge>
+            <h1 className="text-display mt-4 max-w-xl text-4xl font-semibold leading-[1.12] md:text-[2.75rem]">
               {copy.heading}
             </h1>
-            <p className="mt-5 max-w-xl text-lg text-muted">{copy.blurb}</p>
+            <p className="mt-4 max-w-xl text-base leading-relaxed text-muted md:text-lg">{copy.blurb}</p>
 
             <form
               onSubmit={handleInlineAnalyze}
-              className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-center"
+              className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-stretch"
             >
               <label className="sr-only" htmlFor="home-analyze-url">
                 {txt.homepageInlineAnalyze}
@@ -271,7 +292,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
               <input
                 id="home-analyze-url"
                 type="url"
-                className={`${inputClassName} flex-1`}
+                className={`${inputClassName} mt-0 flex-1`}
                 placeholder="https://www.fincaraiz.com.co/..."
                 value={inlineUrl}
                 onChange={(e) => setInlineUrl(e.target.value)}
@@ -281,16 +302,16 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
               </Button>
             </form>
 
-            <div className="mt-6 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-2">
               <Button href="/analyze-url">{copy.ctaPrimary}</Button>
-              <Button href="/estimate" variant="secondary">
+              <Button href={lp("/zones")} variant="secondary">
                 {copy.ctaSecondary}
               </Button>
             </div>
 
-            <div className="mt-10 grid gap-4 sm:grid-cols-3">
+            <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {highlights.map((item) => (
-                <Card key={item.label} className="rounded-xl p-4">
+                <div key={item.label} className="surface-inline p-3.5">
                   {item.loading ? (
                     <>
                       <Skeleton className="h-7 w-20" />
@@ -298,62 +319,99 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                     </>
                   ) : (
                     <>
-                      <p className="text-xl font-bold tabular-nums text-foreground">
-                        {item.value || "—"}
-                      </p>
-                      <p className="mt-1 text-xs uppercase tracking-wide text-muted">
-                        {item.label}
-                      </p>
+                      <p className="text-xl font-bold tabular-nums text-foreground">{item.value || "—"}</p>
+                      <p className="mt-0.5 text-meta">{item.label}</p>
                     </>
                   )}
-                </Card>
+                </div>
               ))}
             </div>
             {statsFailed ? (
-              <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">
-                {txt.couldNotLoad}
-              </p>
+              <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">{txt.couldNotLoad}</p>
             ) : null}
           </div>
 
-          <aside className="animate-fade-up-delay premium-surface rounded-3xl p-6">
-            <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted">
-              {copy.cardsLabel}
-            </p>
-            <div className="mt-4 space-y-3">
-              {cards.length === 0 && !statsFailed ? (
-                <>
-                  <Skeleton className="h-24 w-full" />
-                  <Skeleton className="h-24 w-full" />
-                </>
-              ) : null}
-              {cards.map((card) => (
-                <a
-                  key={`${card.zone}-${card.type}-${card.value}`}
-                  href={card.href}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="block rounded-xl border border-slate-200/90 bg-elevated p-4 transition hover:border-teal-300 dark:border-slate-700/80"
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-foreground">{card.zone}</p>
-                    <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-                      {card.score}
-                    </span>
-                  </div>
-                  <p className="mt-2 text-sm text-muted">{card.type}</p>
-                  <p className="mt-1 text-lg font-semibold tabular-nums text-foreground">
-                    {card.value}
-                  </p>
-                </a>
-              ))}
+          <div className="relative z-10 space-y-4">
+            {zonePreviews.length > 0 ? (
+              <CartographicPreview
+                cityName={featuredCity}
+                zones={zonePreviews}
+                locale={localeFmt}
+                heatmapHref="/heatmap"
+                labels={{
+                  title: copy.mapTitle,
+                  viewMap: copy.mapView,
+                  median: copy.mapMedian,
+                  listings: copy.mapListings,
+                }}
+              />
+            ) : (
+              <Skeleton className="min-h-[320px] w-full rounded-2xl" />
+            )}
+
+            <div className="surface-panel p-4 sm:p-5">
+              <p className="text-section-label">{copy.dealsLabel}</p>
+              <div className="mt-3 space-y-3">
+                {cards.length === 0 && !statsFailed ? (
+                  <>
+                    <Skeleton className="h-28 w-full" />
+                    <Skeleton className="h-28 w-full" />
+                  </>
+                ) : null}
+                {cards.map((card) => (
+                  <a
+                    key={`${card.zone}-${card.href}`}
+                    href={card.href}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex gap-3 rounded-lg border border-border-subtle bg-elevated p-3 transition hover:border-accent/35 hover:shadow-sm"
+                  >
+                    <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-surface">
+                      {card.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img
+                          src={card.imageUrl}
+                          alt=""
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="flex h-full items-center justify-center text-[10px] text-muted">—</div>
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-foreground">{card.zone}</p>
+                          <p className="text-meta">
+                            {card.city} · {card.type}
+                          </p>
+                        </div>
+                        <Badge variant="good">{card.score}</Badge>
+                      </div>
+                      <p className="mt-1 text-sm font-semibold tabular-nums">{card.value}</p>
+                      {card.pricePerM2 != null && card.refAvg != null ? (
+                        <DealComparisonBar
+                          subject={card.pricePerM2}
+                          reference={card.refAvg}
+                          locale={localeFmt}
+                          className="mt-2"
+                        />
+                      ) : null}
+                      {card.sampleSize != null ? (
+                        <p className="mt-1 text-meta">n={card.sampleSize} comparables</p>
+                      ) : null}
+                    </div>
+                  </a>
+                ))}
+              </div>
             </div>
-          </aside>
+          </div>
         </div>
 
         {initialData && initialData.featuredCities.length > 0 ? (
           <section className="mt-14">
-            <h2 className="text-lg font-semibold text-foreground">
+            <h2 className="text-display text-xl font-semibold">
               {lang === "en" ? "Explore by city" : "Explorar por ciudad"}
             </h2>
             <div className="mt-4 flex flex-wrap gap-2">
@@ -361,55 +419,51 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                 <Link
                   key={c.slug}
                   href={lp(`/zones/${c.slug}`)}
-                  className="rounded-full border border-slate-200/90 bg-elevated px-4 py-2 text-sm font-semibold text-foreground transition hover:border-teal-300 dark:border-slate-700/80"
+                  className="rounded-lg border border-border-subtle bg-elevated px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-surface"
                 >
-                  {c.name}{" "}
-                  <span className="text-muted">({c.zoneCount})</span>
+                  {c.name} <span className="text-muted">({c.zoneCount})</span>
                 </Link>
               ))}
             </div>
           </section>
         ) : null}
 
-        {zonePreviews.length > 0 ? (
+        {initialData && initialData.featuredZones.length > 0 ? (
           <section className="mt-14">
-            <h2 className="text-lg font-semibold text-foreground">
-              {txt.homepageFeaturedZones}
-            </h2>
-            <div className="mt-4 grid gap-4 md:grid-cols-3">
-              {zonePreviews.map((z) => (
+            <h2 className="text-display text-xl font-semibold">{txt.homepageFeaturedZones}</h2>
+            <div className="mt-4 grid gap-3 md:grid-cols-3">
+              {initialData.featuredZones.slice(0, 3).map((z) => (
                 <Link
                   key={z.slug}
                   href={lp(`/zones/${z.citySlug}/${z.slug}`)}
-                  className="rounded-xl border border-slate-200/90 bg-elevated p-4 transition hover:border-teal-300 dark:border-slate-700/80"
+                  className="surface-inline block p-4 transition hover:border-accent/35 hover:shadow-sm"
                 >
                   <p className="font-semibold text-foreground">{z.displayName}</p>
-                  <p className="mt-1 text-sm text-muted">
+                  <p className="mt-1 text-meta">
                     {z.listingCount.toLocaleString(localeFmt)} {txt.activeListings.toLowerCase()}
                   </p>
                   {z.medianPricePerM2 != null ? (
-                    <p className="mt-2 text-sm font-semibold tabular-nums text-foreground">
+                    <p className="mt-2 text-sm font-semibold tabular-nums">
                       {txt.medianPriceM2}: ${Math.round(z.medianPricePerM2).toLocaleString(localeFmt)}
                     </p>
                   ) : null}
-                  <p className="mt-2 text-xs font-semibold text-accent">
-                    {txt.viewBarrioDossier}
-                  </p>
+                  <p className="mt-2 text-xs font-semibold text-accent">{txt.viewBarrioDossier}</p>
                 </Link>
               ))}
             </div>
           </section>
         ) : null}
+
+        <section className="mt-14 grid gap-4 md:grid-cols-3">
+          {copy.features.map((feature) => (
+            <Card key={feature.title} tier="inline">
+              <h2 className="text-display text-base font-semibold">{feature.title}</h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{feature.description}</p>
+            </Card>
+          ))}
+        </section>
       </main>
 
-      <section className="mx-auto grid w-full max-w-6xl gap-5 px-4 pb-12 sm:px-6 md:grid-cols-3">
-        {copy.features.map((feature) => (
-          <Card key={feature.title} className="animate-fade-up-delay-2">
-            <h2 className="text-lg font-semibold text-foreground">{feature.title}</h2>
-            <p className="mt-3 text-sm leading-6 text-muted">{feature.description}</p>
-          </Card>
-        ))}
-      </section>
       <PageFooter locale={lang} />
     </div>
   )

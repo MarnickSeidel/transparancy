@@ -94,6 +94,7 @@ model Listing {
   @@index([lastSeenAt])
   @@index([isActive])
   @@index([acceptsBarter])
+  @@index([dealScore])
   @@index([zoneName])
   @@index([ownerId])
   @@index([areaPrivateM2])

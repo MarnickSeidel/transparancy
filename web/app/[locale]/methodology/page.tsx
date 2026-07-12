@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import PageFooter from "@/app/components/PageFooter";
-import { localePath, type Locale, LOCALES } from "@/lib/locale";
+import TrustPageChrome from "@/app/components/TrustPageChrome";
+import { type Locale, LOCALES } from "@/lib/locale";
 import { methodologyFaqJsonLd, trustPageMetadata } from "@/lib/trustSeo";
 
 export const revalidate = 86400;
@@ -18,7 +17,6 @@ export default function MethodologyPage({ params }: Props) {
   const locale = params.locale as Locale;
   if (!LOCALES.includes(locale)) notFound();
 
-  const lp = (path: string) => localePath(locale, path);
   const faqJsonLd = methodologyFaqJsonLd(locale);
 
   const faqs =
@@ -69,16 +67,12 @@ export default function MethodologyPage({ params }: Props) {
         ];
 
   return (
-    <div className="app-shell flex min-h-screen flex-col">
+    <TrustPageChrome locale={locale}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(faqJsonLd) }}
       />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-12 sm:px-6">
-        <Link href={lp("/")} className="text-sm font-semibold text-accent hover:underline">
-          ← Habidata
-        </Link>
-        <h1 className="mt-6 text-3xl font-bold text-foreground">
+      <h1 className="text-display text-3xl font-semibold text-foreground">
           {locale === "en" ? "Data methodology" : "Metodología de datos"}
         </h1>
         <div className="prose prose-slate mt-8 max-w-none dark:prose-invert">
@@ -146,8 +140,6 @@ export default function MethodologyPage({ params }: Props) {
             ))}
           </dl>
         </section>
-      </main>
-      <PageFooter locale={locale} />
-    </div>
+    </TrustPageChrome>
   );
 }

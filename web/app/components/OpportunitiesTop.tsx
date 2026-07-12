@@ -1,4 +1,4 @@
-"use client";
+"use client"
 import dynamic from "next/dynamic";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
@@ -11,6 +11,7 @@ import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import SiteHeader from "@/app/components/SiteHeader";
 import WhyDealPanel from "@/app/components/WhyDealPanel";
+import { fetchJsonCached } from "@/lib/clientFetchCache";
 import type { WhyDeal } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
 import { propertyTypeOptions } from "@/lib/propertyTypes";
@@ -45,6 +46,7 @@ type OpportunityRow = {
   isProject?: boolean;
   url: string;
   sourceUpdatedAt: string | null;
+  imageUrl?: string | null;
 };
 
 function fmtCop(v: number | null | undefined, locale: string) {
@@ -213,31 +215,39 @@ export default function OpportunitiesTop() {
     setExcludeDraft("");
   }, [excludeDraft]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (rows.length === 0) setLoading(true);
     setError(null);
     try {
-      const [fRes, oRes] = await Promise.all([
-        fetch(`/api/filters${city !== "all" ? `?city=${encodeURIComponent(city)}` : ""}`),
-        fetch(`/api/opportunities${opportunitiesQs}`),
+      const filtersUrl = `/api/filters${city !== "all" ? `?city=${encodeURIComponent(city)}` : ""}`;
+      const [fJson, oJson] = await Promise.all([
+        fetchJsonCached<{
+          cities?: string[];
+          neighborhoods?: string[];
+          propertyTypes?: string[];
+        }>(filtersUrl),
+        fetchJsonCached<{ opportunities?: OpportunityRow[] }>(
+          `/api/opportunities${opportunitiesQs}`,
+        ),
       ]);
-      if (!fRes.ok || !oRes.ok) throw new Error("load");
-      const fJson = await fRes.json();
-      const oJson = await oRes.json();
+      if (signal?.aborted) return;
       setCities(fJson.cities ?? []);
       setNeighborhoods(fJson.neighborhoods ?? []);
       setPropertyTypes(fJson.propertyTypes ?? []);
       setRows((oJson.opportunities ?? []) as OpportunityRow[]);
       setExpandedId(null);
-    } catch {
+    } catch (err) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
       setError(uiText[lang].couldNotLoad);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [city, opportunitiesQs, lang]);
+  }, [city, opportunitiesQs, lang, rows.length]);
 
   useEffect(() => {
-    void load();
+    const ac = new AbortController();
+    void load(ac.signal);
+    return () => ac.abort();
   }, [load]);
 
   return (
@@ -248,7 +258,6 @@ export default function OpportunitiesTop() {
         active="opportunities"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -526,9 +535,17 @@ export default function OpportunitiesTop() {
                     <Fragment key={r.id}>
                     <tr className="hover:bg-surface/50">
                       <td className="px-4 py-3">
-                        <a href={r.url} target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
-                          {r.title}
-                        </a>
+                        <div className="flex items-center gap-3">
+                          <div className="relative h-10 w-12 shrink-0 overflow-hidden rounded-md bg-surface">
+                            {r.imageUrl ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={r.imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+                            ) : null}
+                          </div>
+                          <a href={r.url} target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
+                            {r.title}
+                          </a>
+                        </div>
                       </td>
                       <td className="px-4 py-3">{r.city}</td>
                       <td className="px-4 py-3">
@@ -655,11 +672,16 @@ export default function OpportunitiesTop() {
                     location={`${r.city} · ${r.neighborhood ?? txt.unknown}`}
                     price={fmtCop(Number(r.priceCop), locale)}
                     pricePerM2={fmtCop(r.pricePerM2, locale)}
+                    pricePerM2Num={r.pricePerM2}
+                    refAvg={r.refAvgUsed}
+                    locale={locale}
                     discount={
                       r.discountVsRefPct == null ? "—" : `${r.discountVsRefPct.toFixed(1)}%`
                     }
                     dealScore={r.dealScore?.toFixed(1) ?? "—"}
                     confidence={confidenceLabel(r.confidence, txt)}
+                    sampleSize={r.compSampleSize}
+                    imageUrl={r.imageUrl}
                     priceLabel={txt.price}
                     pricePerM2Label={txt.pricePerM2}
                     discountLabel={txt.opportunityDiscount}

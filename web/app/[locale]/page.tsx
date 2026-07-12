@@ -10,6 +10,8 @@ type Props = {
   params: { locale: string };
 };
 
+export const revalidate = 300;
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = params.locale as Locale;
   return homeMetadata(locale);

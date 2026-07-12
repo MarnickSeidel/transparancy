@@ -30,7 +30,7 @@ export default function CollapsibleSection({
     <div className={className}>
       <button
         type="button"
-        className="flex w-full items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-surface/70 px-4 py-2.5 text-left text-sm font-semibold text-foreground transition hover:bg-surface dark:border-slate-700/80"
+        className="flex w-full items-center justify-between gap-2 rounded-lg border border-border-subtle bg-surface/60 px-4 py-2.5 text-left text-sm font-semibold text-foreground transition hover:bg-surface"
         aria-expanded={open}
         onClick={handleToggle}
         onKeyDown={handleKeyDown}

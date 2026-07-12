@@ -18,7 +18,7 @@ export default function ThemeToggle({ theme, lang = "es", onToggle }: Props) {
       type="button"
       onClick={onToggle}
       aria-label={isDark ? txt.themeSwitchToLight : txt.themeSwitchToDark}
-      className="rounded-full border border-slate-200 bg-elevated px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-surface dark:border-slate-600 dark:text-slate-200"
+      className="rounded-lg border border-border-subtle bg-elevated px-2.5 py-1.5 text-xs font-medium text-muted shadow-sm hover:bg-surface hover:text-foreground"
     >
       {isDark ? txt.themeLight : txt.themeDark}
     </button>

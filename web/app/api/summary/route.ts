@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getDashboardSummary } from "@/lib/dashboardSummary";
+import { getCachedDashboardSummary } from "@/lib/serverCache";
 
 export const revalidate = 90;
 
@@ -12,7 +12,7 @@ export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city");
   try {
-    const data = await getDashboardSummary(city);
+    const data = await getCachedDashboardSummary(city);
     return NextResponse.json(data, { headers: CACHE_HEADERS });
   } catch (e) {
     console.error(e);

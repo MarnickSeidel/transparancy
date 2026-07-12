@@ -647,6 +647,13 @@ def mark_inactive_listings(
     return updated
 
 
+def refresh_zone_list_aggregates(conn) -> None:
+    """Refresh zone list materialized view after bulk listing updates."""
+    cur = conn.cursor()
+    cur.execute("REFRESH MATERIALIZED VIEW CONCURRENTLY zone_list_aggregates")
+    conn.commit()
+
+
 def refresh_deals_after_scrape(
     conn,
     threshold_pct: Optional[float] = None,

@@ -1,23 +1,20 @@
-"use client";
+"use client"
 
-import { uiText } from "@/lib/i18n";
-import { useUiLang } from "@/lib/useUiLang";
+type Props = {
+  error: Error & { digest?: string }
+  reset: () => void
+}
 
-export default function PageError({
-  error,
-  reset,
-}: {
-  error: Error & { digest?: string };
-  reset: () => void;
-}) {
-  const { lang } = useUiLang("es");
-  const txt = uiText[lang];
-
+/** Avoid navigation hooks here — they can fail when the error boundary runs during a broken HMR state. */
+export default function PageError({ error, reset }: Props) {
   return (
     <div className="app-shell flex min-h-screen flex-col items-center justify-center gap-4 px-6 py-16">
-      <h2 className="text-lg font-semibold text-foreground">{txt.errorPageTitle}</h2>
+      <h2 className="text-lg font-semibold text-foreground">
+        Algo salió mal / Something went wrong
+      </h2>
       <p className="max-w-md text-center text-sm text-muted">
-        {txt.errorPageHint}
+        Recarga la página o reinicia el servidor de desarrollo con{" "}
+        <code className="rounded bg-surface px-1.5 py-0.5 text-xs">npm run dev:fresh</code>.
       </p>
       {error.message ? (
         <p className="max-w-md text-center text-xs text-muted/80">{error.message}</p>
@@ -27,8 +24,8 @@ export default function PageError({
         onClick={() => reset()}
         className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-sm transition hover:opacity-90"
       >
-        {txt.errorPageRetry}
+        Reintentar / Retry
       </button>
     </div>
-  );
+  )
 }

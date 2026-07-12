@@ -1,14 +1,23 @@
 import type { ReactNode } from "react";
 
+type Tier = "hero" | "panel" | "inline";
+
 type Props = {
   children: ReactNode;
   className?: string;
+  tier?: Tier;
 };
 
-export default function Card({ children, className }: Props) {
+const tierClass: Record<Tier, string> = {
+  hero: "surface-hero",
+  panel: "surface-panel",
+  inline: "surface-inline",
+};
+
+export default function Card({ children, className, tier = "panel" }: Props) {
   return (
     <article
-      className={`premium-surface rounded-2xl p-6 transition-shadow duration-200 hover:shadow-card-hover ${className ?? ""}`}
+      className={`${tierClass[tier]} p-5 transition-shadow duration-200 hover:shadow-card-hover md:p-6 ${className ?? ""}`}
     >
       {children}
     </article>

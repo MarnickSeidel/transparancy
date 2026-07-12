@@ -9,6 +9,7 @@ import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
+import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { mapCenterForCity } from "@/lib/cityCenters";
 import type { H3HeatCell } from "@/lib/h3Heatmap";
 import { BUCKET_COLORS } from "@/lib/mapPriceBuckets";
@@ -94,31 +95,40 @@ export default function H3Heatmap() {
     return `/explore?${p.toString()}`;
   }, [city, selected]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (!data) setLoading(true);
     setError(null);
     setSelected(null);
     try {
-      const [fRes, hRes] = await Promise.all([
-        fetch(`/api/filters?city=${encodeURIComponent(city)}`),
-        fetch(`/api/heatmap/h3?${queryString}`),
+      const filtersUrl = `/api/filters?city=${encodeURIComponent(city)}`;
+      const [fJson, hJson] = await Promise.all([
+        fetchJsonCached<{
+          cities?: string[];
+          propertyTypes?: string[];
+          estratos?: number[];
+        }>(filtersUrl),
+        fetch(`/api/heatmap/h3?${queryString}`, { signal }).then(async (res) => {
+          if (!res.ok) throw new Error("load");
+          return (await res.json()) as HeatmapResponse;
+        }),
       ]);
-      if (!fRes.ok || !hRes.ok) throw new Error("load");
-      const fJson = await fRes.json();
-      const hJson = (await hRes.json()) as HeatmapResponse;
+      if (signal?.aborted) return;
       setCities(fJson.cities ?? []);
       setPropertyTypes(fJson.propertyTypes ?? []);
       setEstratos(fJson.estratos ?? []);
       setData(hJson);
-    } catch {
+    } catch (err) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
       setError(txt.couldNotLoad);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [city, queryString, txt.couldNotLoad]);
+  }, [city, queryString, txt.couldNotLoad, data]);
 
   useEffect(() => {
-    void load();
+    const ac = new AbortController();
+    void load(ac.signal);
+    return () => ac.abort();
   }, [load]);
 
   useEffect(() => {
@@ -153,7 +163,6 @@ export default function H3Heatmap() {
         active="heatmap"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">

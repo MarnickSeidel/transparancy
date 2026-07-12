@@ -30,14 +30,14 @@ export default function PriceRangeBar({
     <div className="space-y-4">
       <div className="relative pt-8">
         <div
-          className="h-2 rounded-full bg-gradient-to-r from-teal-200 via-teal-500 to-cyan-600 dark:from-teal-900 dark:via-teal-600 dark:to-cyan-500"
+          className="h-2 rounded-full bg-gradient-to-r from-accent-secondary/30 via-accent/60 to-accent-secondary/40"
           role="presentation"
         />
         <div
           className="absolute top-0 -translate-x-1/2"
           style={{ left: `${midPct}%` }}
         >
-          <span className="block whitespace-nowrap rounded-lg bg-accent px-2 py-1 text-xs font-semibold text-accent-fg shadow-sm">
+          <span className="block whitespace-nowrap rounded-md bg-accent px-2 py-1 text-xs font-semibold text-accent-fg shadow-sm">
             {fmtMoney(mid, locale)}
           </span>
           <span

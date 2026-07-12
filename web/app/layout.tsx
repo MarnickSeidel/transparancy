@@ -1,13 +1,22 @@
-import { rootMetadata, siteViewport } from "@/lib/seo";
+import { Fraunces, Source_Sans_3 } from "next/font/google";
 import localFont from "next/font/local";
 import type { Viewport } from "next";
+
+import { rootMetadata, siteViewport } from "@/lib/seo";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  variable: "--font-fraunces",
+  display: "swap",
 });
+
+const sourceSans = Source_Sans_3({
+  subsets: ["latin"],
+  variable: "--font-source-sans",
+  display: "swap",
+});
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
@@ -33,7 +42,7 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased`}
+        className={`${fraunces.variable} ${sourceSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
         {children}
       </body>

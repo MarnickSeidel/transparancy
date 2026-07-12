@@ -227,7 +227,6 @@ export default function AnalyzeUrlForm() {
         active="analyzeUrl"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
@@ -277,6 +276,7 @@ export default function AnalyzeUrlForm() {
               confidence={data.analysis.confidence}
               dealScore={data.analysis.dealScore}
               discountPct={data.analysis.discountVsRefPct}
+              sampleSize={data.analysis.sampleSize}
               lang={lang}
             />
 

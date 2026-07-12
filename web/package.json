@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "dev:clean": "node -e \"require('fs').rmSync('.next',{recursive:true,force:true})\" && next dev",
+    "dev:fresh": "node scripts/dev-fresh.mjs",
     "build": "next build",
     "build:prisma": "prisma generate && next build",
     "start": "next start",

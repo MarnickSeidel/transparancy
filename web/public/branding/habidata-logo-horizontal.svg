@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 44" role="img" aria-label="Habidata">
+  <rect width="200" height="44" rx="8" fill="#1e293b"/>
+  <circle cx="22" cy="22" r="12" fill="#c45c26"/>
+  <text x="42" y="28" font-family="system-ui,Segoe UI,sans-serif" font-size="18" font-weight="700" fill="#f8fafc">Habidata</text>
+</svg>

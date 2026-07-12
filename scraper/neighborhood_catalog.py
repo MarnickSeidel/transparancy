@@ -16,7 +16,8 @@ from pathlib import Path
 
 from parse_fields import normalize_neighborhood
 
-_DATA_DIR = Path(__file__).resolve().parent / "data" / "neighborhoods"
+# Single source of truth: shared with web/app (web/data/neighborhoods).
+_DATA_DIR = Path(__file__).resolve().parent.parent / "web" / "data" / "neighborhoods"
 
 # Folded prefixes stripped before matching (accents already stripped in _fold).
 _STRIP_PREFIXES: tuple[str, ...] = (

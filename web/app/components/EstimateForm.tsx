@@ -313,7 +313,6 @@ export default function EstimateForm() {
         active="estimate"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">

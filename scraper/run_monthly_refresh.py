@@ -158,6 +158,19 @@ def main() -> int:
 
     print(f"\nFinished refresh: {ran} city/cities.", flush=True)
     print_global_summary(url)
+
+    from db import connect, refresh_deals_after_scrape, refresh_zone_list_aggregates
+
+    print("\nPost-refresh maintenance (deal scores + zone aggregates)…", flush=True)
+    conn = connect()
+    try:
+        refresh_deals_after_scrape(conn, city=None)
+        print("  Deal scores updated for all active listings.", flush=True)
+        refresh_zone_list_aggregates(conn)
+        print("  zone_list_aggregates materialized view refreshed.", flush=True)
+    finally:
+        conn.close()
+
     return 0
 
 

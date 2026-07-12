@@ -43,23 +43,17 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
 
   const cityWhereActive =
     city && city !== "all" ? { city, isActive: true } : { isActive: true };
-  const cityWhereAll =
-    city && city !== "all" ? { city } : {};
   const cond = summaryCityConditions(city);
   const whereSql = Prisma.join(
     [...cond, Prisma.sql`l.is_active = true`],
     " AND ",
   );
+  const cityFilterSql =
+    city && city !== "all" ? Prisma.sql`AND l.city = ${city}` : Prisma.empty;
 
   const [
     avgRow,
-    activeListings,
-    catalogTotal,
-    inactiveListings,
-    listingsToday,
-    withEstrato,
-    withGeo,
-    newToday,
+    countsRow,
     winRow,
     distinctCounts,
   ] = await Promise.all([
@@ -71,19 +65,39 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
       },
       _avg: { pricePerM2: true },
     }),
-    prisma.listing.count({ where: cityWhereActive }),
-    prisma.listing.count({ where: cityWhereAll }),
-    prisma.listing.count({ where: { ...cityWhereAll, isActive: false } }),
-    prisma.listing.count({
-      where: { ...cityWhereActive, dateScraped: { gte: todayStart } },
-    }),
-    prisma.listing.count({ where: { ...cityWhereActive, estrato: { not: null } } }),
-    prisma.listing.count({
-      where: { ...cityWhereActive, latitude: { not: null }, longitude: { not: null } },
-    }),
-    prisma.listing.count({
-      where: { ...cityWhereActive, firstSeenAt: { gte: todayStart } },
-    }),
+    prisma.$queryRaw<
+      Array<{
+        active_listings: bigint;
+        catalog_total: bigint;
+        inactive_listings: bigint;
+        listings_today: bigint;
+        with_estrato: bigint;
+        with_geo: bigint;
+        new_today: bigint;
+      }>
+    >(Prisma.sql`
+      SELECT
+        COUNT(*) FILTER (WHERE l.is_active = true)::bigint AS active_listings,
+        COUNT(*)::bigint AS catalog_total,
+        COUNT(*) FILTER (WHERE l.is_active = false)::bigint AS inactive_listings,
+        COUNT(*) FILTER (
+          WHERE l.is_active = true AND l.date_scraped >= ${todayStart}
+        )::bigint AS listings_today,
+        COUNT(*) FILTER (
+          WHERE l.is_active = true AND l.estrato IS NOT NULL
+        )::bigint AS with_estrato,
+        COUNT(*) FILTER (
+          WHERE l.is_active = true
+            AND l.latitude IS NOT NULL
+            AND l.longitude IS NOT NULL
+        )::bigint AS with_geo,
+        COUNT(*) FILTER (
+          WHERE l.is_active = true AND l.first_seen_at >= ${todayStart}
+        )::bigint AS new_today
+      FROM listings l
+      WHERE 1=1
+      ${cityFilterSql}
+    `),
     prisma.$queryRaw<
       Array<{
         n: bigint;
@@ -133,6 +147,14 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
 
   const w = winRow[0];
   const counts = distinctCounts[0];
+  const c = countsRow[0];
+  const activeListings = c?.active_listings != null ? Number(c.active_listings) : 0;
+  const catalogTotal = c?.catalog_total != null ? Number(c.catalog_total) : 0;
+  const inactiveListings = c?.inactive_listings != null ? Number(c.inactive_listings) : 0;
+  const listingsToday = c?.listings_today != null ? Number(c.listings_today) : 0;
+  const withEstrato = c?.with_estrato != null ? Number(c.with_estrato) : 0;
+  const withGeo = c?.with_geo != null ? Number(c.with_geo) : 0;
+  const newToday = c?.new_today != null ? Number(c.new_today) : 0;
   const n = w?.n != null ? Number(w.n) : 0;
   const medianPpm2 = w?.p50 ?? null;
   const p25 = w?.p25 ?? null;

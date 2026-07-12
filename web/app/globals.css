@@ -3,29 +3,39 @@
 @tailwind utilities;
 
 :root {
-  --background: #f0f4f8;
-  --foreground: #0f172a;
-  --surface: #f1f5f9;
-  --surface-muted: #e2e8f0;
+  --background: #f7f5f2;
+  --foreground: #1a2332;
+  --surface: #eeeae4;
+  --surface-muted: #e4dfd8;
   --elevated: #ffffff;
-  --border-subtle: #e2e8f0;
-  --text-muted: #64748b;
-  --accent: #0d9488;
-  --accent-hover: #0f766e;
+  --border-subtle: #d4cec4;
+  --text-muted: #5c6573;
+  --accent: #c45c26;
+  --accent-hover: #a84a1a;
   --accent-fg: #ffffff;
+  --accent-secondary: #2d5a4a;
+  --deal-good: #2d7a4f;
+  --deal-fair: #5c6573;
+  --deal-bad: #b83a3a;
+  --grid-line: rgba(26, 35, 50, 0.06);
 }
 
 [data-theme="dark"] {
-  --background: #111827;
-  --foreground: #f1f5f9;
-  --surface: #1e293b;
-  --surface-muted: #334155;
-  --elevated: #1e293b;
-  --border-subtle: #475569;
-  --text-muted: #cbd5e1;
-  --accent: #0d9488;
-  --accent-hover: #14b8a6;
-  --accent-fg: #f8fafc;
+  --background: #0f1419;
+  --foreground: #e8e4df;
+  --surface: #1a2332;
+  --surface-muted: #151c28;
+  --elevated: #1e2838;
+  --border-subtle: #2f3d52;
+  --text-muted: #9aa3b0;
+  --accent: #d97340;
+  --accent-hover: #e88855;
+  --accent-fg: #0f1419;
+  --accent-secondary: #4a8f72;
+  --deal-good: #4caf78;
+  --deal-fair: #9aa3b0;
+  --deal-bad: #e06060;
+  --grid-line: rgba(232, 228, 223, 0.05);
 }
 
 body {
@@ -33,38 +43,12 @@ body {
   background: var(--background);
 }
 
-[data-theme="dark"] body {
-  background: radial-gradient(
-    circle at 12% 8%,
-    #1e293b 0%,
-    var(--background) 45%,
-    #0f172a 100%
-  );
-}
-
-[data-theme="dark"] .text-slate-900,
-[data-theme="dark"] .text-slate-800,
-[data-theme="dark"] .text-slate-700 {
-  color: #e2e8f0 !important;
-}
-
-[data-theme="dark"] .text-slate-600,
-[data-theme="dark"] .text-slate-500 {
-  color: #94a3b8 !important;
-}
-
-[data-theme="dark"] .border-slate-200,
-[data-theme="dark"] .border-slate-200\/80,
-[data-theme="dark"] .border-slate-200\/90 {
-  border-color: #334155 !important;
-}
-
-[data-theme="dark"] .bg-slate-50,
-[data-theme="dark"] .bg-slate-50\/40,
-[data-theme="dark"] .bg-slate-50\/80,
-[data-theme="dark"] .bg-white,
-[data-theme="dark"] .bg-white\/70 {
-  background-color: #1e293b !important;
+@layer base {
+  h1,
+  h2,
+  h3 {
+    @apply font-display;
+  }
 }
 
 @layer utilities {
@@ -72,69 +56,108 @@ body {
     text-wrap: balance;
   }
 
-  .bg-page {
-    background: linear-gradient(
-      165deg,
-      var(--surface-muted) 0%,
-      var(--background) 35%,
-      color-mix(in srgb, var(--background) 88%, #f8fafc) 100%
-    );
-  }
-
+  /* Cartographic page shell — subtle hex grid + warm gradient */
   .app-shell {
     min-height: 100vh;
     color: var(--foreground);
-    background:
-      radial-gradient(circle at 5% 10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 28%),
-      radial-gradient(circle at 95% 2%, color-mix(in srgb, #22d3ee 14%, transparent), transparent 24%),
-      linear-gradient(165deg, var(--surface-muted) 0%, var(--background) 35%, color-mix(in srgb, var(--background) 88%, #f8fafc) 100%);
-  }
-
-  .premium-surface {
-    border: 1px solid color-mix(in srgb, var(--border-subtle) 88%, #ffffff);
-    background: color-mix(in srgb, var(--elevated) 88%, transparent);
-    box-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.35);
-    backdrop-filter: blur(8px);
-  }
-
-  [data-theme="dark"] .premium-surface {
-    background: color-mix(in srgb, var(--elevated) 96%, #f8fafc 4%);
-    border-color: color-mix(in srgb, var(--border-subtle) 92%, #94a3b8);
-    box-shadow: 0 20px 50px -28px rgba(0, 0, 0, 0.55);
+    background-color: var(--background);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zm0-12l20-12V22L28 10 8 22v22l20 12z' fill='none' stroke='%231a2332' stroke-opacity='0.04' stroke-width='1'/%3E%3C/svg%3E"),
+      linear-gradient(
+        175deg,
+        var(--surface-muted) 0%,
+        var(--background) 42%,
+        color-mix(in srgb, var(--background) 92%, var(--elevated)) 100%
+      );
+    background-size: 56px 100px, 100% 100%;
   }
 
   [data-theme="dark"] .app-shell {
-    background:
-      radial-gradient(circle at 5% 10%, color-mix(in srgb, var(--accent) 22%, transparent), transparent 30%),
-      radial-gradient(circle at 95% 2%, color-mix(in srgb, #22d3ee 16%, transparent), transparent 26%),
-      linear-gradient(165deg, var(--surface-muted) 0%, var(--background) 40%, #0f172a 100%);
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50V16L28 0l28 16v34L28 66zm0-12l20-12V22L28 10 8 22v22l20 12z' fill='none' stroke='%23e8e4df' stroke-opacity='0.035' stroke-width='1'/%3E%3C/svg%3E"),
+      linear-gradient(175deg, var(--surface-muted) 0%, var(--background) 50%, #0a0e14 100%);
+    background-size: 56px 100px, 100% 100%;
   }
 
-  /* Light pad behind raster logos in dark UI so dark text / black boxes stay readable */
-  .logo-on-dark {
-    border-radius: 0.5rem;
-    background: #f1f5f9;
-    padding: 0.25rem 0.5rem;
-    box-shadow: inset 0 0 0 1px rgba(148, 163, 184, 0.35);
+  /* Three surface tiers */
+  .surface-hero {
+    @apply rounded-2xl border border-border-subtle bg-elevated;
+    box-shadow: 0 1px 2px rgb(26 35 50 / 0.04);
+  }
+
+  .surface-panel {
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+    background: var(--elevated);
+    box-shadow: 0 2px 8px rgb(26 35 50 / 0.05);
+    @apply rounded-xl;
+  }
+
+  .surface-inline {
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
+    background: color-mix(in srgb, var(--elevated) 96%, var(--surface));
+    @apply rounded-lg;
+  }
+
+  /* Legacy alias — maps to panel tier */
+  .premium-surface {
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 90%, transparent);
+    background: var(--elevated);
+    box-shadow: 0 2px 12px rgb(26 35 50 / 0.06);
+    @apply rounded-xl;
+  }
+
+  .text-display {
+    @apply font-display tracking-tight text-foreground;
+  }
+
+  .text-data-hero {
+    @apply font-sans text-4xl font-bold tabular-nums tracking-tight text-foreground md:text-5xl;
+  }
+
+  .text-section-label {
+    @apply text-sm font-semibold text-accent-secondary;
+  }
+
+  .text-meta {
+    @apply text-xs text-muted;
   }
 
   .kpi-card {
-    @apply rounded-2xl border border-slate-200/80 bg-elevated p-4 shadow-card transition-shadow duration-200 hover:shadow-card-hover dark:border-slate-600/70;
+    border: 1px solid color-mix(in srgb, var(--border-subtle) 75%, transparent);
+    background: color-mix(in srgb, var(--elevated) 96%, var(--surface));
+    @apply rounded-lg p-4 transition-shadow duration-200 hover:shadow-card-hover;
   }
 
   .data-table tbody tr {
     @apply transition-colors duration-150;
   }
 
-  [data-theme="dark"] .data-table tbody tr:hover {
-    background-color: color-mix(in srgb, var(--surface) 70%, transparent);
+  .data-table tbody tr:hover {
+    background-color: color-mix(in srgb, var(--surface) 65%, transparent);
   }
 
   .section-table-head {
-    @apply border-b border-slate-200/80 bg-surface/80 px-4 py-3 dark:border-slate-600/60 dark:bg-slate-800/50;
+    @apply border-b border-border-subtle bg-surface px-4 py-3;
   }
 
   .link-focus {
-    @apply rounded-md outline-none ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-teal-500/50 dark:ring-offset-slate-900;
+    @apply cursor-pointer rounded-md outline-none ring-offset-2 transition focus-visible:ring-2 focus-visible:ring-accent;
+  }
+
+  a[href],
+  button:not(:disabled),
+  [role="button"],
+  label[for],
+  select,
+  input[type="checkbox"],
+  input[type="radio"] {
+    cursor: pointer;
+  }
+
+  .logo-on-dark {
+    border-radius: 0.375rem;
+    background: #f1f0ed;
+    padding: 0.2rem 0.45rem;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 60%, transparent);
   }
 }

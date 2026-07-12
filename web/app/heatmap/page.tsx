@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 
-import AppShellLoading from "@/app/components/AppShellLoading";
+import H3Heatmap from "@/app/components/H3Heatmap";
 import { noIndexMetadata } from "@/lib/seo";
-
-const H3Heatmap = dynamic(() => import("@/app/components/H3Heatmap"), {
-  ssr: false,
-  loading: () => <AppShellLoading />,
-});
 
 export const metadata: Metadata = noIndexMetadata(
   "Mapa de calor H3",

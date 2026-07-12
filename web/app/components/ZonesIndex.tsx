@@ -114,7 +114,6 @@ export default function ZonesIndex({
         active="zones"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">

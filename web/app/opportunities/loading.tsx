@@ -1,5 +1,5 @@
-import AppShellLoading from "@/app/components/AppShellLoading";
+import ToolPageFallback from "@/app/components/ToolPageFallback";
 
 export default function Loading() {
-  return <AppShellLoading />;
+  return <ToolPageFallback />;
 }

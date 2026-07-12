@@ -9,6 +9,7 @@ import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
+import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
 import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
@@ -175,17 +176,24 @@ export default function ListingExplorer() {
     return chips;
   }, [city, estrato, locale, maxPriceCop, neighborhood, propertyType, txt]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (!data) setLoading(true);
     setError(null);
     try {
-      const [fRes, lRes] = await Promise.all([
-        fetch(`/api/filters${city !== "all" ? `?city=${encodeURIComponent(city)}` : ""}`),
-        fetch(`/api/listings?${queryString}`),
+      const filtersUrl = `/api/filters${city !== "all" ? `?city=${encodeURIComponent(city)}` : ""}`;
+      const [fJson, lJson] = await Promise.all([
+        fetchJsonCached<{
+          cities?: string[];
+          neighborhoods?: string[];
+          propertyTypes?: string[];
+          estratos?: number[];
+        }>(filtersUrl),
+        fetch(`/api/listings?${queryString}`, { signal }).then(async (res) => {
+          if (!res.ok) throw new Error("load");
+          return (await res.json()) as ListingsResponse;
+        }),
       ]);
-      if (!fRes.ok || !lRes.ok) throw new Error("load");
-      const fJson = await fRes.json();
-      const lJson = (await lRes.json()) as ListingsResponse;
+      if (signal?.aborted) return;
       const nextNeighborhoods: string[] = fJson.neighborhoods ?? [];
       setCities(fJson.cities ?? []);
       setNeighborhoods(nextNeighborhoods);
@@ -195,15 +203,18 @@ export default function ListingExplorer() {
         prev === "all" ? prev : resolveNeighborhoodLabel(prev, nextNeighborhoods),
       );
       setData(lJson);
-    } catch {
+    } catch (err) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
       setError(txt.couldNotLoad);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) setLoading(false);
     }
-  }, [city, queryString, txt.couldNotLoad]);
+  }, [city, queryString, txt.couldNotLoad, data]);
 
   useEffect(() => {
-    void load();
+    const ac = new AbortController();
+    void load(ac.signal);
+    return () => ac.abort();
   }, [load]);
 
   useEffect(() => {
@@ -248,7 +259,6 @@ export default function ListingExplorer() {
         active="explore"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">

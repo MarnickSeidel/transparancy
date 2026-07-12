@@ -2,11 +2,14 @@
 
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import PageFooter from "./PageFooter";
+import CollapsibleSection from "./CollapsibleSection";
 import SiteHeader from "./SiteHeader";
 import Skeleton from "./ui/Skeleton";
+import TrustMeta from "./TrustMeta";
+import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { MIN_SAMPLE_SIZE } from "@/lib/analytics";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
@@ -130,6 +133,7 @@ export default function Dashboard() {
   const [error, setError] = useState<string | null>(null);
   const [monthlyStats, setMonthlyStats] = useState<MonthlyTrendRow[]>([]);
   const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const isFirstLoad = useRef(true);
   const locale = lang === "es" ? "es-CO" : "en-US";
   const txt = uiText[lang];
 
@@ -183,14 +187,21 @@ export default function Dashboard() {
     return { ready, enoughMonthlyHistory, enoughCoverage, enoughSample };
   }, [monthlyStats, summary?.coveragePricePerM2Pct, summary?.sampleSizePricePerM2]);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (signal?: AbortSignal) => {
+    if (isFirstLoad.current) setLoading(true);
     setError(null);
     try {
       const bundleQs = qs ? `${qs}&months=6` : "?months=6";
-      const res = await fetch(`/api/dashboard/bundle${bundleQs}`);
-      if (!res.ok) throw new Error("bundle");
-      const json = await res.json();
+      const json = await fetchJsonCached<{
+        summary: Summary;
+        filters?: { cities?: string[]; neighborhoods?: string[]; estratos?: number[] };
+        typeStats?: TypeStatRow[];
+        neighborhoodStats?: NeighborhoodStatRow[];
+        estratoTypeMatrix?: EstratoTypeMatrix;
+        pricingIntelligence?: PricingIntel | null;
+        monthlyTrends?: { rows?: MonthlyTrendRow[] };
+      }>(`/api/dashboard/bundle${bundleQs}`);
+      if (signal?.aborted) return;
       setSummary(json.summary);
       setCities(json.filters?.cities ?? []);
       setNeighborhoods(json.filters?.neighborhoods ?? []);
@@ -203,15 +214,21 @@ export default function Dashboard() {
       setPricingIntelligence((json.pricingIntelligence ?? null) as PricingIntel | null);
       setMonthlyStats((json.monthlyTrends?.rows ?? []) as MonthlyTrendRow[]);
       setLastUpdatedAt(new Date());
-    } catch {
+    } catch (err) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
       setError(uiText[lang].couldNotLoad);
     } finally {
-      setLoading(false);
+      if (!signal?.aborted) {
+        setLoading(false);
+        isFirstLoad.current = false;
+      }
     }
   }, [qs, lang]);
 
   useEffect(() => {
-    void load();
+    const ac = new AbortController();
+    void load(ac.signal);
+    return () => ac.abort();
   }, [load]);
 
   return (
@@ -222,7 +239,6 @@ export default function Dashboard() {
         active="dashboard"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -232,18 +248,16 @@ export default function Dashboard() {
           </div>
         )}
 
-        <section className="mb-6 rounded-2xl premium-surface p-6 md:p-8">
-          <p className="text-xs font-semibold uppercase tracking-wider text-accent">
-            {txt.dashboardSnapshot}
-          </p>
-          <p className="mt-1 text-xs text-muted">
+        <section className="mb-6 surface-hero p-6 md:p-8">
+          <p className="text-section-label">{txt.dashboardSnapshot}</p>
+          <p className="mt-1 text-meta">
             {txt.medianPriceM2} (
             {summary?.cityScope === "all" ? txt.allCities : (summary?.cityScope ?? txt.cityLabel)})
           </p>
           {loading ? (
             <Skeleton className="mt-4 h-14 w-full max-w-md" />
           ) : (
-          <p className="mt-3 text-4xl font-bold tracking-tight tabular-nums text-slate-900 md:text-5xl dark:text-slate-50">
+          <p className="text-data-hero mt-3">
             {(summary?.medianPricePerM2City ?? summary?.avgPricePerM2City ?? summary?.avgPricePerM2Pereira) != null
               ? `$ ${Math.round(
                   summary?.medianPricePerM2City ??
@@ -262,14 +276,22 @@ export default function Dashboard() {
                 ? `${fmtCop(summary?.p25PricePerM2City, locale)} – ${fmtCop(summary?.p75PricePerM2City, locale)}`
                 : "—"}
           </p>
-          <p className="mt-5 max-w-2xl text-sm leading-relaxed text-slate-600 dark:text-slate-300">
+          <p className="mt-5 max-w-2xl text-sm leading-relaxed text-muted">
             {heroLine}
           </p>
-          <p className="mt-4 text-xs text-slate-500 dark:text-slate-400">
-            {txt.dashboardLastUpdated}:{" "}
-            {lastUpdatedAt ? lastUpdatedAt.toLocaleString(locale) : "—"}
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{txt.dashboardDataSource}</p>
+          <TrustMeta
+            className="mt-4"
+            sampleSize={summary?.sampleSizePricePerM2}
+            minSample={summary?.minSampleSize ?? MIN_SAMPLE_SIZE}
+            updatedAt={lastUpdatedAt ? lastUpdatedAt.toLocaleString(locale) : null}
+            source="Finca Raíz"
+            labels={{
+              sample: txt.sample,
+              confidence: txt.quality,
+              updated: txt.dashboardLastUpdated,
+              source: txt.dashboardDataSource,
+            }}
+          />
         </section>
 
         <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
@@ -515,10 +537,8 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
-            {txt.propertyTypeComparison}
-          </div>
+        <CollapsibleSection title={txt.propertyTypeComparison} className="mb-8">
+        <section className="overflow-hidden surface-panel">
           <div className="hidden overflow-x-auto md:block">
             <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
               <thead className="sticky top-0 bg-slate-50/80">
@@ -589,11 +609,10 @@ export default function Dashboard() {
             )}
           </div>
         </section>
+        </CollapsibleSection>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
-            {txt.neighborhoodTransparency}
-          </div>
+        <CollapsibleSection title={txt.neighborhoodTransparency} className="mb-8">
+        <section className="overflow-hidden surface-panel">
           <div className="hidden overflow-x-auto md:block">
             <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
               <thead className="sticky top-0 bg-slate-50/80">
@@ -672,9 +691,10 @@ export default function Dashboard() {
             )}
           </div>
         </section>
+        </CollapsibleSection>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
+        <section className="mb-8 surface-panel overflow-hidden">
+          <div className="section-table-head text-sm font-semibold text-foreground">
             {txt.pricingIntelligence}
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-3">
@@ -717,10 +737,8 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
-            {txt.estratoTypeMatrix}
-          </div>
+        <CollapsibleSection title={txt.estratoTypeMatrix} className="mb-8">
+        <section className="overflow-hidden surface-panel">
           <div className="overflow-x-auto">
             <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
               <thead className="sticky top-0 bg-slate-50/80">
@@ -759,6 +777,7 @@ export default function Dashboard() {
             </table>
           </div>
         </section>
+        </CollapsibleSection>
       </main>
       <PageFooter />
     </div>

@@ -3,10 +3,14 @@ import { NextResponse } from "next/server";
 
 import { MIN_ANALYTICS_AREA_M2, MIN_SAMPLE_SIZE } from "@/lib/analytics";
 import { pricePerM2Bucket, type PriceBucket } from "@/lib/mapPriceBuckets";
-import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
+import { resolveNeighborhoodFilter } from "@/lib/neighborhoodAliases";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=60, stale-while-revalidate=120",
+};
 
 const DEFAULT_PAGE_SIZE = 25;
 const MAX_PAGE_SIZE = 50;
@@ -57,38 +61,13 @@ async function applyNeighborhoodFilter(
 ): Promise<void> {
   if (!neighborhood || neighborhood === "all") return;
 
-  const key = normalizeNeighborhoodKey(neighborhood.trim());
-  if (!key) {
-    where.neighborhood = neighborhood;
-    return;
-  }
-
   const city =
     typeof where.city === "string"
       ? where.city
       : undefined;
 
-  const rows = await prisma.listing.findMany({
-    where: {
-      isActive: true,
-      ...(city ? { city } : {}),
-      neighborhood: { not: null },
-    },
-    select: { neighborhood: true },
-    distinct: ["neighborhood"],
-  });
-
-  const matches = rows
-    .map((r) => r.neighborhood)
-    .filter((n): n is string => !!n && normalizeNeighborhoodKey(n) === key);
-
-  if (matches.length === 0) {
-    where.neighborhood = neighborhood;
-  } else if (matches.length === 1) {
-    where.neighborhood = matches[0];
-  } else {
-    where.neighborhood = { in: matches };
-  }
+  const resolved = await resolveNeighborhoodFilter(neighborhood, city);
+  where.neighborhood = resolved;
 }
 
 function buildOrderBy(
@@ -298,13 +277,16 @@ export async function GET(req: Request) {
       };
     });
 
-    return NextResponse.json({
-      page,
-      pageSize,
-      total,
-      totalPages: Math.max(1, Math.ceil(total / pageSize)),
-      listings,
-    });
+    return NextResponse.json(
+      {
+        page,
+        pageSize,
+        total,
+        totalPages: Math.max(1, Math.ceil(total / pageSize)),
+        listings,
+      },
+      { headers: CACHE_HEADERS },
+    );
   } catch (e) {
     console.error(e);
     return NextResponse.json(

@@ -42,18 +42,18 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
       siteName: defaultSiteMetadata.siteName,
       locale: ogLocale(locale),
       type: "website",
-      images: [{ url: absoluteUrl("/branding/habidata-logo-horizontal.png") }],
+      images: [{ url: absoluteUrl("/branding/habidata-logo-horizontal.svg") }],
     },
     twitter: {
       card: "summary_large_image",
       title: defaultTitle,
       description: defaultDescription,
-      images: [absoluteUrl("/branding/habidata-mark.png")],
+      images: [absoluteUrl("/branding/habidata-mark.svg")],
     },
     icons: {
-      icon: "/branding/habidata-mark.png",
-      shortcut: "/branding/habidata-mark.png",
-      apple: "/branding/habidata-mark.png",
+      icon: "/branding/habidata-mark.svg",
+      shortcut: "/branding/habidata-mark.svg",
+      apple: "/branding/habidata-mark.svg",
     },
   };
 }
@@ -115,5 +115,5 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
 export const siteViewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0d9488",
+  themeColor: "#c45c26",
 };

@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 
-import { getDashboardAggregates } from "@/lib/dashboardAggregates";
-import { getDashboardFilters } from "@/lib/dashboardFilters";
-import { getDashboardSummary } from "@/lib/dashboardSummary";
-import { queryMonthlyTrends } from "@/lib/monthlyTrends";
+import {
+  getCachedDashboardAggregates,
+  getCachedDashboardFilters,
+  getCachedDashboardSummary,
+  getCachedMonthlyTrends,
+} from "@/lib/serverCache";
 
 export const revalidate = 90;
 
@@ -20,10 +22,10 @@ export async function GET(req: Request) {
 
   try {
     const [summary, filters, aggregates, trends] = await Promise.all([
-      getDashboardSummary(city),
-      getDashboardFilters(city),
-      getDashboardAggregates(city, estrato, neighborhood),
-      queryMonthlyTrends({ city, neighborhood, estrato, months: monthsParam }),
+      getCachedDashboardSummary(city),
+      getCachedDashboardFilters(city),
+      getCachedDashboardAggregates(city, estrato, neighborhood),
+      getCachedMonthlyTrends({ city, neighborhood, estrato, months: monthsParam }),
     ]);
 
     return NextResponse.json(

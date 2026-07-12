@@ -178,7 +178,6 @@ export default function ZoneDossier({
         active="zones"
         lang={lang}
         onToggleLang={toggleLang}
-        txt={txt}
       />
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
@@ -254,35 +253,27 @@ export default function ZoneDossier({
               ) : null}
             </div>
 
-            <div className="mb-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-              <Card>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {txt.zonesActiveListings}
-                </p>
+            <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <Card tier="inline">
+                <p className="text-meta">{txt.zonesActiveListings}</p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
                   {data.listingCount.toLocaleString(locale)}
                 </p>
               </Card>
-              <Card>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {txt.zonesDataPoints}
-                </p>
+              <Card tier="inline">
+                <p className="text-meta">{txt.zonesDataPoints}</p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
                   {data.dataPointCount.toLocaleString(locale)}
                 </p>
               </Card>
-              <Card>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {txt.zonesMedianPpm2}
-                </p>
-                <p className="mt-2 text-3xl font-semibold tabular-nums text-accent">
+              <Card tier="hero">
+                <p className="text-section-label">{txt.zonesMedianPpm2}</p>
+                <p className="text-data-hero mt-2 text-3xl md:text-3xl">
                   {fmtCop(data.medianPricePerM2, locale)}
                 </p>
               </Card>
-              <Card>
-                <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-                  {txt.zonesMedianPrice}
-                </p>
+              <Card tier="inline">
+                <p className="text-meta">{txt.zonesMedianPrice}</p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
                   {fmtCop(data.medianPriceCop, locale)}
                 </p>

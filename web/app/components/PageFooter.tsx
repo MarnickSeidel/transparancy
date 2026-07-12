@@ -13,13 +13,13 @@ export default function PageFooter({ locale = "es" }: Props) {
   const lp = (path: string) => localePath(locale, path);
 
   return (
-    <footer className="mt-auto border-t border-slate-200/80 bg-elevated/80 backdrop-blur-sm dark:border-slate-600/60">
+    <footer className="mt-auto border-t border-border-subtle bg-elevated/90">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
         <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link
               href={lp("/")}
-              className="text-sm font-semibold text-slate-800 transition hover:text-teal-600 dark:text-slate-100 dark:hover:text-teal-400"
+              className="text-display text-sm font-semibold text-foreground transition hover:text-accent"
             >
               Habidata
             </Link>
@@ -28,9 +28,7 @@ export default function PageFooter({ locale = "es" }: Props) {
             </p>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              {locale === "en" ? "Explore" : "Explorar"}
-            </p>
+            <p className="text-meta font-semibold">{locale === "en" ? "Explore" : "Explorar"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link href={lp("/zones")} className="text-foreground hover:text-accent">
@@ -38,16 +36,19 @@ export default function PageFooter({ locale = "es" }: Props) {
                 </Link>
               </li>
               <li>
-                <Link href={lp("/")} className="text-foreground hover:text-accent">
-                  {locale === "en" ? "Home" : "Inicio"}
+                <Link href="/explore" className="text-foreground hover:text-accent">
+                  {txt.exploreNav}
+                </Link>
+              </li>
+              <li>
+                <Link href="/heatmap" className="text-foreground hover:text-accent">
+                  {txt.heatmapNav}
                 </Link>
               </li>
             </ul>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              {locale === "en" ? "Trust" : "Confianza"}
-            </p>
+            <p className="text-meta font-semibold">{locale === "en" ? "Trust" : "Confianza"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link href={lp("/methodology")} className="text-foreground hover:text-accent">
@@ -67,9 +68,7 @@ export default function PageFooter({ locale = "es" }: Props) {
             </ul>
           </div>
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-muted">
-              {locale === "en" ? "Language" : "Idioma"}
-            </p>
+            <p className="text-meta font-semibold">{locale === "en" ? "Language" : "Idioma"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link href="/" className="text-foreground hover:text-accent">
@@ -84,7 +83,7 @@ export default function PageFooter({ locale = "es" }: Props) {
             </ul>
           </div>
         </div>
-        <p className="mt-8 text-xs tabular-nums text-muted">© {year} Habidata</p>
+        <p className="mt-8 text-meta tabular-nums">© {year} Habidata · Finca Raíz data</p>
       </div>
     </footer>
   );

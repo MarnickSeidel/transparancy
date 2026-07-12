@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 
-import AppShellLoading from "@/app/components/AppShellLoading";
+import AnalyzeUrlForm from "@/app/components/AnalyzeUrlForm";
 import { noIndexMetadata } from "@/lib/seo";
-
-const AnalyzeUrlForm = dynamic(() => import("@/app/components/AnalyzeUrlForm"), {
-  ssr: false,
-  loading: () => <AppShellLoading />,
-});
 
 export const metadata: Metadata = noIndexMetadata(
   "Analizar anuncio por URL",

@@ -1,13 +1,7 @@
 import type { Metadata } from "next";
-import dynamic from "next/dynamic";
 
-import AppShellLoading from "@/app/components/AppShellLoading";
+import OpportunitiesTop from "@/app/components/OpportunitiesTop";
 import { noIndexMetadata } from "@/lib/seo";
-
-const OpportunitiesTop = dynamic(() => import("@/app/components/OpportunitiesTop"), {
-  ssr: false,
-  loading: () => <AppShellLoading />,
-});
 
 export const metadata: Metadata = noIndexMetadata(
   "Oportunidades inmobiliarias",
