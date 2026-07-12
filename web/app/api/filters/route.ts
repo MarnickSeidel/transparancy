@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { pickBestNeighborhoodLabel } from "@/lib/filterNeighborhoods";
 import { priorityCities } from "@/lib/i18n";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
@@ -93,7 +94,7 @@ export async function GET(req: Request) {
 
     const neighborhoodBuckets = new Map<
       string,
-      { label: string; count: number }
+      { labels: string[]; count: number }
     >();
     for (const row of neighborhoodRows) {
       const raw = row.neighborhood?.trim();
@@ -102,12 +103,16 @@ export async function GET(req: Request) {
       if (!key) continue;
       const prev = neighborhoodBuckets.get(key);
       const count = row._count?.neighborhood ?? 1;
-      if (!prev || count > prev.count) {
-        neighborhoodBuckets.set(key, { label: raw, count });
+      if (!prev) {
+        neighborhoodBuckets.set(key, { labels: [raw], count });
+        continue;
       }
+      prev.labels.push(raw);
+      prev.count += count;
     }
     const neighborhoods = Array.from(neighborhoodBuckets.values())
-      .map((b) => b.label)
+      .map((b) => pickBestNeighborhoodLabel(b.labels))
+      .filter((n): n is string => n != null)
       .sort((a, b) => a.localeCompare(b));
 
     const estratos = estratoRows

@@ -106,7 +106,7 @@ export default function ZonesIndex({
     <div className="app-shell flex min-h-screen flex-col">
       <SiteHeader
         title={txt.zonesTitle}
-        subtitle={`${txt.zonesPurpose} ${subtitle}`}
+        subtitle={`${txt.zonesPurpose} · ${subtitle}`}
         active="zones"
         lang={lang}
         onToggleLang={toggleLang}

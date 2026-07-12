@@ -11,6 +11,7 @@ import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
+import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
 import { resolveNeighborhoodLabel } from "@/lib/neighborhoods";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -305,9 +306,9 @@ export default function ListingExplorer() {
                 onChange={(e) => setPropertyType(e.target.value)}
               >
                 <option value="all">{txt.all}</option>
-                {propertyTypes.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
+                {propertyTypeOptions(propertyTypes, lang).map((t) => (
+                  <option key={t.value} value={t.value}>
+                    {t.label}
                   </option>
                 ))}
               </select>
@@ -358,7 +359,7 @@ export default function ListingExplorer() {
                 className={`${inputClassName} sm:min-w-[180px]`}
                 value={maxPriceCop}
                 onChange={(e) => setMaxPriceCop(e.target.value)}
-                placeholder="350000000"
+                placeholder={txt.opportunitiesMaxPricePlaceholder}
               />
             </div>
             <div className="w-full sm:w-auto">
@@ -443,7 +444,8 @@ export default function ListingExplorer() {
           ) : rows.length === 0 ? (
             <div className="px-4 py-10 text-center text-sm text-muted">{txt.exploreEmpty}</div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            <div className="hidden overflow-x-auto md:block">
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
                   <tr>
@@ -530,6 +532,61 @@ export default function ListingExplorer() {
                 </tbody>
               </table>
             </div>
+
+            <div className="space-y-3 p-4 md:hidden">
+              {rows.map((row) => {
+                const signal = signalMeta(row.priceBucket, txt)
+                const delta =
+                  row.deltaVsRefPct != null && Number.isFinite(row.deltaVsRefPct)
+                    ? `${row.deltaVsRefPct >= 0 ? "+" : ""}${row.deltaVsRefPct.toFixed(1)}%`
+                    : "—"
+                return (
+                  <article
+                    key={row.id}
+                    className="rounded-xl border border-slate-200/90 bg-elevated p-4 dark:border-slate-700/80"
+                  >
+                    <span
+                      className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold"
+                      style={{
+                        backgroundColor: `${signal.colors.fill}22`,
+                        color: signal.colors.stroke,
+                      }}
+                    >
+                      {signal.label}
+                    </span>
+                    <p className="mt-2 font-medium text-foreground">
+                      {propertyTypeLabel(row.propertyType, lang)}
+                    </p>
+                    <p className="mt-1 text-xs text-muted">{row.title}</p>
+                    <p className="mt-2 text-sm text-muted">
+                      {row.city} · {row.neighborhood ?? txt.unknown}
+                    </p>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-xs text-muted">{txt.price}</p>
+                        <p className="font-semibold tabular-nums">{fmtCop(Number(row.priceCop), locale)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted">{txt.pricePerM2}</p>
+                        <p className="font-semibold tabular-nums">{fmtCop(row.pricePerM2, locale)}</p>
+                      </div>
+                    </div>
+                    <p className="mt-2 text-xs text-muted">
+                      {txt.exploreDeltaVsRef}: {delta}
+                    </p>
+                    <a
+                      href={row.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-3 inline-block text-xs font-semibold text-accent hover:underline"
+                    >
+                      {txt.exploreOpenListing}
+                    </a>
+                  </article>
+                )
+              })}
+            </div>
+            </>
           )}
 
           <div className="flex items-center justify-between gap-3 border-t border-slate-200/80 px-4 py-3 dark:border-slate-700/80">

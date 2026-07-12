@@ -5,17 +5,9 @@ import Image from "next/image";
 
 import LanguageToggle from "@/app/components/LanguageToggle";
 import type { Lang } from "@/lib/i18n";
+import { navItems, type NavKey } from "@/lib/navConfig";
 import ThemeToggle from "@/app/components/ThemeToggle";
 import { useUiTheme } from "@/lib/useUiTheme";
-
-type NavKey =
-  | "dashboard"
-  | "estimate"
-  | "opportunities"
-  | "explore"
-  | "zones"
-  | "heatmap"
-  | "analyzeUrl";
 
 type HeaderText = {
   menuLabel: string;
@@ -26,6 +18,8 @@ type HeaderText = {
   zonesNav: string;
   heatmapNav: string;
   analyzeUrlNav: string;
+  navOpenMenu: string;
+  navCloseMenu: string;
 };
 
 type Props = {
@@ -36,16 +30,6 @@ type Props = {
   onToggleLang: () => void;
   txt: HeaderText;
 };
-
-const navItems: Array<{ key: NavKey; href: string; textKey: keyof HeaderText }> = [
-  { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
-  { key: "estimate", href: "/estimate", textKey: "estimateNav" },
-  { key: "opportunities", href: "/opportunities", textKey: "opportunitiesNav" },
-  { key: "explore", href: "/explore", textKey: "exploreNav" },
-  { key: "zones", href: "/zones", textKey: "zonesNav" },
-  { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
-  { key: "analyzeUrl", href: "/analyze-url", textKey: "analyzeUrlNav" },
-];
 
 export default function SiteHeader({
   title,

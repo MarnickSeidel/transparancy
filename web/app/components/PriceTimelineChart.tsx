@@ -50,12 +50,15 @@ export default function PriceTimelineChart({
       recordedAt: p.recordedAt,
     }));
 
-  if (data.length === 0) {
+  if (data.length < 2) {
+    const only = data[0]
     return (
-      <p className={`text-center text-muted ${compact ? "py-3 text-xs" : "px-4 py-8 text-sm"}`}>
-        {noDataLabel}
+      <p className={`text-center text-muted ${compact ? "py-3 text-xs" : "px-4 py-6 text-sm"}`}>
+        {only
+          ? `$ ${Math.round(only.price).toLocaleString(locale)} · ${only.date}`
+          : noDataLabel}
       </p>
-    );
+    )
   }
 
   const height = compact ? 100 : 240;

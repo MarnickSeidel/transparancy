@@ -1,125 +1,125 @@
-"use client";
+"use client"
 
-import dynamic from "next/dynamic";
-import { useMemo, useState } from "react";
+import dynamic from "next/dynamic"
+import { useEffect, useMemo, useState } from "react"
 
-import PageFooter from "@/app/components/PageFooter";
-import Button from "@/app/components/ui/Button";
-import Card from "@/app/components/ui/Card";
-import { inputClassName } from "@/app/components/ui/Field";
-import SiteHeader from "@/app/components/SiteHeader";
-import WhyDealPanel from "@/app/components/WhyDealPanel";
-import type { WhyDeal } from "@/lib/dealEngine";
-import { uiText } from "@/lib/i18n";
-import { useUiLang } from "@/lib/useUiLang";
+import PageFooter from "@/app/components/PageFooter"
+import VerdictBanner from "@/app/components/VerdictBanner"
+import Button from "@/app/components/ui/Button"
+import Card from "@/app/components/ui/Card"
+import { inputClassName } from "@/app/components/ui/Field"
+import Skeleton from "@/app/components/ui/Skeleton"
+import SiteHeader from "@/app/components/SiteHeader"
+import WhyDealPanel from "@/app/components/WhyDealPanel"
+import type { WhyDeal } from "@/lib/dealEngine"
+import { dealWarningLabel } from "@/lib/dealLabels"
+import { uiText } from "@/lib/i18n"
+import { propertyTypeLabel } from "@/lib/propertyTypes"
+import { useUiLang } from "@/lib/useUiLang"
 
 const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
   ssr: false,
-  loading: () => <div className="h-52 animate-pulse rounded-xl bg-surface" />,
-});
+  loading: () => <Skeleton className="h-52 w-full" />,
+})
 
-type PriceTimelinePoint = { recordedAt: string; priceCop: string };
+type PriceTimelinePoint = { recordedAt: string; priceCop: string }
 
 type AnalyzeResponse = {
   listing: {
-    title: string;
-    url: string;
-    city: string;
-    neighborhood: string | null;
-    propertyType: string | null;
-    operationType: string | null;
-    priceCop: string;
-    areaM2: number;
-    areaBuiltM2: number | null;
-    areaPrivateM2: number | null;
-    areaTerrainM2: number | null;
-    areaTerraceM2: number | null;
-    estrato: number | null;
-    bedrooms: number | null;
-    bathrooms: number | null;
-    garage: number | null;
-    pricePerM2: number | null;
-    constructionState: string | null;
-    facilities: unknown;
-  };
+    title: string
+    url: string
+    city: string
+    neighborhood: string | null
+    propertyType: string | null
+    operationType: string | null
+    priceCop: string
+    areaM2: number
+    areaBuiltM2: number | null
+    areaPrivateM2: number | null
+    areaTerrainM2: number | null
+    areaTerraceM2: number | null
+    estrato: number | null
+    bedrooms: number | null
+    bathrooms: number | null
+    garage: number | null
+    pricePerM2: number | null
+    constructionState: string | null
+    facilities: unknown
+  }
   analysis: {
-    dealScore: number | null;
-    verdict: "good_deal" | "fair" | "overpriced";
-    confidence: "high" | "medium" | "low";
-    warnings: string[];
-    discountVsRefPct: number | null;
-    referencePpm2: number | null;
-    referencePpm2Nearby?: number | null;
-    referencePpm2Neighborhood?: number | null;
-    sampleSize: number;
-    whyDeal?: WhyDeal | null;
-  };
-  priceTimeline?: PriceTimelinePoint[];
+    dealScore: number | null
+    verdict: "good_deal" | "fair" | "overpriced"
+    confidence: "high" | "medium" | "low"
+    warnings: string[]
+    discountVsRefPct: number | null
+    referencePpm2: number | null
+    referencePpm2Nearby?: number | null
+    referencePpm2Neighborhood?: number | null
+    sampleSize: number
+    whyDeal?: WhyDeal | null
+  }
+  priceTimeline?: PriceTimelinePoint[]
   comps: Array<{
-    id: string;
-    title: string;
-    city: string;
-    neighborhood: string | null;
-    priceCop: string;
-    areaM2: number;
-    pricePerM2: number | null;
-    distanceMeters: number | null;
-    url: string;
-  }>;
-};
+    id: string
+    title: string
+    city: string
+    neighborhood: string | null
+    priceCop: string
+    areaM2: number
+    pricePerM2: number | null
+    distanceMeters: number | null
+    url: string
+  }>
+}
 
 function fmtCop(v: number | null | undefined, locale: string) {
-  if (v == null || Number.isNaN(v)) return "—";
-  return `$ ${Math.round(v).toLocaleString(locale)}`;
-}
-
-function labelVerdict(v: AnalyzeResponse["analysis"]["verdict"], txt: (typeof uiText)["es"] | (typeof uiText)["en"]) {
-  if (v === "good_deal") return txt.analyzeVerdictGood;
-  if (v === "overpriced") return txt.analyzeVerdictOverpriced;
-  return txt.analyzeVerdictFair;
-}
-
-function confidenceLabel(
-  c: AnalyzeResponse["analysis"]["confidence"],
-  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
-) {
-  if (c === "high") return txt.confidenceHigh;
-  if (c === "medium") return txt.confidenceMedium;
-  return txt.confidenceLow;
+  if (v == null || Number.isNaN(v)) return "—"
+  return `$ ${Math.round(v).toLocaleString(locale)}`
 }
 
 function formatFacilities(raw: unknown): string | null {
-  if (!raw) return null;
+  if (!raw) return null
   if (Array.isArray(raw) && raw.length > 0) {
-    return raw.map(String).join(", ");
+    return raw.map(String).join(", ")
   }
   if (typeof raw === "object" && raw !== null) {
     const entries = Object.entries(raw as Record<string, unknown>).filter(
       ([, v]) => v === true || (typeof v === "string" && v.trim()),
-    );
-    if (entries.length === 0) return null;
-    return entries.map(([k, v]) => (v === true ? k : `${k}: ${v}`)).join(", ");
+    )
+    if (entries.length === 0) return null
+    return entries.map(([k, v]) => (v === true ? k : `${k}: ${v}`)).join(", ")
   }
-  return null;
+  return null
+}
+
+function initialUrlParam(): string {
+  if (typeof window === "undefined") return ""
+  return new URLSearchParams(window.location.search).get("url")?.trim() ?? ""
 }
 
 export default function AnalyzeUrlForm() {
-  const { lang, toggleLang } = useUiLang("es");
-  const txt = uiText[lang];
-  const locale = lang === "es" ? "es-CO" : "en-US";
+  const { lang, toggleLang } = useUiLang("es")
+  const txt = uiText[lang]
+  const locale = lang === "es" ? "es-CO" : "en-US"
 
-  const [url, setUrl] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<AnalyzeResponse | null>(null);
+  const [url, setUrl] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [data, setData] = useState<AnalyzeResponse | null>(null)
+
+  useEffect(() => {
+    const param = initialUrlParam()
+    if (param) setUrl(param)
+  }, [])
+
   const opportunitiesHref = useMemo(() => {
-    if (!data) return "/opportunities";
-    const p = new URLSearchParams();
-    p.set("city", data.listing.city);
-    if (data.listing.neighborhood) p.set("neighborhood", data.listing.neighborhood);
-    if (data.listing.propertyType) p.set("propertyType", data.listing.propertyType);
-    return `/opportunities?${p.toString()}`;
-  }, [data]);
+    if (!data) return "/opportunities"
+    const p = new URLSearchParams()
+    p.set("city", data.listing.city)
+    if (data.listing.neighborhood) p.set("neighborhood", data.listing.neighborhood)
+    if (data.listing.propertyType) p.set("propertyType", data.listing.propertyType)
+    return `/opportunities?${p.toString()}`
+  }, [data])
 
   const priceTimelinePoints = useMemo(
     () =>
@@ -128,87 +128,96 @@ export default function AnalyzeUrlForm() {
         priceCop: Number(p.priceCop),
       })),
     [data?.priceTimeline],
-  );
+  )
 
   const enrichmentRows = useMemo(() => {
-    if (!data) return [];
-    const l = data.listing;
-    const rows: { label: string; value: string }[] = [];
+    if (!data) return []
+    const l = data.listing
+    const rows: { label: string; value: string }[] = []
     if (l.areaTerraceM2 != null && l.areaTerraceM2 > 0) {
       rows.push({
         label: txt.analyzeEnrichmentTerrace,
         value: `${l.areaTerraceM2.toFixed(1)} m²`,
-      });
+      })
     }
     if (l.areaPrivateM2 != null && l.areaPrivateM2 > 0) {
       rows.push({
         label: txt.opportunitiesMetricPrivate,
         value: `${l.areaPrivateM2.toFixed(1)} m²`,
-      });
+      })
     }
     if (l.garage != null && l.garage > 0) {
       rows.push({
         label: txt.analyzeEnrichmentGarage,
         value: String(l.garage),
-      });
+      })
     }
     if (l.constructionState?.trim()) {
       rows.push({
         label: txt.analyzeEnrichmentConstruction,
         value: l.constructionState,
-      });
+      })
     }
-    const facilities = formatFacilities(l.facilities);
+    const facilities = formatFacilities(l.facilities)
     if (facilities) {
-      rows.push({ label: txt.analyzeEnrichmentFacilities, value: facilities });
+      rows.push({ label: txt.analyzeEnrichmentFacilities, value: facilities })
     }
-    return rows;
-  }, [data, txt]);
+    return rows
+  }, [data, txt])
+
+  const hasCompTypeWarning = useMemo(() => {
+    if (!data) return false
+    return data.analysis.warnings.some(
+      (w) =>
+        w.includes("mixed_comp_property_types") ||
+        w.includes("type_location_mismatch"),
+    )
+  }, [data])
 
   const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setData(null);
+    e.preventDefault()
+    setError(null)
+    setData(null)
     if (!url.trim()) {
-      setError(txt.analyzeUrlRequired);
-      return;
+      setError(txt.analyzeUrlRequired)
+      return
     }
     try {
-      const parsed = new URL(url.trim());
+      const parsed = new URL(url.trim())
       if (!parsed.hostname.includes("fincaraiz.com.co")) {
-        setError(txt.analyzeUrlInvalid);
-        return;
+        setError(txt.analyzeUrlInvalid)
+        return
       }
     } catch {
-      setError(txt.analyzeUrlInvalid);
-      return;
+      setError(txt.analyzeUrlInvalid)
+      return
     }
-    setLoading(true);
+    setLoading(true)
     try {
       const res = await fetch("/api/analyze-url", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ url: url.trim() }),
-      });
-      const j = (await res.json()) as AnalyzeResponse & { error?: string };
+      })
+      const j = (await res.json()) as AnalyzeResponse & { error?: string }
       if (!res.ok) {
-        const err = j.error ?? "server_error";
-        if (err === "url_required") setError(txt.analyzeUrlRequired);
+        const err = j.error ?? "server_error"
+        if (err === "url_required") setError(txt.analyzeUrlRequired)
         else if (err === "url_not_allowed" || err === "url_path_invalid") {
-          setError(txt.analyzeUrlInvalid);
-        } else if (err === "fetch_failed") setError(txt.analyzeFetchFailed);
+          setError(txt.analyzeUrlInvalid)
+        } else if (err === "fetch_failed") setError(txt.analyzeFetchFailed)
         else if (err === "price_missing" || err === "area_missing") {
-          setError(txt.analyzeParseIncomplete);
-        } else setError(txt.analyzeServerError);
-        return;
+          setError(txt.analyzeParseIncomplete)
+        } else setError(txt.analyzeServerError)
+        return
       }
-      setData(j);
+      setData(j)
     } catch {
-      setError(txt.analyzeServerError);
+      setError(txt.analyzeServerError)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -229,43 +238,134 @@ export default function AnalyzeUrlForm() {
         ) : null}
 
         <Card className="mb-6 border-slate-200/90 shadow-card">
-        <form id="analyze-url-form" onSubmit={(e) => void submit(e)}>
-          <label className="block text-xs font-medium text-muted" htmlFor="analyze-url-input">{txt.analyzeUrlInputLabel}</label>
-          <input
-            id="analyze-url-input"
-            type="url"
-            required
-            className={inputClassName}
-            placeholder="https://www.fincaraiz.com.co/..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-          />
-          <p className="mt-2 text-xs text-muted">{txt.analyzeUrlExample}</p>
-          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Button type="submit" disabled={loading} className="hidden bg-accent py-2.5 text-accent-fg hover:bg-accent-hover disabled:opacity-60 sm:inline-flex">
-              {loading ? txt.analyzeUrlLoading : txt.analyzeUrlSubmit}
-            </Button>
-            <p className="text-xs text-muted">{txt.analyzeUrlHint}</p>
-          </div>
-        </form>
+          <form id="analyze-url-form" onSubmit={(e) => void submit(e)}>
+            <label className="block text-xs font-medium text-muted" htmlFor="analyze-url-input">
+              {txt.analyzeUrlInputLabel}
+            </label>
+            <input
+              id="analyze-url-input"
+              type="url"
+              required
+              className={inputClassName}
+              placeholder="https://www.fincaraiz.com.co/..."
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+            />
+            <p className="mt-2 text-xs text-muted">{txt.analyzeUrlExample}</p>
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Button type="submit" disabled={loading} className="hidden disabled:opacity-60 sm:inline-flex">
+                {loading ? txt.analyzeUrlLoading : txt.analyzeUrlSubmit}
+              </Button>
+              <p className="text-xs text-muted">{txt.analyzeUrlHint}</p>
+            </div>
+          </form>
         </Card>
+
+        {loading ? (
+          <Card className="mb-6 space-y-4 border-slate-200/90 p-6 shadow-card">
+            <Skeleton className="h-24 w-full rounded-2xl" />
+            <p className="text-sm text-muted">{txt.analyzeLoadingHint}</p>
+            <Skeleton className="h-40 w-full" />
+            <Skeleton className="h-32 w-full" />
+          </Card>
+        ) : null}
 
         {data ? (
           <div className="space-y-6">
+            <VerdictBanner
+              verdict={data.analysis.verdict}
+              confidence={data.analysis.confidence}
+              dealScore={data.analysis.dealScore}
+              discountPct={data.analysis.discountVsRefPct}
+              lang={lang}
+            />
+
+            {hasCompTypeWarning ? (
+              <div className="rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
+                {txt.analyzeCompTypeMismatch}
+              </div>
+            ) : null}
+
+            {data.analysis.whyDeal ? (
+              <WhyDealPanel
+                whyDeal={data.analysis.whyDeal}
+                title={txt.analyzeWhyDeal}
+                lang={lang}
+                locale={locale}
+              />
+            ) : null}
+
+            <Card className="border-slate-200/90 shadow-card">
+              <h2 className="text-lg font-semibold text-foreground">{txt.analyzeDealAssessment}</h2>
+              <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
+                <p>
+                  <span className="text-muted">{txt.analyzeReferencePpm2Nearby}:</span>{" "}
+                  {fmtCop(data.analysis.referencePpm2Nearby ?? data.analysis.referencePpm2, locale)}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.analyzeReferencePpm2Neighborhood}:</span>{" "}
+                  {fmtCop(data.analysis.referencePpm2Neighborhood, locale)}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.sample}:</span> {data.analysis.sampleSize}
+                </p>
+              </div>
+              <Button href={opportunitiesHref} variant="secondary" className="mt-4">
+                {txt.analyzeFindSimilar}
+              </Button>
+              {data.analysis.warnings.length > 0 ? (
+                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-900 dark:text-amber-200">
+                  {data.analysis.warnings.map((w) => (
+                    <li key={w}>{dealWarningLabel(w, lang)}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </Card>
+
             <Card className="border-slate-200/90 shadow-card">
               <h2 className="text-lg font-semibold text-foreground">{txt.analyzeListingSnapshot}</h2>
               <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <p><span className="text-muted">{txt.listing}:</span> {data.listing.title}</p>
-                <p><span className="text-muted">{txt.city}:</span> {data.listing.city}</p>
-                <p><span className="text-muted">{txt.neighborhood}:</span> {data.listing.neighborhood ?? txt.unknown}</p>
-                <p><span className="text-muted">{txt.type}:</span> {data.listing.propertyType ?? txt.unknown}</p>
-                <p><span className="text-muted">{txt.price}:</span> {fmtCop(Number(data.listing.priceCop), locale)}</p>
-                <p><span className="text-muted">{txt.pricePerM2}:</span> {fmtCop(data.listing.pricePerM2, locale)}</p>
-                <p><span className="text-muted">{txt.estimateArea}:</span> {data.listing.areaM2.toFixed(1)} m²</p>
-                <p><span className="text-muted">{txt.opportunitiesMetricBuilt}:</span> {data.listing.areaBuiltM2 != null ? `${data.listing.areaBuiltM2.toFixed(1)} m²` : "—"}</p>
-                <p><span className="text-muted">{txt.opportunitiesMetricTerrain}:</span> {data.listing.areaTerrainM2 != null ? `${data.listing.areaTerrainM2.toFixed(1)} m²` : "—"}</p>
+                <p>
+                  <span className="text-muted">{txt.listing}:</span> {data.listing.title}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.city}:</span> {data.listing.city}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.neighborhood}:</span>{" "}
+                  {data.listing.neighborhood ?? txt.unknown}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.type}:</span>{" "}
+                  {propertyTypeLabel(data.listing.propertyType, lang)}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.price}:</span>{" "}
+                  {fmtCop(Number(data.listing.priceCop), locale)}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.pricePerM2}:</span>{" "}
+                  {fmtCop(data.listing.pricePerM2, locale)}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.estimateArea}:</span>{" "}
+                  {data.listing.areaM2.toFixed(1)} m²
+                </p>
+                <p>
+                  <span className="text-muted">{txt.opportunitiesMetricBuilt}:</span>{" "}
+                  {data.listing.areaBuiltM2 != null ? `${data.listing.areaBuiltM2.toFixed(1)} m²` : "—"}
+                </p>
+                <p>
+                  <span className="text-muted">{txt.opportunitiesMetricTerrain}:</span>{" "}
+                  {data.listing.areaTerrainM2 != null ? `${data.listing.areaTerrainM2.toFixed(1)} m²` : "—"}
+                </p>
               </div>
-              <a href={data.listing.url} target="_blank" rel="noreferrer" className="mt-3 inline-block text-sm font-semibold text-accent hover:underline">
+              <a
+                href={data.listing.url}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
+              >
                 {txt.analyzeOpenSource}
               </a>
             </Card>
@@ -283,50 +383,16 @@ export default function AnalyzeUrlForm() {
               </Card>
             ) : null}
 
-            <Card className="border-slate-200/90 shadow-card">
-              <h2 className="text-lg font-semibold text-foreground">{txt.analyzePriceTimeline}</h2>
-              <PriceTimelineChart
-                points={priceTimelinePoints}
-                locale={locale}
-                noDataLabel={txt.analyzePriceTimelineEmpty}
-                tooltipLabel={txt.analyzePriceTimelineTooltip}
-              />
-            </Card>
-
-            <Card className="border-slate-200/90 shadow-card">
-              <h2 className="text-lg font-semibold text-foreground">{txt.analyzeDealAssessment}</h2>
-              <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
-                <p><span className="text-muted">{txt.analyzeVerdict}:</span> {labelVerdict(data.analysis.verdict, txt)}</p>
-                <p><span className="text-muted">{txt.opportunitiesConfidence}:</span> {confidenceLabel(data.analysis.confidence, txt)}</p>
-                <p><span className="text-muted">{txt.dealScore}:</span> {data.analysis.dealScore?.toFixed(2) ?? "—"}</p>
-                <p><span className="text-muted">{txt.opportunityDiscount}:</span> {data.analysis.discountVsRefPct != null ? `${data.analysis.discountVsRefPct.toFixed(1)}%` : "—"}</p>
-                <p><span className="text-muted">{txt.analyzeReferencePpm2Nearby}:</span> {fmtCop(data.analysis.referencePpm2Nearby ?? data.analysis.referencePpm2, locale)}</p>
-                <p><span className="text-muted">{txt.analyzeReferencePpm2Neighborhood}:</span> {fmtCop(data.analysis.referencePpm2Neighborhood, locale)}</p>
-                <p><span className="text-muted">{txt.sample}:</span> {data.analysis.sampleSize}</p>
-              </div>
-              <Button
-                href={opportunitiesHref}
-                variant="secondary"
-                className="mt-4 inline-flex bg-surface px-4 py-2 text-foreground shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                {txt.analyzeFindSimilar}
-              </Button>
-              {data.analysis.warnings.length > 0 ? (
-                <ul className="mt-3 list-disc space-y-1 pl-5 text-sm text-amber-900 dark:text-amber-200">
-                  {data.analysis.warnings.map((w) => (
-                    <li key={w}>{w}</li>
-                  ))}
-                </ul>
-              ) : null}
-            </Card>
-
-            {data.analysis.whyDeal ? (
-              <WhyDealPanel
-                whyDeal={data.analysis.whyDeal}
-                title={txt.analyzeWhyDeal}
-                lang={lang}
-                locale={locale}
-              />
+            {priceTimelinePoints.length >= 2 ? (
+              <Card className="border-slate-200/90 shadow-card">
+                <h2 className="text-lg font-semibold text-foreground">{txt.analyzePriceTimeline}</h2>
+                <PriceTimelineChart
+                  points={priceTimelinePoints}
+                  locale={locale}
+                  noDataLabel={txt.analyzePriceTimelineEmpty}
+                  tooltipLabel={txt.analyzePriceTimelineTooltip}
+                />
+              </Card>
             ) : null}
 
             <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card dark:border-slate-700/80">
@@ -347,21 +413,32 @@ export default function AnalyzeUrlForm() {
                   <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                     {data.comps.length === 0 ? (
                       <tr>
-                        <td className="px-4 py-4 text-muted" colSpan={5}>{txt.analyzeNoComps}</td>
+                        <td className="px-4 py-4 text-muted" colSpan={5}>
+                          {txt.analyzeNoComps}
+                        </td>
                       </tr>
                     ) : (
                       data.comps.map((c) => (
                         <tr key={c.id}>
                           <td className="px-4 py-3">
-                            <a href={c.url} target="_blank" rel="noreferrer" className="font-medium text-accent hover:underline">
+                            <a
+                              href={c.url}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="font-medium text-accent hover:underline"
+                            >
                               {c.title}
                             </a>
                           </td>
                           <td className="px-4 py-3">{c.neighborhood ?? txt.unknown}</td>
                           <td className="px-4 py-3 tabular-nums">
-                            {c.distanceMeters != null ? `${(c.distanceMeters / 1000).toFixed(2)} km` : "—"}
+                            {c.distanceMeters != null
+                              ? `${(c.distanceMeters / 1000).toFixed(2)} km`
+                              : "—"}
                           </td>
-                          <td className="px-4 py-3 tabular-nums">{fmtCop(Number(c.priceCop), locale)}</td>
+                          <td className="px-4 py-3 tabular-nums">
+                            {fmtCop(Number(c.priceCop), locale)}
+                          </td>
                           <td className="px-4 py-3 tabular-nums">{fmtCop(c.pricePerM2, locale)}</td>
                         </tr>
                       ))
@@ -378,12 +455,12 @@ export default function AnalyzeUrlForm() {
           type="submit"
           form="analyze-url-form"
           disabled={loading}
-          className="w-full bg-accent py-3.5 text-accent-fg shadow-lg hover:bg-accent-hover disabled:opacity-60"
+          className="w-full py-3.5 shadow-lg disabled:opacity-60"
         >
           {loading ? txt.analyzeUrlLoading : txt.analyzeUrlSubmit}
         </Button>
       </div>
       <PageFooter />
     </div>
-  );
+  )
 }

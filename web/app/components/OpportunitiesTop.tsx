@@ -3,6 +3,8 @@ import dynamic from "next/dynamic";
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
+import CollapsibleSection from "@/app/components/CollapsibleSection";
+import OpportunityMobileCard from "@/app/components/OpportunityMobileCard";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
@@ -11,6 +13,7 @@ import SiteHeader from "@/app/components/SiteHeader";
 import WhyDealPanel from "@/app/components/WhyDealPanel";
 import type { WhyDeal } from "@/lib/dealEngine";
 import { uiText } from "@/lib/i18n";
+import { propertyTypeOptions } from "@/lib/propertyTypes";
 import { useUiLang } from "@/lib/useUiLang";
 
 const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
@@ -287,9 +290,9 @@ export default function OpportunitiesTop() {
               onChange={(e) => setPropertyType(e.target.value)}
             >
               <option value="all">{txt.all}</option>
-              {propertyTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {propertyTypeOptions(propertyTypes, lang).map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
                 </option>
               ))}
             </select>
@@ -321,7 +324,7 @@ export default function OpportunitiesTop() {
               className={`${inputClassName} sm:min-w-[180px]`}
               value={maxPriceCop}
               onChange={(e) => setMaxPriceCop(e.target.value)}
-              placeholder="350000000"
+              placeholder={txt.opportunitiesMaxPricePlaceholder}
             />
             <p className="mt-1 max-w-xs text-xs text-muted">{txt.opportunitiesMaxPriceHint}</p>
           </div>
@@ -364,8 +367,8 @@ export default function OpportunitiesTop() {
             {txt.refresh}
           </Button>
           </div>
-          <p className="mt-4 text-xs text-muted">{txt.opportunitiesAdvancedFilters}</p>
-          <div className="mt-2 flex flex-wrap items-center gap-2">
+          <CollapsibleSection title={txt.toggleAdvancedFilters} className="mt-4">
+          <div className="flex flex-wrap items-center gap-2">
           <div className="rounded-xl border border-slate-200 bg-surface/70 px-3 py-2.5">
             <label className="inline-flex items-center gap-2 text-sm text-slate-800">
               <input
@@ -467,6 +470,7 @@ export default function OpportunitiesTop() {
             ) : null}
             <p className="mt-2 max-w-2xl text-xs text-muted">{txt.opportunitiesExcludeHint}</p>
           </div>
+          </CollapsibleSection>
         </Card>
 
         <Card className="overflow-hidden border-slate-200/90 p-0 shadow-card">
@@ -480,7 +484,7 @@ export default function OpportunitiesTop() {
                   ? txt.opportunitiesSortByPrice
                   : txt.opportunitiesSortByConfidence}
           </div>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
               <thead className="bg-slate-50/80">
                 <tr>
@@ -628,6 +632,56 @@ export default function OpportunitiesTop() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          <div className="space-y-3 p-4 md:hidden">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => (
+                <Skeleton key={`mob-skel-${i}`} className="h-36 w-full" />
+              ))
+            ) : sortedRows.length === 0 ? (
+              <p className="text-sm text-muted">
+                {txt.opportunitiesEmpty} {txt.adjustFiltersHint}
+              </p>
+            ) : (
+              sortedRows.map((r) => {
+                const tags = signalTags(r, txt)
+                const isExpanded = expandedId === r.id
+                return (
+                  <OpportunityMobileCard
+                    key={r.id}
+                    title={r.title}
+                    url={r.url}
+                    location={`${r.city} · ${r.neighborhood ?? txt.unknown}`}
+                    price={fmtCop(Number(r.priceCop), locale)}
+                    pricePerM2={fmtCop(r.pricePerM2, locale)}
+                    discount={
+                      r.discountVsRefPct == null ? "—" : `${r.discountVsRefPct.toFixed(1)}%`
+                    }
+                    dealScore={r.dealScore?.toFixed(1) ?? "—"}
+                    confidence={confidenceLabel(r.confidence, txt)}
+                    priceLabel={txt.price}
+                    pricePerM2Label={txt.pricePerM2}
+                    discountLabel={txt.opportunityDiscount}
+                    dealScoreLabel={txt.dealScore}
+                    tags={tags}
+                    expanded={isExpanded}
+                    expandLabel={txt.opportunitiesWhyDealExpand}
+                    collapseLabel={txt.opportunitiesWhyDealCollapse}
+                    onToggle={() => setExpandedId(isExpanded ? null : r.id)}
+                  >
+                    {r.whyDeal ? (
+                      <WhyDealPanel
+                        whyDeal={r.whyDeal}
+                        title={txt.opportunitiesWhyDeal}
+                        lang={lang}
+                        locale={locale}
+                      />
+                    ) : null}
+                  </OpportunityMobileCard>
+                )
+              })
+            )}
           </div>
         </Card>
       </main>

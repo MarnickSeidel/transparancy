@@ -8,10 +8,14 @@ type Props = {
 };
 
 export default function LanguageToggle({ lang, onToggle }: Props) {
+  const ariaLabel =
+    lang === "es" ? "Cambiar idioma a ingles" : "Switch language to Spanish"
+
   return (
     <button
       type="button"
-      className="rounded-full border border-slate-200 bg-elevated px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-surface"
+      className="rounded-full border border-slate-200 bg-elevated px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-surface dark:border-slate-600 dark:text-slate-200"
+      aria-label={ariaLabel}
       onClick={onToggle}
     >
       <span className="inline-flex items-center gap-2">

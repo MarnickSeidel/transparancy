@@ -4,12 +4,15 @@ import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
+import PriceRangeBar from "@/app/components/PriceRangeBar";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
+import Skeleton from "@/app/components/ui/Skeleton";
 import { mapCenterForCity } from "@/lib/cityCenters";
 import SiteHeader from "@/app/components/SiteHeader";
 import { uiText } from "@/lib/i18n";
+import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
 import { useUiLang } from "@/lib/useUiLang";
 
 const EstimateMapPicker = dynamic(() => import("./EstimateMapPicker"), {
@@ -44,6 +47,14 @@ type EstimateResponse = {
   geoDropped: boolean;
   appliedConjunto?: string | null;
   disclaimerKey: string;
+};
+
+type SubmittedSnapshot = {
+  neighborhood: string;
+  propertyType: string;
+  estrato: string;
+  conjunto: string;
+  useGeo: boolean;
 };
 
 function fmtMoney(n: number, locale: string) {
@@ -83,6 +94,7 @@ export default function EstimateForm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<EstimateResponse | null>(null);
+  const [submitted, setSubmitted] = useState<SubmittedSnapshot | null>(null);
   const [subscribeEmail, setSubscribeEmail] = useState("");
   const [subscribeLoading, setSubscribeLoading] = useState(false);
   const [subscribeMessage, setSubscribeMessage] = useState<string | null>(null);
@@ -240,6 +252,13 @@ export default function EstimateForm() {
         return;
       }
       setResult(j as EstimateResponse);
+      setSubmitted({
+        neighborhood: neighborhood.trim(),
+        propertyType: propertyType.trim(),
+        estrato: estrato.trim(),
+        conjunto: conjunto.trim(),
+        useGeo,
+      });
     } catch {
       setError(txt.estimateServerError);
     } finally {
@@ -365,9 +384,9 @@ export default function EstimateForm() {
               onChange={(e) => setPropertyType(e.target.value)}
             >
               <option value="">{txt.operationAny}</option>
-              {propertyTypes.map((t) => (
-                <option key={t} value={t}>
-                  {t}
+              {propertyTypeOptions(propertyTypes, lang).map((t) => (
+                <option key={t.value} value={t.value}>
+                  {t.label}
                 </option>
               ))}
             </select>
@@ -532,45 +551,63 @@ export default function EstimateForm() {
         </form>
         </Card>
 
-        {result && (
+        {loading ? (
+          <Card className="mt-8 space-y-4 border-slate-200/90 p-6 shadow-card">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-32 w-full rounded-2xl" />
+            <Skeleton className="h-24 w-full" />
+          </Card>
+        ) : null}
+
+        {result && submitted && (
           <div className="mt-8 space-y-4">
             <Card className="space-y-4 border-slate-200/90 shadow-card sm:p-8">
-              <h2 className="text-lg font-semibold text-slate-900">{txt.estimateSectionResult}</h2>
-              <p className="text-sm text-slate-600">{txt.estimateRangeExplain}</p>
-              <div className="grid gap-2 text-lg tabular-nums">
-                <p>
-                  <span className="text-slate-500">P25</span>{" "}
-                  {fmtMoney(result.totalCop.low, locale)}
-                </p>
-                <p>
-                  <span className="text-slate-500">{txt.median}</span>{" "}
-                  {fmtMoney(result.totalCop.mid, locale)}
-                </p>
-                <p>
-                  <span className="text-slate-500">P75</span>{" "}
-                  {fmtMoney(result.totalCop.high, locale)}
-                </p>
-              </div>
-              <div className="border-t border-slate-100 pt-4 text-sm text-slate-700">
-                <p className="font-medium">{txt.estimatePpm2Band}</p>
+              <h2 className="text-lg font-semibold text-foreground">{txt.estimateSectionResult}</h2>
+              <p className="text-sm text-muted">{txt.estimateRangeExplain}</p>
+              <PriceRangeBar
+                low={result.totalCop.low}
+                mid={result.totalCop.mid}
+                high={result.totalCop.high}
+                locale={locale}
+                lowLabel="P25"
+                midLabel={txt.median}
+                highLabel="P75"
+              />
+              <div className="border-t border-slate-100 pt-4 text-sm text-muted dark:border-slate-700">
+                <p className="font-medium text-foreground">{txt.estimatePpm2Band}</p>
                 <p className="mt-1 tabular-nums">
                   {fmtMoney(result.ppm2.p25, locale)} –{" "}
                   {fmtMoney(result.ppm2.median, locale)} –{" "}
                   {fmtMoney(result.ppm2.p75, locale)}
                 </p>
               </div>
-              <p className="text-sm text-slate-600">
-                {txt.estimateSample}: {result.sampleSize} (min {result.minSampleSize}
-                )
+              <p className="text-sm text-muted">
+                {txt.estimateSample}: {result.sampleSize} (min {result.minSampleSize})
               </p>
-              <div className="rounded-xl border border-slate-200 bg-surface/70 p-3 text-sm text-slate-700">
-                <p className="font-medium">{txt.estimateDriversTitle}</p>
-                <ul className="mt-2 list-disc space-y-1 pl-5">
+              <div className="rounded-xl border border-slate-200 bg-surface/70 p-3 text-sm dark:border-slate-700">
+                <p className="font-medium text-foreground">{txt.estimateDriversTitle}</p>
+                <ul className="mt-2 space-y-1 text-muted">
                   <li>{txt.city}: {result.city}</li>
-                  <li>{txt.neighborhood}: {result.filtersUsed.neighborhood ? txt.pass : txt.operationAny}</li>
-                  <li>{txt.type}: {result.filtersUsed.propertyType ? txt.pass : txt.operationAny}</li>
-                  <li>{txt.estrato}: {result.filtersUsed.estrato ? txt.pass : txt.operationAny}</li>
-                  <li>{txt.estimateConjuntoSelect}: {result.filtersUsed.conjunto ? txt.pass : txt.operationAny}</li>
+                  <li>
+                    {txt.neighborhood}:{" "}
+                    {submitted.useGeo
+                      ? txt.estimateFilterNotUsed
+                      : submitted.neighborhood || txt.estimateFilterNotUsed}
+                  </li>
+                  <li>
+                    {txt.type}:{" "}
+                    {submitted.propertyType
+                      ? propertyTypeLabel(submitted.propertyType, lang)
+                      : txt.estimateFilterNotUsed}
+                  </li>
+                  <li>
+                    {txt.estrato}:{" "}
+                    {submitted.estrato ? submitted.estrato : txt.estimateFilterNotUsed}
+                  </li>
+                  <li>
+                    {txt.estimateConjuntoSelect}:{" "}
+                    {submitted.conjunto || txt.estimateFilterNotUsed}
+                  </li>
                 </ul>
               </div>
               <p className="text-sm">
@@ -602,12 +639,14 @@ export default function EstimateForm() {
                   {txt.estimateConjuntoApplied.replace("{name}", result.appliedConjunto)}
                 </p>
               ) : null}
-              <p className="text-xs text-slate-500">{txt.estimateDisclaimer}</p>
+              <p className="text-xs text-muted">{txt.estimateDisclaimer}</p>
             </Card>
 
-            <Card className="border-slate-200/90 shadow-card sm:p-8">
-              <h3 className="text-base font-semibold text-slate-900">{txt.subscribeTitle}</h3>
-              <p className="mt-1 text-sm text-muted">{txt.subscribeHint}</p>
+            <details className="rounded-2xl border border-slate-200/90 bg-elevated p-4 shadow-card dark:border-slate-700/80">
+              <summary className="cursor-pointer text-sm font-semibold text-foreground">
+                {txt.subscribeTitle}
+              </summary>
+              <p className="mt-2 text-sm text-muted">{txt.subscribeHint}</p>
               <form onSubmit={(e) => void onSubscribe(e)} className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
                 <div className="flex-1">
                   <label className="block text-xs font-medium text-slate-600" htmlFor="estimate-subscribe-email">
@@ -637,7 +676,7 @@ export default function EstimateForm() {
               {subscribeMessage ? (
                 <p className="mt-3 text-sm text-emerald-800">{subscribeMessage}</p>
               ) : null}
-            </Card>
+            </details>
           </div>
         )}
       </main>
