@@ -9,7 +9,7 @@ import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
-import { uiText } from "@/lib/i18n";
+import { priorityCities, uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
 type ZoneRow = {
@@ -48,7 +48,6 @@ export default function ZonesIndex() {
   const locale = lang === "es" ? "es-CO" : "en-US";
 
   const [city, setCity] = useState(DEFAULT_ZONE_CITY);
-  const [cities, setCities] = useState<string[]>([DEFAULT_ZONE_CITY]);
   const [data, setData] = useState<ZonesResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -57,16 +56,11 @@ export default function ZonesIndex() {
     setLoading(true);
     setError(null);
     try {
-      const [filtersRes, zonesRes] = await Promise.all([
-        fetch("/api/filters"),
-        fetch(
-          `/api/zones?city=${encodeURIComponent(city)}&minDataPoints=${DEFAULT_MIN_ZONE_DATA_POINTS}`,
-        ),
-      ]);
-      if (!filtersRes.ok || !zonesRes.ok) throw new Error("load");
-      const filtersJson = await filtersRes.json();
+      const zonesRes = await fetch(
+        `/api/zones?city=${encodeURIComponent(city)}&minDataPoints=${DEFAULT_MIN_ZONE_DATA_POINTS}`,
+      );
+      if (!zonesRes.ok) throw new Error("load");
       const zonesJson = (await zonesRes.json()) as ZonesResponse;
-      setCities(filtersJson.cities?.length ? filtersJson.cities : [DEFAULT_ZONE_CITY]);
       setData(zonesJson);
     } catch {
       setError(txt.couldNotLoad);
@@ -116,7 +110,7 @@ export default function ZonesIndex() {
             value={city}
             onChange={(e) => setCity(e.target.value)}
           >
-            {cities.map((c) => (
+            {priorityCities.map((c) => (
               <option key={c} value={c}>
                 {c}
               </option>

@@ -8,6 +8,7 @@ import PageFooter from "@/app/components/PageFooter";
 import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
 import Skeleton from "@/app/components/ui/Skeleton";
+import { buildFincaRaizSearchUrl } from "@/lib/fincaraizSearch";
 import { DEFAULT_MIN_ZONE_DATA_POINTS } from "@/lib/zones";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
@@ -104,6 +105,11 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
     p.set("city", data.city);
     p.set("neighborhood", data.exploreNeighborhood);
     return `/explore?${p.toString()}`;
+  }, [data]);
+
+  const fincaRaizHref = useMemo(() => {
+    if (!data) return null;
+    return buildFincaRaizSearchUrl(data.city, data.exploreNeighborhood);
   }, [data]);
 
   const chartRows = useMemo(
@@ -287,12 +293,24 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
             ) : null}
 
             <Card className="border-teal-200/80 bg-teal-50/40 dark:border-teal-900/60 dark:bg-teal-950/20">
-              <Link
-                href={exploreHref}
-                className="inline-flex text-base font-semibold text-teal-800 hover:text-teal-950 dark:text-teal-200 dark:hover:text-teal-50"
-              >
-                {fmtTemplate(txt.zonesExploreCta, { barrio: data.displayName })} →
-              </Link>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+                <Link
+                  href={exploreHref}
+                  className="inline-flex text-base font-semibold text-teal-800 hover:text-teal-950 dark:text-teal-200 dark:hover:text-teal-50"
+                >
+                  {fmtTemplate(txt.zonesExploreCta, { barrio: data.displayName })} →
+                </Link>
+                {fincaRaizHref ? (
+                  <a
+                    href={fincaRaizHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex text-base font-semibold text-teal-800 hover:text-teal-950 dark:text-teal-200 dark:hover:text-teal-50"
+                  >
+                    {fmtTemplate(txt.zonesFincaRaizCta, { barrio: data.displayName })} →
+                  </a>
+                ) : null}
+              </div>
             </Card>
           </>
         ) : null}

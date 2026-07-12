@@ -3,6 +3,13 @@ import { Prisma } from "@prisma/client";
 import { catalogKeyForCity } from "@/lib/neighborhoodResolver";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 
+export type ZoneSlugResolution = {
+  citySlug: string;
+  zoneSlug: string;
+  bucketKey: string;
+  href: string;
+};
+
 export const DEFAULT_MIN_ZONE_DATA_POINTS = 20;
 /** @deprecated Use DEFAULT_MIN_ZONE_DATA_POINTS — kept for call sites using minCount. */
 export const DEFAULT_MIN_ZONE_COUNT = DEFAULT_MIN_ZONE_DATA_POINTS;
@@ -129,6 +136,33 @@ export function zoneSlugFromBucketKey(bucketKey: string): string {
     return `uuid-${rest.slice(5)}`;
   }
   return rest;
+}
+
+/** Resolve dossier URL slugs from a canonical city + neighborhood label. */
+export function slugFromCityNeighborhood(
+  city: string,
+  neighborhood: string,
+): ZoneSlugResolution | null {
+  const trimmed = neighborhood.trim();
+  if (!trimmed) return null;
+
+  const cityKey =
+    catalogKeyForCity(city) ?? city.trim().toLowerCase().replace(/\s+/g, "-");
+  let nk = normalizeNeighborhoodKey(trimmed);
+  if (!nk) return null;
+  if (trimmed.toLowerCase().endsWith(" rural") && !nk.endsWith("-rural")) {
+    nk = `${nk}-rural`;
+  }
+
+  const citySlug = cityKey;
+  const zoneSlug = nk;
+  const bucketKey = `${cityKey}:${nk}`;
+  return {
+    citySlug,
+    zoneSlug,
+    bucketKey,
+    href: `/zones/${encodeURIComponent(citySlug)}/${encodeURIComponent(zoneSlug)}`,
+  };
 }
 
 export function bucketKeyFromSlug(citySlug: string, zoneSlug: string): string {

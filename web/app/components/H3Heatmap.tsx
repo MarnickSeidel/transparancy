@@ -66,6 +66,7 @@ export default function H3Heatmap() {
 
   const [data, setData] = useState<HeatmapResponse | null>(null);
   const [selected, setSelected] = useState<SelectedCell | null>(null);
+  const [dossierHref, setDossierHref] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -119,6 +120,23 @@ export default function H3Heatmap() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!selected?.topNeighborhood) {
+      setDossierHref(null);
+      return;
+    }
+    const p = new URLSearchParams({
+      city,
+      neighborhood: selected.topNeighborhood,
+    });
+    void fetch(`/api/zones/resolve?${p.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { published?: boolean; href?: string | null } | null) => {
+        setDossierHref(json?.published && json.href ? json.href : null);
+      })
+      .catch(() => setDossierHref(null));
+  }, [city, selected]);
 
   const bucketLegend = [
     { bucket: 0 as const, label: txt.exploreSignalBelow },
@@ -289,6 +307,14 @@ export default function H3Heatmap() {
             >
               {txt.heatmapOpenExplorer}
             </Link>
+            {dossierHref ? (
+              <Link
+                href={dossierHref}
+                className="mt-2 block text-sm font-semibold text-teal-700 hover:text-teal-600 dark:text-teal-300"
+              >
+                {txt.viewBarrioDossier}
+              </Link>
+            ) : null}
           </Card>
         ) : null}
       </main>

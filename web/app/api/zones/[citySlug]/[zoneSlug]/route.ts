@@ -1,7 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
-import { MIN_SAMPLE_SIZE } from "@/lib/analytics";
+import { queryMonthlyTrends } from "@/lib/monthlyTrends";
 import { prisma } from "@/lib/prisma";
 import {
   bucketKeyFromSlug,
@@ -97,7 +97,7 @@ export async function GET(req: Request, { params }: RouteContext) {
 
     const exploreNeighborhood = summary.display_name?.trim() || zoneSlug;
 
-    const [aliasRows, typeRows, trendRows] = await Promise.all([
+    const [aliasRows, typeRows, trendResult] = await Promise.all([
       prisma.$queryRaw<Array<{ label: string; count: bigint }>>(Prisma.sql`
         SELECT
           btrim(l.neighborhood_raw) AS label,
@@ -129,31 +129,11 @@ export async function GET(req: Request, { params }: RouteContext) {
         GROUP BY COALESCE(NULLIF(btrim(l.property_type), ''), 'Unknown')
         ORDER BY COUNT(*) DESC, property_type ASC
       `),
-      prisma.$queryRaw<
-        Array<{
-          month: Date;
-          sample: bigint;
-          median_ppm2: number | null;
-        }>
-      >(Prisma.sql`
-        WITH monthly AS (
-          SELECT
-            date_trunc('month', l.date_scraped) AS month,
-            ${sqlEffectivePpm2()} AS ppm2
-          FROM listings l
-          WHERE l.is_active = true
-            AND ${sqlBucketKey()} = ${bucketKey}
-            AND ${sqlEffectivePpm2()} IS NOT NULL
-            AND l.date_scraped >= date_trunc('month', NOW()) - interval '11 months'
-        )
-        SELECT
-          month,
-          COUNT(*)::bigint AS sample,
-          percentile_cont(0.5) WITHIN GROUP (ORDER BY ppm2)::float8 AS median_ppm2
-        FROM monthly
-        GROUP BY month
-        ORDER BY month ASC
-      `),
+      queryMonthlyTrends({
+        city: summary.city,
+        neighborhood: exploreNeighborhood,
+        months: 6,
+      }),
     ]);
 
     const aliases: ZoneAlias[] = aliasRows
@@ -169,13 +149,13 @@ export async function GET(req: Request, { params }: RouteContext) {
       medianPricePerM2: row.median_ppm2,
     }));
 
-    const monthlyTrend: ZoneMonthlyTrend[] = trendRows
+    const monthlyTrend: ZoneMonthlyTrend[] = trendResult.rows
+      .filter((row) => row.minSampleMet)
       .map((row) => ({
-        month: row.month.toISOString().slice(0, 7),
-        sample: Number(row.sample),
-        medianPpm2: row.median_ppm2,
-      }))
-      .filter((row) => row.sample >= MIN_SAMPLE_SIZE);
+        month: row.month,
+        sample: row.sample,
+        medianPpm2: row.medianPpm2,
+      }));
 
     const base = mapRawZoneRow(summary, citySlug);
     const dossier: ZoneDossier = {

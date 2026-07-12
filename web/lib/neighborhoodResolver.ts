@@ -45,9 +45,6 @@ const CATALOGS: Record<string, CatalogFile> = {
   pereira: pereiraCatalog as CatalogFile,
 };
 
-const ADDRESS_TOKEN_RE =
-  /\b(calle|carrera|cra|cr|cll|cl|apto|apt|apartamento)\b/gi;
-
 function fold(s: string): string {
   return s
     .normalize("NFD")

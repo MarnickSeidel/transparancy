@@ -94,6 +94,7 @@ export default function ListingExplorer() {
   const [page, setPage] = useState(1);
 
   const [data, setData] = useState<ListingsResponse | null>(null);
+  const [dossierHref, setDossierHref] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -146,6 +147,20 @@ export default function ListingExplorer() {
     setPage(1);
   }, [city, neighborhood, propertyType, estrato, maxPriceCop, sortBy]);
 
+  useEffect(() => {
+    if (city === "all" || neighborhood === "all" || !neighborhood.trim()) {
+      setDossierHref(null);
+      return;
+    }
+    const p = new URLSearchParams({ city, neighborhood: neighborhood.trim() });
+    void fetch(`/api/zones/resolve?${p.toString()}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json: { published?: boolean; href?: string | null } | null) => {
+        setDossierHref(json?.published && json.href ? json.href : null);
+      })
+      .catch(() => setDossierHref(null));
+  }, [city, neighborhood]);
+
   const rows = data?.listings ?? [];
   const total = data?.total ?? 0;
   const pageSize = data?.pageSize ?? 25;
@@ -171,13 +186,21 @@ export default function ListingExplorer() {
           </div>
         ) : null}
 
-        <p className="mb-6">
+        <p className="mb-6 flex flex-wrap items-center gap-4">
           <Link
             href="/zones"
             className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
           >
             {txt.zonesLink}
           </Link>
+          {dossierHref ? (
+            <Link
+              href={dossierHref}
+              className="text-sm font-medium text-teal-700 hover:text-teal-900 dark:text-teal-300 dark:hover:text-teal-100"
+            >
+              {txt.viewBarrioDossier}
+            </Link>
+          ) : null}
         </p>
 
         <Card className="mb-6 border-slate-200/90 p-4 shadow-card">
