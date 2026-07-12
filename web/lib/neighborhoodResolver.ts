@@ -1,3 +1,7 @@
+import bogotaCatalog from "@/data/neighborhoods/bogota.json";
+import caliCatalog from "@/data/neighborhoods/cali.json";
+import manizalesCatalog from "@/data/neighborhoods/manizales.json";
+import medellinCatalog from "@/data/neighborhoods/medellin.json";
 import pereiraCatalog from "@/data/neighborhoods/pereira.json";
 
 import { normalizeNeighborhoodKey } from "./neighborhoods";
@@ -34,6 +38,10 @@ type CatalogFile = {
 };
 
 const CATALOGS: Record<string, CatalogFile> = {
+  bogota: bogotaCatalog as CatalogFile,
+  cali: caliCatalog as CatalogFile,
+  manizales: manizalesCatalog as CatalogFile,
+  medellin: medellinCatalog as CatalogFile,
   pereira: pereiraCatalog as CatalogFile,
 };
 
