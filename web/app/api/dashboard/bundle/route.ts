@@ -37,7 +37,7 @@ export async function GET(req: Request) {
         monthlyTrends: {
           monthsRequested: trends.monthsRequested,
           minSampleSize: trends.minSampleSize,
-          rows: trends.rows.filter((r) => r.minSampleMet),
+          rows: trends.rows,
         },
       },
       { headers: CACHE_HEADERS },

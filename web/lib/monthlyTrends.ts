@@ -18,19 +18,14 @@ export function clampTrendMonths(raw: number | undefined): number {
   return Math.max(3, Math.min(24, parsed));
 }
 
-export async function queryMonthlyTrends(args: {
+function buildListingFilters(args: {
   city?: string | null;
   neighborhood?: string | null;
   estrato?: string | null;
-  months?: number;
-}): Promise<{ monthsRequested: number; minSampleSize: number; rows: MonthlyTrendRow[] }> {
-  const months = clampTrendMonths(args.months);
-
+}): Prisma.Sql[] {
   const conditions: Prisma.Sql[] = [
-    Prisma.sql`l.is_active = true`,
     Prisma.sql`l.price_per_m2 IS NOT NULL`,
     Prisma.sql`l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}`,
-    Prisma.sql`l.date_scraped >= date_trunc('month', NOW()) - (${months - 1} * interval '1 month')`,
   ];
 
   if (args.city && args.city !== "all") {
@@ -46,48 +41,165 @@ export async function queryMonthlyTrends(args: {
     }
   }
 
-  const rows = await prisma.$queryRaw<
-    Array<{
-      month: Date;
-      sample: bigint;
-      median_ppm2: number | null;
-      p25_ppm2: number | null;
-      p75_ppm2: number | null;
-    }>
-  >(Prisma.sql`
-    WITH monthly AS (
-      SELECT
-        date_trunc('month', l.date_scraped) AS month,
-        l.price_per_m2
-      FROM listings l
-      WHERE ${Prisma.join(conditions, " AND ")}
-    )
-    SELECT
-      month,
-      COUNT(*)::bigint AS sample,
-      percentile_cont(0.5) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS median_ppm2,
-      percentile_cont(0.25) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS p25_ppm2,
-      percentile_cont(0.75) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS p75_ppm2
-    FROM monthly
-    GROUP BY month
-    ORDER BY month ASC
-  `);
+  return conditions;
+}
 
-  const mapped: MonthlyTrendRow[] = rows.map((r) => {
+function mapTrendRows(
+  rows: Array<{
+    month: Date;
+    sample: bigint;
+    median_ppm2: number | null;
+    p25_ppm2: number | null;
+    p75_ppm2: number | null;
+  }>,
+): MonthlyTrendRow[] {
+  return rows.map((r) => {
     const sample = Number(r.sample);
     return {
       month: r.month.toISOString().slice(0, 7),
       sample,
-      medianPpm2: r.median_ppm2,
-      p25: r.p25_ppm2,
-      p75: r.p75_ppm2,
+      medianPpm2: sample > 0 ? r.median_ppm2 : null,
+      p25: sample > 0 ? r.p25_ppm2 : null,
+      p75: sample > 0 ? r.p75_ppm2 : null,
       minSampleMet: sample >= MIN_SAMPLE_SIZE,
     };
   });
+}
+
+type RawTrendRow = {
+  month: Date;
+  sample: bigint;
+  median_ppm2: number | null;
+  p25_ppm2: number | null;
+  p75_ppm2: number | null;
+};
+
+/** Listings on market during each calendar month (supports neighborhood/estrato filters). */
+async function queryActivityWindowTrends(args: {
+  city?: string | null;
+  neighborhood?: string | null;
+  estrato?: string | null;
+  months: number;
+}): Promise<RawTrendRow[]> {
+  const listingFilters = buildListingFilters(args);
+
+  return prisma.$queryRaw<RawTrendRow[]>(Prisma.sql`
+    WITH month_series AS (
+      SELECT gs::date AS month_start
+      FROM generate_series(
+        date_trunc('month', NOW())::date - ((${args.months} - 1) * interval '1 month'),
+        date_trunc('month', NOW())::date,
+        interval '1 month'
+      ) AS gs
+    ),
+    eligible AS (
+      SELECT
+        l.price_per_m2,
+        COALESCE(l.source_created_at, l.first_seen_at, l.date_scraped) AS market_start,
+        l.last_seen_at AS market_end
+      FROM listings l
+      WHERE ${Prisma.join(listingFilters, " AND ")}
+    ),
+    paired AS (
+      SELECT
+        ms.month_start,
+        e.price_per_m2
+      FROM month_series ms
+      INNER JOIN eligible e ON
+        e.market_start < (ms.month_start + interval '1 month')
+        AND e.market_end >= ms.month_start
+    )
+    SELECT
+      ms.month_start AS month,
+      COUNT(p.price_per_m2)::bigint AS sample,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS median_ppm2,
+      percentile_cont(0.25) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS p25_ppm2,
+      percentile_cont(0.75) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS p75_ppm2
+    FROM month_series ms
+    LEFT JOIN paired p ON p.month_start = ms.month_start
+    GROUP BY ms.month_start
+    ORDER BY ms.month_start ASC
+  `);
+}
+
+/** City-level snapshots captured during monthly refresh (no neighborhood/estrato filters). */
+async function querySnapshotTrends(args: {
+  city: string;
+  months: number;
+}): Promise<RawTrendRow[]> {
+  return prisma.$queryRaw<RawTrendRow[]>(Prisma.sql`
+    WITH month_series AS (
+      SELECT gs::date AS month_start
+      FROM generate_series(
+        date_trunc('month', NOW())::date - ((${args.months} - 1) * interval '1 month'),
+        date_trunc('month', NOW())::date,
+        interval '1 month'
+      ) AS gs
+    )
+    SELECT
+      ms.month_start AS month,
+      COALESCE(s.sample, 0)::bigint AS sample,
+      s.median_ppm2,
+      s.p25_ppm2,
+      s.p75_ppm2
+    FROM month_series ms
+    LEFT JOIN monthly_market_snapshots s
+      ON s.month = ms.month_start
+      AND s.city = ${args.city}
+    ORDER BY ms.month_start ASC
+  `);
+}
+
+function hasSubCityFilters(args: {
+  neighborhood?: string | null;
+  estrato?: string | null;
+}): boolean {
+  return (
+    (args.neighborhood != null && args.neighborhood !== "all") ||
+    (args.estrato != null && args.estrato !== "all")
+  );
+}
+
+/** Merge snapshot rows with live activity-window rows, preferring higher sample per month. */
+function mergeTrendRows(snapshot: RawTrendRow[], live: RawTrendRow[]): RawTrendRow[] {
+  const liveByMonth = new Map(live.map((r) => [r.month.toISOString().slice(0, 7), r]));
+  return snapshot.map((s) => {
+    const key = s.month.toISOString().slice(0, 7);
+    const l = liveByMonth.get(key);
+    if (!l) return s;
+    if (Number(s.sample) >= Number(l.sample)) return s;
+    return l;
+  });
+}
+
+export async function queryMonthlyTrends(args: {
+  city?: string | null;
+  neighborhood?: string | null;
+  estrato?: string | null;
+  months?: number;
+}): Promise<{ monthsRequested: number; minSampleSize: number; rows: MonthlyTrendRow[] }> {
+  const months = clampTrendMonths(args.months);
+  const city = args.city && args.city !== "all" ? args.city : null;
+
+  let rows: RawTrendRow[];
+  if (city && !hasSubCityFilters(args)) {
+    let snapshotRows: RawTrendRow[] = [];
+    try {
+      snapshotRows = await querySnapshotTrends({ city, months });
+    } catch {
+      // Table may not exist until migration 20260712180000 is applied.
+      snapshotRows = [];
+    }
+    const liveRows = await queryActivityWindowTrends({ ...args, months });
+    rows =
+      snapshotRows.length > 0 ? mergeTrendRows(snapshotRows, liveRows) : liveRows;
+  } else {
+    rows = await queryActivityWindowTrends({ ...args, months });
+  }
 
   return {
     monthsRequested: months,
     minSampleSize: MIN_SAMPLE_SIZE,
-    rows: mapped,
+    rows: mapTrendRows(rows),
   };
 }

@@ -269,7 +269,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           END,
           url = EXCLUDED.url,
           image_url = EXCLUDED.image_url,
-          date_scraped = EXCLUDED.date_scraped,
+          date_scraped = listings.date_scraped,
           is_active = true,
           property_type = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.property_type
@@ -481,6 +481,133 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
         "unchanged": unchanged_count,
         "price_events": len(price_events),
     }
+
+
+def touch_listings_last_seen(
+    conn, external_ids: list[str], *, seen_at: datetime | None = None
+) -> int:
+    """Bump last_seen_at for listings seen during scrape but skipped from upsert."""
+    if not external_ids:
+        return 0
+    when = seen_at or datetime.now(timezone.utc)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        UPDATE listings
+        SET last_seen_at = %s,
+            is_active = true,
+            times_seen = times_seen + 1
+        WHERE external_id = ANY(%s)
+        """,
+        (when, external_ids),
+    )
+    updated = cur.rowcount
+    conn.commit()
+    return updated
+
+
+def capture_monthly_snapshots(
+    conn,
+    *,
+    city: str,
+    captured_at: datetime | None = None,
+) -> int:
+    """
+    Persist city-level median price/m² for the current calendar month.
+    Called after each city refresh so dashboard trends accumulate over time.
+    """
+    when = captured_at or datetime.now(timezone.utc)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO monthly_market_snapshots (
+          month, city, sample, median_ppm2, p25_ppm2, p75_ppm2, captured_at
+        )
+        SELECT
+          date_trunc('month', %s::timestamptz)::date,
+          l.city,
+          COUNT(*)::int,
+          percentile_cont(0.5) WITHIN GROUP (ORDER BY l.price_per_m2)::float8,
+          percentile_cont(0.25) WITHIN GROUP (ORDER BY l.price_per_m2)::float8,
+          percentile_cont(0.75) WITHIN GROUP (ORDER BY l.price_per_m2)::float8,
+          %s::timestamptz
+        FROM listings l
+        WHERE l.city ILIKE %s
+          AND l.is_active = true
+          AND l.price_per_m2 IS NOT NULL
+          AND l.area_m2 >= 5
+        GROUP BY l.city
+        ON CONFLICT (month, city) DO UPDATE SET
+          sample = EXCLUDED.sample,
+          median_ppm2 = EXCLUDED.median_ppm2,
+          p25_ppm2 = EXCLUDED.p25_ppm2,
+          p75_ppm2 = EXCLUDED.p75_ppm2,
+          captured_at = EXCLUDED.captured_at
+        """,
+        (when, when, str(city).strip()),
+    )
+    written = cur.rowcount
+    conn.commit()
+    return written
+
+
+def reactivate_accidental_inactive(
+    conn,
+    *,
+    city: Optional[str] = None,
+    lookback_days: int = 90,
+    dry_run: bool = False,
+) -> dict[str, int]:
+    """
+    Reactivate listings likely deactivated by the skip-without-touch bug.
+
+    Criteria: inactive, valid price/area, seen within lookback window, and either
+    scraped more than once or last_seen within 60 days (recent refresh victim).
+    """
+    cur = conn.cursor()
+    city_clause = ""
+    params: list[Any] = [lookback_days]
+    if city and str(city).strip():
+        city_clause = " AND city ILIKE %s"
+        params.append(str(city).strip())
+
+    cur.execute(
+        f"""
+        SELECT COUNT(*) FROM listings
+        WHERE is_active = false
+          AND price_per_m2 IS NOT NULL
+          AND area_m2 >= 5
+          AND last_seen_at >= NOW() - (%s * interval '1 day')
+          AND (
+            times_seen > 1
+            OR last_seen_at >= NOW() - INTERVAL '60 days'
+          ){city_clause}
+        """,
+        params,
+    )
+    candidate = int(cur.fetchone()[0])
+
+    if dry_run:
+        return {"candidates": candidate, "reactivated": 0}
+
+    cur.execute(
+        f"""
+        UPDATE listings
+        SET is_active = true
+        WHERE is_active = false
+          AND price_per_m2 IS NOT NULL
+          AND area_m2 >= 5
+          AND last_seen_at >= NOW() - (%s * interval '1 day')
+          AND (
+            times_seen > 1
+            OR last_seen_at >= NOW() - INTERVAL '60 days'
+          ){city_clause}
+        """,
+        params,
+    )
+    reactivated = cur.rowcount
+    conn.commit()
+    return {"candidates": candidate, "reactivated": reactivated}
 
 
 def mark_inactive_listings(

@@ -27,7 +27,7 @@ from config import (
     MAX_NO_ACTION_PAGES,
     START_PAGE,
 )
-from db import connect, get_existing_listing_meta, refresh_deals_after_scrape, upsert_listings
+from db import connect, get_existing_listing_meta, refresh_deals_after_scrape, touch_listings_last_seen, upsert_listings
 from human_behavior import pause_action, pause_short, pick_user_agent
 from neighborhood_catalog import catalog_key_for_city, load_all_catalogs
 from neighborhood_resolver import (
@@ -1200,6 +1200,7 @@ def run() -> None:
     cap = MAX_LISTINGS_PER_RUN
     collected: dict[str, dict[str, Any]] = {}
     skipped_unchanged = 0
+    skipped_ids: set[str] = set()
 
     maybe_random_pre_navigation_delay()
     page_num = START_PAGE
@@ -1260,6 +1261,7 @@ def run() -> None:
             ):
                 page_skipped_unchanged += 1
                 skipped_unchanged += 1
+                skipped_ids.add(key)
                 continue
             collected[key] = row
             added += 1
@@ -1300,6 +1302,9 @@ def run() -> None:
                 **stats
             )
         )
+        if skipped_ids:
+            touched = touch_listings_last_seen(conn, list(skipped_ids))
+            print(f"Touched last_seen for {touched} unchanged listings still on market.")
         if SKIP_DEAL_REFRESH:
             print("Skipped deal refresh (SKIP_DEAL_REFRESH=1).")
         else:

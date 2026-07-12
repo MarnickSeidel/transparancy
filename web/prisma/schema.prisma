@@ -116,6 +116,21 @@ model ListingPriceEvent {
   @@map("listing_price_events")
 }
 
+model MonthlyMarketSnapshot {
+  id         String   @id @default(uuid()) @db.Uuid
+  month      DateTime @db.Date
+  city       String
+  sample     Int
+  medianPpm2 Float?   @map("median_ppm2")
+  p25Ppm2    Float?   @map("p25_ppm2")
+  p75Ppm2    Float?   @map("p75_ppm2")
+  capturedAt DateTime @default(now()) @map("captured_at") @db.Timestamptz
+
+  @@unique([month, city])
+  @@index([city, month])
+  @@map("monthly_market_snapshots")
+}
+
 model Subscriber {
   id         String   @id @default(uuid()) @db.Uuid
   email      String   @unique

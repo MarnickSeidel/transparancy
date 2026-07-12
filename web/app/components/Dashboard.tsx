@@ -38,6 +38,9 @@ type Summary = {
   outlierRule?: string;
   cityScope?: string;
   totalListings: number;
+  activeListings?: number;
+  inactiveListings?: number;
+  catalogTotal?: number;
   listingsScrapedToday: number;
   listingsNewToday?: number;
   coverageEstratoPct?: number;
@@ -139,22 +142,29 @@ export default function Dashboard() {
     return s ? `?${s}` : "";
   }, [city, estrato, neighborhood]);
 
+  const qualifiedMonthlyStats = useMemo(
+    () => monthlyStats.filter((r) => r.minSampleMet && r.medianPpm2 != null),
+    [monthlyStats],
+  );
+
   const monthlyNarrative = useMemo(() => {
-    if (monthlyStats.length < 2) return null;
-    const current = monthlyStats[monthlyStats.length - 1];
-    const previous = monthlyStats[monthlyStats.length - 2];
+    if (qualifiedMonthlyStats.length < 2) return null;
+    const current = qualifiedMonthlyStats[qualifiedMonthlyStats.length - 1];
+    const previous = qualifiedMonthlyStats[qualifiedMonthlyStats.length - 2];
     const momPct =
       current.medianPpm2 != null && previous.medianPpm2 != null && previous.medianPpm2 > 0
         ? ((current.medianPpm2 - previous.medianPpm2) / previous.medianPpm2) * 100
         : null;
     const threeMonthBase =
-      monthlyStats.length >= 4 ? monthlyStats[monthlyStats.length - 4].medianPpm2 : null;
+      qualifiedMonthlyStats.length >= 4
+        ? qualifiedMonthlyStats[qualifiedMonthlyStats.length - 4].medianPpm2
+        : null;
     const trend3mPct =
       current.medianPpm2 != null && threeMonthBase != null && threeMonthBase > 0
         ? ((current.medianPpm2 - threeMonthBase) / threeMonthBase) * 100
         : null;
     return { current, previous, momPct, trend3mPct };
-  }, [monthlyStats]);
+  }, [qualifiedMonthlyStats]);
 
   const heroLine = useMemo(() => {
     const moms = monthlyNarrative?.momPct;
@@ -165,12 +175,13 @@ export default function Dashboard() {
   }, [monthlyNarrative, txt]);
 
   const investmentGate = useMemo(() => {
-    const enoughMonthlyHistory = monthlyStats.length >= 4;
+    const monthsWithSample = monthlyStats.filter((r) => r.minSampleMet).length;
+    const enoughMonthlyHistory = monthsWithSample >= 4;
     const enoughCoverage = (summary?.coveragePricePerM2Pct ?? 0) >= 60;
     const enoughSample = (summary?.sampleSizePricePerM2 ?? 0) >= MIN_SAMPLE_SIZE;
     const ready = enoughMonthlyHistory && enoughCoverage && enoughSample;
     return { ready, enoughMonthlyHistory, enoughCoverage, enoughSample };
-  }, [monthlyStats.length, summary?.coveragePricePerM2Pct, summary?.sampleSizePricePerM2]);
+  }, [monthlyStats, summary?.coveragePricePerM2Pct, summary?.sampleSizePricePerM2]);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -216,7 +227,7 @@ export default function Dashboard() {
 
       <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {error && (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
+          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-900/50 dark:bg-amber-950/40 dark:text-amber-100">
             {error}
           </div>
         )}
@@ -261,20 +272,32 @@ export default function Dashboard() {
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{txt.dashboardDataSource}</p>
         </section>
 
-        <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <section className="mb-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
           <div className="kpi-card">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
-              {txt.totalListings}
+              {txt.activeListings}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
-              {loading ? "…" : (summary?.totalListings ?? "—")}
+            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+              {loading ? "…" : (summary?.activeListings ?? summary?.totalListings ?? "—")}
+            </p>
+            <p className="mt-1 text-xs text-muted">
+              {txt.catalogTotal}:{" "}
+              {loading ? "…" : (summary?.catalogTotal ?? summary?.totalListings ?? "—")}
+            </p>
+          </div>
+          <div className="kpi-card">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted">
+              {txt.inactiveListings}
+            </p>
+            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+              {loading ? "…" : (summary?.inactiveListings ?? "—")}
             </p>
           </div>
           <div className="kpi-card">
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.newTodayUtc}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
               {loading ? "…" : (summary?.listingsNewToday ?? "—")}
             </p>
           </div>
@@ -282,7 +305,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.coveragePriceM2}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
               {loading
                 ? "…"
                 : `${(summary?.coveragePricePerM2Pct ?? 0).toFixed(1)}%`}
@@ -292,7 +315,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.kpiQualityCheck}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
               {loading ? "…" : summary?.minSampleMet ? txt.pass : txt.lowSample}
             </p>
             <p className="mt-1 text-xs text-muted">
@@ -394,7 +417,7 @@ export default function Dashboard() {
           <div className="grid gap-4 p-4 md:grid-cols-3">
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">{txt.momMedianM2}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
                 {monthlyNarrative?.momPct != null
                   ? `${monthlyNarrative.momPct >= 0 ? "+" : ""}${monthlyNarrative.momPct.toFixed(1)}%`
                   : "—"}
@@ -402,7 +425,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">{txt.trend3m}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
                 {monthlyNarrative?.trend3mPct != null
                   ? `${monthlyNarrative.trend3mPct >= 0 ? "+" : ""}${monthlyNarrative.trend3mPct.toFixed(1)}%`
                   : "—"}
@@ -410,7 +433,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">{txt.currentMonthSample}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
                 {monthlyNarrative?.current.sample ?? 0}
               </p>
             </div>
@@ -423,7 +446,7 @@ export default function Dashboard() {
             <p className="mt-0.5 text-xs text-muted">{txt.monthlyMedianChart}</p>
           </div>
           <MonthlyTrendChart
-            rows={monthlyStats}
+            rows={qualifiedMonthlyStats}
             locale={locale}
             noDataLabel={txt.monthlyChartNoData}
             tooltipLabel={txt.monthlyMedianTooltipLabel}

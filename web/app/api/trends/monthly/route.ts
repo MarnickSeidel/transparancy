@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       {
         monthsRequested,
         minSampleSize,
-        rows: rows.filter((r) => r.minSampleMet),
+        rows,
       },
       { headers: CACHE_HEADERS },
     );

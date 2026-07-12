@@ -196,8 +196,15 @@ export default function ZoneDossier({ citySlug, zoneSlug }: Props) {
         </p>
 
         {error ? (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
-            {error}
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
+            <span>{error}</span>
+            <button
+              type="button"
+              onClick={() => void load()}
+              className="rounded-lg bg-amber-100 px-3 py-1.5 text-xs font-semibold text-amber-950 hover:bg-amber-200 dark:bg-amber-900/50 dark:text-amber-50 dark:hover:bg-amber-900"
+            >
+              {txt.refresh}
+            </button>
           </div>
         ) : null}
 

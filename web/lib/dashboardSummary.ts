@@ -22,6 +22,9 @@ export type SummaryData = {
   cityScope: string;
   cityLabel: string;
   totalListings: number;
+  activeListings: number;
+  inactiveListings: number;
+  catalogTotal: number;
   cityCount: number;
   neighborhoodCount: number;
   listingsScrapedToday: number;
@@ -38,8 +41,10 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
     return d;
   })();
 
-  const cityWhere =
+  const cityWhereActive =
     city && city !== "all" ? { city, isActive: true } : { isActive: true };
+  const cityWhereAll =
+    city && city !== "all" ? { city } : {};
   const cond = summaryCityConditions(city);
   const whereSql = Prisma.join(
     [...cond, Prisma.sql`l.is_active = true`],
@@ -48,7 +53,9 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
 
   const [
     avgRow,
-    totalListings,
+    activeListings,
+    catalogTotal,
+    inactiveListings,
     listingsToday,
     withEstrato,
     withGeo,
@@ -58,22 +65,24 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
   ] = await Promise.all([
     prisma.listing.aggregate({
       where: {
-        ...cityWhere,
+        ...cityWhereActive,
         pricePerM2: { not: null },
         areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
       },
       _avg: { pricePerM2: true },
     }),
-    prisma.listing.count({ where: cityWhere }),
+    prisma.listing.count({ where: cityWhereActive }),
+    prisma.listing.count({ where: cityWhereAll }),
+    prisma.listing.count({ where: { ...cityWhereAll, isActive: false } }),
     prisma.listing.count({
-      where: { ...cityWhere, dateScraped: { gte: todayStart } },
+      where: { ...cityWhereActive, dateScraped: { gte: todayStart } },
     }),
-    prisma.listing.count({ where: { ...cityWhere, estrato: { not: null } } }),
+    prisma.listing.count({ where: { ...cityWhereActive, estrato: { not: null } } }),
     prisma.listing.count({
-      where: { ...cityWhere, latitude: { not: null }, longitude: { not: null } },
+      where: { ...cityWhereActive, latitude: { not: null }, longitude: { not: null } },
     }),
     prisma.listing.count({
-      where: { ...cityWhere, firstSeenAt: { gte: todayStart } },
+      where: { ...cityWhereActive, firstSeenAt: { gte: todayStart } },
     }),
     prisma.$queryRaw<
       Array<{
@@ -143,17 +152,20 @@ export async function getDashboardSummary(city: string | null): Promise<SummaryD
     outlierRule: "winsorize_p2_p98",
     cityScope: city && city !== "all" ? city : "all",
     cityLabel: city && city !== "all" ? city : "All cities",
-    totalListings,
+    totalListings: catalogTotal,
+    activeListings,
+    inactiveListings,
+    catalogTotal,
     cityCount: counts?.city_count != null ? Number(counts.city_count) : 0,
     neighborhoodCount:
       counts?.neighborhood_count != null ? Number(counts.neighborhood_count) : 0,
     listingsScrapedToday: listingsToday,
     listingsNewToday: newToday,
     coverageEstratoPct:
-      totalListings > 0 ? Number(((withEstrato / totalListings) * 100).toFixed(2)) : 0,
+      activeListings > 0 ? Number(((withEstrato / activeListings) * 100).toFixed(2)) : 0,
     coverageGeoPct:
-      totalListings > 0 ? Number(((withGeo / totalListings) * 100).toFixed(2)) : 0,
+      activeListings > 0 ? Number(((withGeo / activeListings) * 100).toFixed(2)) : 0,
     coveragePricePerM2Pct:
-      totalListings > 0 ? Number(((n / totalListings) * 100).toFixed(2)) : 0,
+      activeListings > 0 ? Number(((n / activeListings) * 100).toFixed(2)) : 0,
   };
 }

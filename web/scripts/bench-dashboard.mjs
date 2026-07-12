@@ -187,19 +187,37 @@ async function main() {
 
   await time("monthly trends", () =>
     prisma.$queryRaw(Prisma.sql`
-      WITH monthly AS (
-        SELECT date_trunc('month', l.date_scraped) AS month, l.price_per_m2
+      WITH month_series AS (
+        SELECT gs::date AS month_start
+        FROM generate_series(
+          date_trunc('month', NOW())::date - (5 * interval '1 month'),
+          date_trunc('month', NOW())::date,
+          interval '1 month'
+        ) AS gs
+      ),
+      eligible AS (
+        SELECT
+          l.price_per_m2,
+          COALESCE(l.source_created_at, l.first_seen_at, l.date_scraped) AS market_start,
+          l.last_seen_at AS market_end
         FROM listings l
-        WHERE l.is_active = true
-          AND l.price_per_m2 IS NOT NULL
+        WHERE l.price_per_m2 IS NOT NULL
           AND l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}
-          AND l.date_scraped >= date_trunc('month', NOW()) - (5 * interval '1 month')
+      ),
+      paired AS (
+        SELECT ms.month_start, e.price_per_m2
+        FROM month_series ms
+        INNER JOIN eligible e ON
+          e.market_start < (ms.month_start + interval '1 month')
+          AND e.market_end >= ms.month_start
       )
-      SELECT month, COUNT(*)::bigint AS sample,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS median_ppm2,
-        percentile_cont(0.25) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS p25_ppm2,
-        percentile_cont(0.75) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS p75_ppm2
-      FROM monthly GROUP BY month ORDER BY month ASC
+      SELECT ms.month_start AS month, COUNT(p.price_per_m2)::bigint AS sample,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS median_ppm2,
+        percentile_cont(0.25) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS p25_ppm2,
+        percentile_cont(0.75) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS p75_ppm2
+      FROM month_series ms
+      LEFT JOIN paired p ON p.month_start = ms.month_start
+      GROUP BY ms.month_start ORDER BY ms.month_start ASC
     `),
   );
 
@@ -211,17 +229,35 @@ async function main() {
   await explain(
     "monthly trends (all cities)",
     Prisma.sql`
-      WITH monthly AS (
-        SELECT date_trunc('month', l.date_scraped) AS month, l.price_per_m2
+      WITH month_series AS (
+        SELECT gs::date AS month_start
+        FROM generate_series(
+          date_trunc('month', NOW())::date - (5 * interval '1 month'),
+          date_trunc('month', NOW())::date,
+          interval '1 month'
+        ) AS gs
+      ),
+      eligible AS (
+        SELECT
+          l.price_per_m2,
+          COALESCE(l.source_created_at, l.first_seen_at, l.date_scraped) AS market_start,
+          l.last_seen_at AS market_end
         FROM listings l
-        WHERE l.is_active = true
-          AND l.price_per_m2 IS NOT NULL
+        WHERE l.price_per_m2 IS NOT NULL
           AND l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}
-          AND l.date_scraped >= date_trunc('month', NOW()) - (5 * interval '1 month')
+      ),
+      paired AS (
+        SELECT ms.month_start, e.price_per_m2
+        FROM month_series ms
+        INNER JOIN eligible e ON
+          e.market_start < (ms.month_start + interval '1 month')
+          AND e.market_end >= ms.month_start
       )
-      SELECT month, COUNT(*)::bigint AS sample,
-        percentile_cont(0.5) WITHIN GROUP (ORDER BY price_per_m2)::float8 AS median_ppm2
-      FROM monthly GROUP BY month ORDER BY month ASC
+      SELECT ms.month_start AS month, COUNT(p.price_per_m2)::bigint AS sample,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS median_ppm2
+      FROM month_series ms
+      LEFT JOIN paired p ON p.month_start = ms.month_start
+      GROUP BY ms.month_start ORDER BY ms.month_start ASC
     `,
   );
 

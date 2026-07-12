@@ -193,7 +193,7 @@ def run_city_venta_types(
             flush=True,
         )
 
-    from db import connect, mark_inactive_listings
+    from db import capture_monthly_snapshots, connect, mark_inactive_listings
 
     conn = connect()
     try:
@@ -205,6 +205,11 @@ def run_city_venta_types(
         print(
             f"\n>>> {city_label}: marked {marked} listings inactive "
             f"(not seen during this city refresh).\n",
+            flush=True,
+        )
+        snap = capture_monthly_snapshots(conn, city=city_default)
+        print(
+            f">>> {city_label}: captured {snap} monthly market snapshot row(s).\n",
             flush=True,
         )
     finally:

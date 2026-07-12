@@ -113,7 +113,7 @@ export default function SiteHeader({
             ) : null}
           </div>
           <div className="flex items-center gap-2">
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <ThemeToggle theme={theme} lang={lang} onToggle={toggleTheme} />
             <LanguageToggle lang={lang} onToggle={onToggleLang} />
           </div>
         </div>

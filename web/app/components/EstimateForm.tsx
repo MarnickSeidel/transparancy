@@ -89,19 +89,27 @@ export default function EstimateForm() {
   const [subscribeError, setSubscribeError] = useState<string | null>(null);
 
   const loadFilters = useCallback(async (citySlug: string) => {
-    const q =
-      citySlug && citySlug.length > 0
-        ? `?city=${encodeURIComponent(citySlug)}`
-        : "";
-    const res = await fetch(`/api/filters${q}`);
-    if (!res.ok) return;
-    const j = await res.json();
-    setCities(j.cities ?? []);
-    setNeighborhoods(j.neighborhoods ?? []);
-    setEstratos(j.estratos ?? []);
-    setPropertyTypes(j.propertyTypes ?? []);
-    setConjuntosCity(j.conjuntos ?? []);
-  }, []);
+    try {
+      const q =
+        citySlug && citySlug.length > 0
+          ? `?city=${encodeURIComponent(citySlug)}`
+          : "";
+      const res = await fetch(`/api/filters${q}`);
+      if (!res.ok) {
+        setError(txt.couldNotLoad);
+        return;
+      }
+      const j = await res.json();
+      setCities(j.cities ?? []);
+      setNeighborhoods(j.neighborhoods ?? []);
+      setEstratos(j.estratos ?? []);
+      setPropertyTypes(j.propertyTypes ?? []);
+      setConjuntosCity(j.conjuntos ?? []);
+      setError(null);
+    } catch {
+      setError(txt.couldNotLoad);
+    }
+  }, [txt.couldNotLoad]);
 
   useEffect(() => {
     void loadFilters("");

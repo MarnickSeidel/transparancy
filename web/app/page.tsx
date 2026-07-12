@@ -34,6 +34,7 @@ type Content = {
   features: Array<{ title: string; description: string }>;
   cards: Array<{ zone: string; type: string; value: string; score: string }>;
   statsLoading: string;
+  couldNotLoad: string;
   statsListingsLabel: string;
   statsNeighborhoodsLabel: string;
   statsCitiesLabel: string;
@@ -63,6 +64,8 @@ const content: Record<Lang, Content> = {
       { label: "Ciudades activas", value: "…" },
     ],
     statsLoading: "Cargando datos…",
+    couldNotLoad:
+      "No pudimos cargar los datos en este momento. Intenta actualizar en unos segundos.",
     statsListingsLabel: "Anuncios analizados",
     statsNeighborhoodsLabel: "Barrios cubiertos",
     statsCitiesLabel: "Ciudades activas",
@@ -112,6 +115,7 @@ const content: Record<Lang, Content> = {
       { label: "Active cities", value: "…" },
     ],
     statsLoading: "Loading live data…",
+    couldNotLoad: "We could not load data right now. Please refresh in a few seconds.",
     statsListingsLabel: "Listings analyzed",
     statsNeighborhoodsLabel: "Neighborhoods covered",
     statsCitiesLabel: "Active cities",
@@ -150,6 +154,7 @@ export default function Home() {
   const [highlights, setHighlights] = useState(txt.highlights);
   const [cards, setCards] = useState(txt.cards);
   const [statsReady, setStatsReady] = useState(false);
+  const [statsFailed, setStatsFailed] = useState(false);
 
   useEffect(() => {
     setHighlights(txt.highlights);
@@ -160,12 +165,16 @@ export default function Home() {
     let cancelled = false;
 
     async function loadLiveData() {
+      setStatsFailed(false);
       try {
         const [summaryRes, oppRes] = await Promise.all([
           fetch("/api/summary"),
           fetch("/api/opportunities"),
         ]);
-        if (!summaryRes.ok) return;
+        if (!summaryRes.ok) {
+          if (!cancelled) setStatsFailed(true);
+          return;
+        }
         const summary = await summaryRes.json();
         if (cancelled) return;
 
@@ -211,7 +220,10 @@ export default function Home() {
           }
         }
       } catch {
-        if (!cancelled) setStatsReady(false);
+        if (!cancelled) {
+          setStatsReady(false);
+          setStatsFailed(true);
+        }
       }
     }
 
@@ -290,7 +302,7 @@ export default function Home() {
 
           <div className="flex items-center gap-2">
             <LanguageToggle lang={lang} onToggle={toggleLang} />
-            <ThemeToggle theme={theme} onToggle={toggleTheme} />
+            <ThemeToggle theme={theme} lang={lang} onToggle={toggleTheme} />
             <Link
               href="/dashboard"
               className="rounded-lg bg-teal-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-teal-700"
@@ -348,9 +360,14 @@ export default function Home() {
                 </Card>
               ))}
             </div>
-            {!statsReady ? (
+            {!statsReady && !statsFailed ? (
               <p className={`mt-3 text-xs ${darkMode ? "text-slate-500" : "text-slate-400"}`}>
                 {txt.statsLoading}
+              </p>
+            ) : null}
+            {statsFailed ? (
+              <p className={`mt-3 text-xs ${darkMode ? "text-amber-400" : "text-amber-700"}`}>
+                {txt.couldNotLoad}
               </p>
             ) : null}
           </div>
