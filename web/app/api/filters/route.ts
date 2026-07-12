@@ -11,7 +11,7 @@ export async function GET(req: Request) {
   const city = searchParams.get("city");
   try {
     const baseWhere =
-      city && city !== "all" ? { city } : {};
+      city && city !== "all" ? { isActive: true, city } : { isActive: true };
 
     const [
       cityRows,
@@ -23,10 +23,12 @@ export async function GET(req: Request) {
     ] = await Promise.all([
       prisma.listing.groupBy({
         by: ["city"],
+        where: { isActive: true },
         orderBy: { city: "asc" },
       }),
       prisma.listing.groupBy({
         by: ["department"],
+        where: { isActive: true },
         orderBy: { department: "asc" },
       }),
       prisma.listing.groupBy({

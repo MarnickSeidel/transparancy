@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 
 import { queryMonthlyTrends } from "@/lib/monthlyTrends";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 90;
+
+const CACHE_HEADERS = {
+  "Cache-Control": "public, s-maxage=90, stale-while-revalidate=180",
+};
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -19,11 +23,14 @@ export async function GET(req: Request) {
       months: monthsParam,
     });
 
-    return NextResponse.json({
-      monthsRequested,
-      minSampleSize,
-      rows: rows.filter((r) => r.minSampleMet),
-    });
+    return NextResponse.json(
+      {
+        monthsRequested,
+        minSampleSize,
+        rows: rows.filter((r) => r.minSampleMet),
+      },
+      { headers: CACHE_HEADERS },
+    );
   } catch (e) {
     console.error(e);
     return NextResponse.json(

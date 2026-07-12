@@ -10,6 +10,7 @@ import Skeleton from "./ui/Skeleton";
 import { MIN_SAMPLE_SIZE } from "@/lib/analytics";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
+import { DEFAULT_ZONE_CITY } from "@/lib/zones";
 
 /** Recharts measures the DOM; rendering on the server breaks hydration and can blank the app. */
 const MonthlyTrendChart = dynamic(() => import("./MonthlyTrendChart"), {
@@ -119,7 +120,7 @@ export default function Dashboard() {
   const [cities, setCities] = useState<string[]>([]);
   const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
   const [estratos, setEstratos] = useState<number[]>([]);
-  const [city, setCity] = useState("all");
+  const [city, setCity] = useState(DEFAULT_ZONE_CITY);
   const [estrato, setEstrato] = useState("all");
   const [neighborhood, setNeighborhood] = useState("all");
   const [loading, setLoading] = useState(true);
@@ -175,38 +176,28 @@ export default function Dashboard() {
     setLoading(true);
     setError(null);
     try {
-      const [sRes, fRes, aRes, tRes] = await Promise.all([
-        fetch(`/api/summary${qs}`),
-        fetch(`/api/filters${city !== "all" ? `?city=${encodeURIComponent(city)}` : ""}`),
-        fetch(`/api/dashboard/aggregates${qs}`),
-        fetch(`/api/trends/monthly${qs ? `${qs}&months=6` : "?months=6"}`),
-      ]);
-      if (!sRes.ok) throw new Error("summary");
-      if (!fRes.ok) throw new Error("filters");
-      if (!aRes.ok) throw new Error("aggregates");
-      if (!tRes.ok) throw new Error("trends");
-      const sJson = await sRes.json();
-      const fJson = await fRes.json();
-      const aJson = await aRes.json();
-      const tJson = await tRes.json();
-      setSummary(sJson);
-      setCities(fJson.cities ?? []);
-      setNeighborhoods(fJson.neighborhoods ?? []);
-      setEstratos(fJson.estratos ?? []);
-      setTypeStats((aJson.typeStats ?? []) as TypeStatRow[]);
-      setNeighborhoodStats((aJson.neighborhoodStats ?? []) as NeighborhoodStatRow[]);
+      const bundleQs = qs ? `${qs}&months=6` : "?months=6";
+      const res = await fetch(`/api/dashboard/bundle${bundleQs}`);
+      if (!res.ok) throw new Error("bundle");
+      const json = await res.json();
+      setSummary(json.summary);
+      setCities(json.filters?.cities ?? []);
+      setNeighborhoods(json.filters?.neighborhoods ?? []);
+      setEstratos(json.filters?.estratos ?? []);
+      setTypeStats((json.typeStats ?? []) as TypeStatRow[]);
+      setNeighborhoodStats((json.neighborhoodStats ?? []) as NeighborhoodStatRow[]);
       setEstratoTypeMatrix(
-        (aJson.estratoTypeMatrix ?? { types: [], rows: [] }) as EstratoTypeMatrix,
+        (json.estratoTypeMatrix ?? { types: [], rows: [] }) as EstratoTypeMatrix,
       );
-      setPricingIntelligence((aJson.pricingIntelligence ?? null) as PricingIntel | null);
-      setMonthlyStats((tJson.rows ?? []) as MonthlyTrendRow[]);
+      setPricingIntelligence((json.pricingIntelligence ?? null) as PricingIntel | null);
+      setMonthlyStats((json.monthlyTrends?.rows ?? []) as MonthlyTrendRow[]);
       setLastUpdatedAt(new Date());
     } catch {
       setError(uiText[lang].couldNotLoad);
     } finally {
       setLoading(false);
     }
-  }, [city, qs, lang]);
+  }, [qs, lang]);
 
   useEffect(() => {
     void load();

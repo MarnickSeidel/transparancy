@@ -27,6 +27,7 @@ export async function queryMonthlyTrends(args: {
   const months = clampTrendMonths(args.months);
 
   const conditions: Prisma.Sql[] = [
+    Prisma.sql`l.is_active = true`,
     Prisma.sql`l.price_per_m2 IS NOT NULL`,
     Prisma.sql`l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}`,
     Prisma.sql`l.date_scraped >= date_trunc('month', NOW()) - (${months - 1} * interval '1 month')`,
