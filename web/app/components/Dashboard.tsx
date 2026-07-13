@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import EmailSignupForm from "@/app/components/EmailSignupForm";
 import PageFooter from "./PageFooter";
 import CollapsibleSection from "./CollapsibleSection";
 import SiteHeader from "./SiteHeader";
@@ -778,6 +779,16 @@ export default function Dashboard() {
           </div>
         </section>
         </CollapsibleSection>
+
+        <EmailSignupForm
+          lang={lang}
+          source="dashboard"
+          defaultCity={city !== "all" ? city : DEFAULT_ZONE_CITY}
+          defaultLists={["market_monthly_city", "deals_city"]}
+          visibleLists={["market_monthly_city", "market_quarterly_colombia", "deals_city", "price_drops_city"]}
+          collapsedByDefault
+          className="mb-8"
+        />
       </main>
       <PageFooter />
     </div>

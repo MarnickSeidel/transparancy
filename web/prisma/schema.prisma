@@ -148,6 +148,71 @@ model Subscriber {
   @@map("subscribers")
 }
 
+enum EmailContactStatus {
+  pending
+  active
+  unsubscribed
+}
+
+enum EmailList {
+  deals_city
+  deals_neighborhood
+  price_drops_city
+  market_monthly_city
+  market_quarterly_colombia
+}
+
+model EmailContact {
+  id               String             @id @default(uuid()) @db.Uuid
+  email            String             @unique
+  locale           String             @default("es")
+  status           EmailContactStatus @default(pending)
+  source           String?
+  confirmToken     String             @unique @map("confirm_token")
+  unsubscribeToken String             @unique @map("unsubscribe_token")
+  confirmedAt      DateTime?          @map("confirmed_at")
+  createdAt        DateTime           @default(now()) @map("created_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  preferences      EmailPreference[]
+  sendLogs         EmailSendLog[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@map("email_contacts")
+}
+
+model EmailPreference {
+  id           String    @id @default(uuid()) @db.Uuid
+  contactId    String    @map("contact_id") @db.Uuid
+  list         EmailList
+  city         String?
+  neighborhood String?
+  active       Boolean   @default(true)
+  lastSentAt   DateTime? @map("last_sent_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  contact      EmailContact @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  sendLogs     EmailSendLog[]
+
+  @@unique([contactId, list, city, neighborhood])
+  @@index([list, active, city])
+  @@map("email_preferences")
+}
+
+model EmailSendLog {
+  id             String           @id @default(uuid()) @db.Uuid
+  contactId      String           @map("contact_id") @db.Uuid
+  preferenceId   String?          @map("preference_id") @db.Uuid
+  digestKey      String           @map("digest_key")
+  sentAt         DateTime         @default(now()) @map("sent_at")
+  contact        EmailContact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  preference     EmailPreference? @relation(fields: [preferenceId], references: [id], onDelete: SetNull)
+
+  @@unique([contactId, digestKey])
+  @@index([digestKey])
+  @@map("email_send_logs")
+}
+
 model SharedReport {
   id        String    @id @default(uuid()) @db.Uuid
   slug      String    @unique

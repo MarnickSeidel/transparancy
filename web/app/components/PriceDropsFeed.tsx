@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react"
 
 import DomBadge from "@/app/components/DomBadge"
+import EmailSignupForm from "@/app/components/EmailSignupForm"
 import PageFooter from "@/app/components/PageFooter"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
@@ -19,6 +20,13 @@ import { useUiLang } from "@/lib/useUiLang"
 function fmtCop(v: number | null | undefined, locale: string) {
   if (v == null || Number.isNaN(v)) return "—"
   return `$ ${Math.round(v).toLocaleString(locale)}`
+}
+
+function fmtTemplate(template: string, vars: Record<string, string | number>) {
+  return Object.entries(vars).reduce(
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, String(value)),
+    template,
+  )
 }
 
 function initialCityParam(): string {
@@ -170,6 +178,18 @@ export default function PriceDropsFeed() {
             })}
           </div>
         )}
+
+        <EmailSignupForm
+          lang={lang}
+          source="price_drops"
+          title={txt.subscribeTitle}
+          hint={city !== "all" ? fmtTemplate(txt.estimateSubscribeHint, { city }) : txt.subscribeHint}
+          defaultCity={city !== "all" ? city : "Pereira"}
+          defaultLists={["price_drops_city", "deals_city"]}
+          visibleLists={["price_drops_city", "deals_city", "market_monthly_city"]}
+          collapsedByDefault
+          className="mt-8"
+        />
 
         <Card className="mt-8 border-teal-200/80 bg-teal-50/40 dark:border-teal-900/60 dark:bg-teal-950/20">
           <p className="text-sm text-foreground">{txt.priceDropsAnalyzeCta}</p>

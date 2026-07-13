@@ -237,7 +237,7 @@ export async function POST(req: Request) {
         pricePerM2Terrain: pricePerM2Terrain,
         imageUrl: parsed.imageUrl ?? null,
         address: parsed.address ?? null,
-        technicalSheet: parsed.technicalSheet ?? null,
+        technicalSheet: parsed.technicalSheet ?? undefined,
         locationPath: parsed.locationPath,
         sourceFingerprint: parsed.sourceFingerprint,
         sourceUpdatedAt: now,

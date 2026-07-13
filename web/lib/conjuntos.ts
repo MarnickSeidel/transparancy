@@ -35,7 +35,7 @@ const CONJUNTO_GENERIC_TOKENS = new Set([
 ])
 
 function foldConjuntoText(input: string): string {
-  let s = stripConjuntoAddressSuffix(stripConjuntoPrefixes(input))
+  const s = stripConjuntoAddressSuffix(stripConjuntoPrefixes(input))
   return s
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")

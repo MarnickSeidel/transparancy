@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import EmailSignupForm from "@/app/components/EmailSignupForm";
 import PageFooter from "@/app/components/PageFooter";
 import Breadcrumbs from "@/app/components/Breadcrumbs";
 import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection";
@@ -479,6 +480,19 @@ export default function ZoneDossier({
             ) : null}
 
             <p className="mb-6 text-xs text-muted">{txt.dataFreshnessNote}</p>
+
+            <EmailSignupForm
+              lang={lang}
+              source="zone_dossier"
+              title={txt.estimateSubscribeTitle}
+              hint={fmtTemplate(txt.estimateSubscribeHint, { city: data.city })}
+              defaultCity={data.city}
+              defaultNeighborhood={data.displayName}
+              defaultLists={["deals_neighborhood", "market_monthly_city"]}
+              visibleLists={["deals_neighborhood", "deals_city", "market_monthly_city"]}
+              collapsedByDefault
+              className="mb-6"
+            />
 
             <Card className="mb-6 border-accent/30 bg-accent/5 shadow-card">
               <h2 className="text-base font-semibold text-foreground">

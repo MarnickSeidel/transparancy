@@ -1,14 +1,7 @@
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
 
-const FALLBACK_KEYS = [
-  "neighborhood",
-  "propertyType",
-  "estrato",
-  "conjunto",
-] as const
-
-type FallbackKey = (typeof FALLBACK_KEYS)[number]
+type FallbackKey = "neighborhood" | "propertyType" | "estrato" | "conjunto"
 
 export function estimateFallbackLabel(key: string, lang: Lang): string {
   const txt = uiText[lang]

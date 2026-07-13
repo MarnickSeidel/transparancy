@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import EmailSignupForm from "@/app/components/EmailSignupForm";
 import PageFooter from "@/app/components/PageFooter";
 import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection";
 import PriceRangeBar from "@/app/components/PriceRangeBar";
@@ -115,10 +116,6 @@ export default function EstimateForm() {
   const [filterError, setFilterError] = useState<string | null>(null);
   const [result, setResult] = useState<EstimateResponse | null>(null);
   const [submitted, setSubmitted] = useState<SubmittedSnapshot | null>(null);
-  const [subscribeEmail, setSubscribeEmail] = useState("");
-  const [subscribeLoading, setSubscribeLoading] = useState(false);
-  const [subscribeMessage, setSubscribeMessage] = useState<string | null>(null);
-  const [subscribeError, setSubscribeError] = useState<string | null>(null);
   const [filtersLoading, setFiltersLoading] = useState(true);
 
   const [geoLoading, setGeoLoading] = useState(false);
@@ -420,45 +417,6 @@ export default function EstimateForm() {
       setError(txt.estimateServerError);
     } finally {
       setLoading(false);
-    }
-  };
-
-  const onSubscribe = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubscribeError(null);
-    setSubscribeMessage(null);
-    const email = subscribeEmail.trim().toLowerCase();
-    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!emailOk) {
-      setSubscribeError(txt.subscribeInvalidEmail);
-      return;
-    }
-    setSubscribeLoading(true);
-    try {
-      const res = await fetch("/api/subscribe", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email,
-          source: "estimate_result",
-          city: city.trim() || undefined,
-        }),
-      });
-      const j = (await res.json()) as { error?: string };
-      if (!res.ok) {
-        if (res.status === 400 && j.error === "invalid_email") {
-          setSubscribeError(txt.subscribeInvalidEmail);
-        } else {
-          setSubscribeError(txt.subscribeError);
-        }
-        return;
-      }
-      setSubscribeMessage(txt.subscribeSuccess);
-      setSubscribeEmail("");
-    } catch {
-      setSubscribeError(txt.subscribeError);
-    } finally {
-      setSubscribeLoading(false);
     }
   };
 
@@ -925,50 +883,17 @@ export default function EstimateForm() {
                   </ul>
                 </Card>
 
-                <Card className="border-slate-200/70 bg-slate-50/60 p-4 shadow-card dark:border-slate-700/70 dark:bg-slate-900/20 sm:p-5">
-                  <h3 className="text-sm font-semibold text-foreground">
-                    {txt.estimateSubscribeTitle}
-                  </h3>
-                  <p className="mt-1 text-xs text-muted">
-                    {fmtTemplate(txt.estimateSubscribeHint, { city: result.city })}
-                  </p>
-                  <form
-                    onSubmit={(e) => void onSubscribe(e)}
-                    className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-end"
-                  >
-                    <div className="flex-1">
-                      <label
-                        className="sr-only"
-                        htmlFor="estimate-subscribe-email"
-                      >
-                        {txt.subscribeEmailLabel}
-                      </label>
-                      <input
-                        id="estimate-subscribe-email"
-                        type="email"
-                        required
-                        className={inputClassName}
-                        value={subscribeEmail}
-                        onChange={(e) => setSubscribeEmail(e.target.value)}
-                        placeholder={txt.subscribeEmailPlaceholder}
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={subscribeLoading}
-                      variant="secondary"
-                      className="py-2.5 disabled:opacity-60"
-                    >
-                      {subscribeLoading ? txt.subscribeSending : txt.subscribeCta}
-                    </Button>
-                  </form>
-                  {subscribeError ? (
-                    <p className="mt-2 text-sm text-amber-900">{subscribeError}</p>
-                  ) : null}
-                  {subscribeMessage ? (
-                    <p className="mt-2 text-sm text-emerald-800">{subscribeMessage}</p>
-                  ) : null}
-                </Card>
+                <EmailSignupForm
+                  lang={lang}
+                  source="estimate_result"
+                  title={txt.estimateSubscribeTitle}
+                  hint={fmtTemplate(txt.estimateSubscribeHint, { city: result.city })}
+                  defaultCity={result.city}
+                  defaultNeighborhood={submitted?.neighborhood || neighborhood || undefined}
+                  defaultLists={["deals_city", "market_monthly_city"]}
+                  visibleLists={["deals_city", "price_drops_city", "market_monthly_city"]}
+                  collapsedByDefault
+                />
               </div>
             ) : null}
           </div>

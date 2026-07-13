@@ -41,8 +41,10 @@ export default function PrivacyPage({ params }: Props) {
             </p>
             <h2 className="text-lg font-semibold text-foreground">Email subscription</h2>
             <p>
-              If you submit an email via our subscribe form, it is stored to send product updates.
-              Contact us to request deletion.
+              If you submit an email, we store your address, selected topics (deal alerts, price
+              drops, monthly market reports, quarterly Colombia overview), city preferences, and
+              confirmation status. We send a double opt-in confirmation before any digest. Each email
+              includes an unsubscribe link. Contact us to request full deletion.
             </p>
             <h2 className="text-lg font-semibold text-foreground">Analytics</h2>
             <p>
@@ -68,8 +70,11 @@ export default function PrivacyPage({ params }: Props) {
             </p>
             <h2 className="text-lg font-semibold text-foreground">Suscripción por email</h2>
             <p>
-              Si envías un email en el formulario de suscripción, se almacena para enviar novedades.
-              Puedes solicitar eliminación contactándonos.
+              Si envías tu correo, guardamos la dirección, los temas elegidos (oportunidades, bajas
+              de precio, resumen mensual del mercado, panorama trimestral de Colombia), ciudad y
+              estado de confirmación. Enviamos un correo de confirmación antes de cualquier resumen.
+              Cada correo incluye enlace para cancelar. Puedes solicitar eliminación total
+              contactándonos.
             </p>
           </>
         )}

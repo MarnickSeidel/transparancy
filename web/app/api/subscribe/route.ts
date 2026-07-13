@@ -1,50 +1,79 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
 
-import { prisma } from "@/lib/prisma";
+import { subscribeContact } from "@/lib/email/subscribeContact"
+import {
+  normalizeEmail,
+  normalizeLocale,
+  normalizeOptional,
+  parsePreferences,
+} from "@/lib/email/validate"
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
 type Body = {
-  email?: unknown;
-  source?: unknown;
-  city?: unknown;
-};
-
-function normalizeEmail(v: unknown): string | null {
-  if (typeof v !== "string") return null;
-  const email = v.trim().toLowerCase();
-  if (!email) return null;
-  const ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  return ok ? email : null;
+  email?: unknown
+  locale?: unknown
+  source?: unknown
+  city?: unknown
+  neighborhood?: unknown
+  lists?: unknown
+  preferences?: unknown
 }
 
-function normalizeOptional(v: unknown, max = 80): string | null {
-  if (typeof v !== "string") return null;
-  const s = v.trim();
-  if (!s) return null;
-  return s.length > max ? s.slice(0, max) : s;
+function legacyListsFromBody(body: Body) {
+  const lists = body.lists
+  const city = normalizeOptional(body.city)
+  const neighborhood = normalizeOptional(body.neighborhood)
+  if (Array.isArray(lists) && lists.length > 0) {
+    return lists
+      .filter((l): l is string => typeof l === "string")
+      .map((list) => ({ list, city, neighborhood }))
+  }
+  if (city) {
+    return [
+      { list: "deals_city", city, neighborhood: null },
+      { list: "market_monthly_city", city, neighborhood: null },
+    ]
+  }
+  return null
 }
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as Body;
-    const email = normalizeEmail(body.email);
+    const body = (await req.json()) as Body
+    const email = normalizeEmail(body.email)
     if (!email) {
-      return NextResponse.json({ error: "invalid_email" }, { status: 400 });
+      return NextResponse.json({ error: "invalid_email" }, { status: 400 })
     }
 
-    const source = normalizeOptional(body.source, 40);
-    const city = normalizeOptional(body.city, 80);
+    const preferences =
+      parsePreferences(body.preferences) ??
+      parsePreferences(legacyListsFromBody(body)) ??
+      null
 
-    await prisma.subscriber.upsert({
-      where: { email },
-      create: { email, source: source ?? undefined, city: city ?? undefined },
-      update: { source: source ?? undefined, city: city ?? undefined },
-    });
+    if (!preferences) {
+      return NextResponse.json({ error: "invalid_preferences" }, { status: 400 })
+    }
 
-    return NextResponse.json({ ok: true });
+    const result = await subscribeContact({
+      email,
+      locale: normalizeLocale(body.locale),
+      source: normalizeOptional(body.source, 40) ?? undefined,
+      preferences,
+    })
+
+    if (!result.ok) {
+      const status = result.error === "send_failed" ? 502 : 400
+      return NextResponse.json({ error: result.error }, { status })
+    }
+
+    return NextResponse.json({
+      ok: true,
+      needsConfirmation: result.needsConfirmation,
+      devConfirmUrl: result.devConfirmUrl,
+    })
   } catch (e) {
-    console.error(e);
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    console.error(e)
+    return NextResponse.json({ error: "server_error" }, { status: 500 })
   }
 }

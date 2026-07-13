@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import EmailSignupForm from "@/app/components/EmailSignupForm";
 import { localePath, stripLocalePrefix, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 
@@ -20,7 +21,7 @@ export default function PageFooter({ locale = "es" }: Props) {
   return (
     <footer className="mt-auto border-t border-border-subtle bg-elevated/90">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
           <div>
             <Link
               href={lp("/")}
@@ -92,6 +93,16 @@ export default function PageFooter({ locale = "es" }: Props) {
               </li>
             </ul>
           </div>
+          <EmailSignupForm
+            lang={locale}
+            source="footer"
+            variant="footer"
+            showCitySelect
+            defaultLists={["market_monthly_city"]}
+            visibleLists={["market_monthly_city", "market_quarterly_colombia"]}
+            collapsedByDefault
+            className="sm:col-span-2 lg:col-span-1"
+          />
         </div>
         <p className="mt-8 text-meta tabular-nums">© {year} Habidata · Finca Raíz data</p>
       </div>
