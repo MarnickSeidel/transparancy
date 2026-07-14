@@ -18,47 +18,28 @@ export type NavTextKey =
   | "analyzeUrlNav"
   | "priceDropsNav"
 
-export type NavGroupId = "research" | "analyze" | "market"
-
-export type NavGroup = {
-  id: NavGroupId
-  labelKey: "navGroupResearch" | "navGroupAnalyze" | "navGroupMarket"
-  items: Array<{ key: NavKey; href: string; textKey: NavTextKey; primary?: boolean }>
+export type NavItem = {
+  key: NavKey
+  href: string
+  textKey: NavTextKey
 }
 
-/** Grouped navigation — two primary journeys with supporting tools */
-export const navGroups: NavGroup[] = [
-  {
-    id: "research",
-    labelKey: "navGroupResearch",
-    items: [
-      { key: "zones", href: "/zones", textKey: "zonesNav", primary: true },
-      { key: "explore", href: "/explore", textKey: "exploreNav" },
-    ],
-  },
-  {
-    id: "analyze",
-    labelKey: "navGroupAnalyze",
-    items: [
-      { key: "analyzeUrl", href: "/analyze-url", textKey: "analyzeUrlNav", primary: true },
-      { key: "estimate", href: "/estimate", textKey: "estimateNav" },
-    ],
-  },
-  {
-    id: "market",
-    labelKey: "navGroupMarket",
-    items: [
-      { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
-      { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
-      { key: "opportunities", href: "/oportunidades", textKey: "opportunitiesNav" },
-      { key: "priceDrops", href: "/price-drops", textKey: "priceDropsNav" },
-    ],
-  },
+/** Three primary journeys — visible in the main nav bar */
+export const primaryNavItems: NavItem[] = [
+  { key: "zones", href: "/zones", textKey: "zonesNav" },
+  { key: "analyzeUrl", href: "/analyze-url", textKey: "analyzeUrlNav" },
+  { key: "opportunities", href: "/oportunidades", textKey: "opportunitiesNav" },
 ]
 
-/** Flat list for backward compatibility */
-export const navItems = navGroups.flatMap((g) => g.items)
+/** Supporting tools — under “More” */
+export const moreNavItems: NavItem[] = [
+  { key: "explore", href: "/explore", textKey: "exploreNav" },
+  { key: "estimate", href: "/estimate", textKey: "estimateNav" },
+  { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
+  { key: "priceDrops", href: "/price-drops", textKey: "priceDropsNav" },
+  { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
+]
 
-export const primaryNavHrefs = navGroups
-  .flatMap((g) => g.items.filter((i) => i.primary))
-  .map((i) => i.href)
+export const navItems: NavItem[] = [...primaryNavItems, ...moreNavItems]
+
+export const primaryNavHrefs = primaryNavItems.map((item) => item.href)

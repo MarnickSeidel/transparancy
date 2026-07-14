@@ -2,20 +2,20 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import { isIndexablePath, isListingDetailPath, isOpportunitiesPath } from "@/lib/locale";
+import { isToolPath } from "@/lib/toolPaths";
 
-const TOOL_PREFIXES = [
-  "/dashboard",
-  "/explore",
-  "/heatmap",
-  "/estimate",
-  "/analyze-url",
-  "/price-drops",
-];
-
-function isToolPath(pathname: string): boolean {
-  return TOOL_PREFIXES.some(
-    (p) => pathname === p || pathname.startsWith(`${p}/`),
-  );
+function rewriteEnToolPath(
+  request: NextRequest,
+  pathname: string,
+): NextResponse | null {
+  if (!pathname.startsWith("/en/")) return null;
+  const stripped = pathname.slice(3) || "/";
+  if (!isToolPath(stripped)) return null;
+  const url = request.nextUrl.clone();
+  url.pathname = stripped;
+  const res = NextResponse.rewrite(url);
+  res.headers.set("x-locale", "en");
+  return res;
 }
 
 function rewriteOpportunities(
@@ -111,17 +111,15 @@ export function middleware(request: NextRequest) {
     );
   }
 
+  const enToolRewrite = rewriteEnToolPath(request, pathname);
+  if (enToolRewrite) {
+    return withDocumentLang(enToolRewrite, pathname);
+  }
+
   if (pathname.startsWith("/anuncio/")) {
     const res = NextResponse.next();
     res.headers.set("x-locale", "es");
     return withDocumentLang(res, pathname);
-  }
-
-  if (pathname.startsWith("/en/") && isToolPath(pathname.slice(3))) {
-    return withDocumentLang(
-      NextResponse.redirect(new URL(pathname.slice(3), request.url)),
-      pathname,
-    );
   }
 
   if (pathname === "/es" || pathname.startsWith("/es/")) {

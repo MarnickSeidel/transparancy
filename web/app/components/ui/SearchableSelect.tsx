@@ -26,6 +26,7 @@ type Props = {
   filterMode?: FilterMode
   className?: string
   "aria-label"?: string
+  onQueryChange?: (query: string) => void
 }
 
 type DropdownPosition = {
@@ -46,7 +47,7 @@ const queryTokens = (query: string) =>
     .split(/\s+/)
     .filter(Boolean)
 
-const matchesQuery = (label: string, query: string, mode: FilterMode) => {
+export const matchesSearchQuery = (label: string, query: string, mode: FilterMode) => {
   const q = foldSearch(query)
   if (!q) return true
   const folded = foldSearch(label)
@@ -58,6 +59,8 @@ const matchesQuery = (label: string, query: string, mode: FilterMode) => {
   if (q.length === 1) return folded.includes(q)
   return folded.startsWith(q)
 }
+
+const matchesQuery = matchesSearchQuery
 
 export default function SearchableSelect({
   id,
@@ -73,6 +76,7 @@ export default function SearchableSelect({
   filterMode = "auto",
   className = "",
   "aria-label": ariaLabel,
+  onQueryChange,
 }: Props) {
   const listboxId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
@@ -112,6 +116,10 @@ export default function SearchableSelect({
   useEffect(() => {
     setActiveIndex(0)
   }, [query, open])
+
+  useEffect(() => {
+    onQueryChange?.(open ? query : "")
+  }, [open, query, onQueryChange])
 
   useEffect(() => {
     if (!open) return

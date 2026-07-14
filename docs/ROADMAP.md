@@ -16,7 +16,7 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | Area | Score | Notes |
 |------|-------|-------|
 | UI | 7.5 | Token migration started; Dashboard/Estimate still slate-heavy |
-| UX | 7.5 | Home “3 journeys” shipped |
+| UX | 8.0 | 3-item nav + More dropdown; intent-first labels (ES/EN) |
 | SEO | 9.0 | Dynamic `lang`, PNG OG routes, opportunities JSON-LD |
 | Performance | 6.5 | Explore split; opportunities cap; heatmap still full-city |
 | Accessibility | 7.0 | Skip link, alts, focus, table scope |
@@ -41,7 +41,10 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Freshness API date normalization (build warning fixed)
 - PNG OG images: opportunities route + metadata on home/zones/cities/opportunities
 - Opportunities `CollectionPage` JSON-LD
-- Home “Start here” 3 journeys section
+- Home “Start here” 3 journeys section (above the fold)
+- Home featured deals link to internal listing detail pages
+- `ToolNextSteps` + `listingContextLinks` — contextual cross-links on analyze, listing detail, opportunities, explore, heatmap, dashboard
+- Nav restructure: **Barrios · ¿Buen precio? · Oportunidades** + **Más** dropdown (Explore, Estimate, Heatmap, Price drops, Dashboard)
 - Shared `ErrorBanner`, `PromoCard` components
 - Design tokens: OpportunitiesTop, ListingExplorer, PriceDrops (partial)
 - Playwright smoke tests (`tests/e2e/smoke.spec.ts`)

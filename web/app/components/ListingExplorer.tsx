@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
+import ToolNextSteps from "@/app/components/ToolNextSteps";
 import DomBadge from "@/app/components/DomBadge";
 import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
@@ -14,9 +15,11 @@ import { fetchJsonCached } from "@/lib/clientFetchCache";
 import type { FiltersData } from "@/lib/getFiltersData";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
+import { opportunitiesPath, localePath } from "@/lib/locale";
 import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
 import { formatDomDays } from "@/lib/formatDom";
 import { resolveNeighborhoodLabel } from "@/lib/neighborhoods";
+import { buildListingContextLinks } from "@/lib/listingContextLinks";
 import { useUiLang } from "@/lib/useUiLang";
 
 type ListingRow = {
@@ -216,6 +219,59 @@ export default function ListingExplorer({
     p.set("page", String(page));
     return p.toString();
   }, [city, estrato, maxPriceCop, neighborhood, page, propertyType, similarFilters, sortBy]);
+
+  const nextSteps = useMemo(() => {
+    const ctxCity = city !== "all" ? city : null
+    if (!ctxCity) {
+      return [
+        {
+          title: txt.nextStepsAnalyzeTitle,
+          description: txt.nextStepsAnalyzeDesc,
+          href: localePath(lang, "/analyze-url"),
+          cta: txt.analyzeUrlNav,
+        },
+        {
+          title: txt.nextStepsOpportunitiesTitle,
+          description: txt.nextStepsOpportunitiesDesc,
+          href: opportunitiesPath(lang),
+          cta: txt.opportunitiesNav,
+        },
+        {
+          title: txt.nextStepsZonesTitle,
+          description: txt.nextStepsZonesDesc,
+          href: localePath(lang, "/zones"),
+          cta: txt.zonesNav,
+        },
+      ]
+    }
+    const links = buildListingContextLinks({
+      lang,
+      city: ctxCity,
+      neighborhood: neighborhood !== "all" ? neighborhood : null,
+      propertyType: propertyType !== "all" ? propertyType : null,
+      estrato: estrato !== "all" ? Number.parseInt(estrato, 10) : null,
+    })
+    return [
+      {
+        title: txt.nextStepsAnalyzeTitle,
+        description: txt.nextStepsAnalyzeDesc,
+        href: links.analyzeHref,
+        cta: txt.analyzeUrlNav,
+      },
+      {
+        title: txt.nextStepsOpportunitiesTitle,
+        description: txt.nextStepsOpportunitiesDesc,
+        href: links.opportunitiesHref,
+        cta: txt.opportunitiesNav,
+      },
+      {
+        title: txt.nextStepsHeatmapTitle,
+        description: txt.nextStepsHeatmapDesc,
+        href: links.heatmapHref,
+        cta: txt.heatmapNav,
+      },
+    ]
+  }, [city, estrato, lang, neighborhood, propertyType, txt])
 
   const activeFilterChips = useMemo(() => {
     const chips: { key: string; label: string; onClear: () => void }[] = [];
@@ -724,6 +780,8 @@ export default function ListingExplorer({
             </Button>
           </div>
         </Card>
+
+        <ToolNextSteps title={txt.nextStepsTitle} steps={nextSteps} />
       </main>
 
       <PageFooter />

@@ -3,8 +3,9 @@ import type { Metadata } from "next";
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { ogLocale, type Locale } from "@/lib/locale";
 import { localeOgImage, ogImageMeta } from "@/lib/ogImages";
-import { absoluteUrl } from "@/lib/siteUrl";
+import { BRAND_NAME } from "@/lib/brand";
 import { cityNameToSlug } from "@/lib/getCityFromSlug";
+import { absoluteUrl } from "@/lib/siteUrl";
 import type { PublishableZone } from "@/lib/zones";
 
 export function cityHubPath(citySlug: string): string {
@@ -21,7 +22,7 @@ export function cityHubMetadata(
   const alt = hreflangAlternates(path);
 
   if (locale === "en") {
-    const title = `${city} neighborhoods — price per m² data | Habidata`;
+    const title = `${city} neighborhoods — price per m² data | ${BRAND_NAME}`;
     const description = `Market data for ${zoneCount} neighborhoods in ${city}, Colombia. Median price per m², active listings, and trends from Finca Raíz — for local and US investors.`;
     const url = canonicalForLocale(path, locale);
     const ogImage = localeOgImage(locale);
@@ -33,7 +34,7 @@ export function cityHubMetadata(
         title,
         description,
         url,
-        siteName: "Habidata",
+        siteName: BRAND_NAME,
         locale: ogLocale(locale),
         type: "website",
         images: [ogImageMeta(ogImage)],
@@ -42,7 +43,7 @@ export function cityHubMetadata(
     };
   }
 
-  const title = `Barrios en ${city} — precio m² por zona | Habidata`;
+  const title = `Barrios en ${city} — precio m² por zona | ${BRAND_NAME}`;
   const description = `Datos de mercado para ${zoneCount} barrios en ${city}: mediana de precio/m², publicaciones activas y tendencias basadas en anuncios Finca Raíz.`;
   const ogImage = localeOgImage(locale);
   return {
@@ -53,7 +54,7 @@ export function cityHubMetadata(
       title,
       description,
       url: alt.canonical,
-      siteName: "Habidata",
+      siteName: BRAND_NAME,
       locale: ogLocale(locale),
       type: "website",
       images: [ogImageMeta(ogImage)],

@@ -4,6 +4,7 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import PageFooter from "@/app/components/PageFooter";
+import ToolNextSteps from "@/app/components/ToolNextSteps";
 import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
@@ -13,6 +14,7 @@ import { mapCenterForCity } from "@/lib/cityCenters";
 import type { H3HeatCell } from "@/lib/h3Heatmap";
 import { BUCKET_COLORS } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
+import { buildListingContextLinks } from "@/lib/listingContextLinks";
 import { useUiLang } from "@/lib/useUiLang";
 
 const mapPlaceholder = (
@@ -111,6 +113,35 @@ export default function H3Heatmap({
     () => `${city}-${resolution}-${propertyType}-${estrato}-${data?.cellCount ?? 0}`,
     [city, resolution, propertyType, estrato, data?.cellCount],
   );
+
+  const nextSteps = useMemo(() => {
+    const links = buildListingContextLinks({
+      lang,
+      city,
+      propertyType: propertyType !== "all" ? propertyType : null,
+      estrato: estrato !== "all" ? Number.parseInt(estrato, 10) : null,
+    })
+    return [
+      {
+        title: txt.nextStepsExploreTitle,
+        description: txt.nextStepsExploreDesc,
+        href: links.exploreHref,
+        cta: txt.exploreNav,
+      },
+      {
+        title: txt.nextStepsOpportunitiesTitle,
+        description: txt.nextStepsOpportunitiesDesc,
+        href: links.opportunitiesHref,
+        cta: txt.opportunitiesNav,
+      },
+      {
+        title: txt.nextStepsAnalyzeTitle,
+        description: txt.nextStepsAnalyzeDesc,
+        href: links.analyzeHref,
+        cta: txt.analyzeUrlNav,
+      },
+    ]
+  }, [city, estrato, lang, propertyType, txt])
 
   const selectedForMap = useMemo(
     () =>
@@ -369,6 +400,8 @@ export default function H3Heatmap({
             ) : null}
           </Card>
         ) : null}
+
+        <ToolNextSteps title={txt.nextStepsTitle} steps={nextSteps} />
       </main>
 
       <PageFooter />

@@ -3,6 +3,7 @@ import { getGlobalDataFreshness } from "@/lib/getDataFreshness";
 import { DEFAULT_OPPORTUNITIES_CITY } from "@/lib/getTopOpportunities";
 import { getCachedDashboardSummary, getCachedTopOpportunities } from "@/lib/serverCache";
 import { getZoneCities, getZoneCountsByCity, getZonesForCity } from "@/lib/getZonesIndex";
+import { cityNameToSlug } from "@/lib/getCityFromSlug";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
 import type { PublishableZone } from "@/lib/zones";
 
@@ -12,6 +13,8 @@ export type HomePageData = {
   cityCount: number;
   activeListings: number;
   lastScrapedAt: string | null;
+  featuredCity: string;
+  featuredCitySlug: string;
   featuredZones: PublishableZone[];
   featuredCities: Array<{ name: string; slug: string; zoneCount: number }>;
   featuredOpportunities: OpportunityRow[];
@@ -48,6 +51,8 @@ export async function getHomePageData(): Promise<HomePageData> {
     cityCount: summary.cityCount,
     activeListings: summary.activeListings,
     lastScrapedAt: freshness.lastScrapedAt?.toISOString() ?? null,
+    featuredCity,
+    featuredCitySlug: cityNameToSlug(featuredCity),
     featuredZones,
     featuredCities: featuredCities.slice(0, 8),
     featuredOpportunities: featuredOpportunitiesResult.items,

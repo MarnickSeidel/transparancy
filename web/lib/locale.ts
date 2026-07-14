@@ -106,6 +106,14 @@ export function localePath(locale: Locale, path: string): string {
   return p === "/" ? "/en" : `/en${p}`;
 }
 
+/** Tool route with optional query string, locale-prefixed for English. */
+export function localeToolPath(locale: Locale, path: string, search = ""): string {
+  const base = localePath(locale, path.split("?")[0]);
+  if (!search) return base;
+  const qs = search.startsWith("?") ? search.slice(1) : search;
+  return `${base}?${qs}`;
+}
+
 /** Resolve nav/footer hrefs that may use translated slugs. */
 export function resolveNavHref(href: string, locale: Locale): string {
   if (href === OPPORTUNITIES_CANONICAL || href === "/opportunities") {

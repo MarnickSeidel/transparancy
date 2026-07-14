@@ -19,7 +19,7 @@ import {
   DEFAULT_OPPORTUNITIES_CITY,
   type OpportunityRow,
 } from "@/lib/getTopOpportunities"
-import { localePath, type Locale } from "@/lib/locale"
+import { listingPath, localePath, localeToolPath, type Locale } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { uiText } from "@/lib/i18n"
 import { useUiLang } from "@/lib/useUiLang"
@@ -50,7 +50,7 @@ const content: Record<"es" | "en", Content> = {
     heading: "Precio por m² con contexto de barrio, no solo anuncios.",
     blurb:
       "Compara cada publicación contra la mediana de su zona, estrato y tipo. Barrios en Pereira, Medellín, Bogotá y más — inventario actualizado periódicamente desde Finca Raíz.",
-    ctaPrimary: "Pegar URL de anuncio",
+    ctaPrimary: "¿Buen precio?",
     ctaSecondary: "Explorar barrios",
     dealsLabel: "Oportunidades recientes",
     statsLoading: "Cargando datos…",
@@ -90,7 +90,7 @@ const content: Record<"es" | "en", Content> = {
         title: "Analizar un anuncio",
         description: "Pega una URL de Finca Raíz y recibe veredicto con comparables.",
         href: "/analyze-url",
-        cta: "Analizar URL",
+        cta: "¿Buen precio?",
       },
       {
         title: "Encontrar oportunidades",
@@ -105,7 +105,7 @@ const content: Record<"es" | "en", Content> = {
     heading: "Price per m² with neighborhood context — not just listings.",
     blurb:
       "Compare every listing against its zone median, estrato, and property type. Neighborhoods across Pereira, Medellín, Bogotá, and more — inventory refreshed periodically from Finca Raíz.",
-    ctaPrimary: "Paste listing URL",
+    ctaPrimary: "Good deal?",
     ctaSecondary: "Browse neighborhoods",
     dealsLabel: "Recent opportunities",
     statsLoading: "Loading live data…",
@@ -145,19 +145,20 @@ const content: Record<"es" | "en", Content> = {
         title: "Analyze a listing",
         description: "Paste a Finca Raíz URL for a verdict with comparables.",
         href: "/analyze-url",
-        cta: "Analyze URL",
+        cta: "Good deal?",
       },
       {
         title: "Find opportunities",
         description: "Ranked listings priced below neighborhood medians.",
         href: "/oportunidades",
-        cta: "View deals",
+        cta: "Deals",
       },
     ],
   },
 }
 
 type OpportunityCard = {
+  id: string
   zone: string
   city: string
   type: string
@@ -168,7 +169,8 @@ type OpportunityCard = {
   discountPct: number | null
   sampleSize: number | null
   imageUrl: string | null
-  href: string
+  detailHref: string
+  sourceHref: string
 }
 
 type Props = {
@@ -182,6 +184,7 @@ const mapOpportunityCards = (
   localeFmt: string,
 ): OpportunityCard[] =>
   opportunities.map((o) => ({
+    id: o.id,
     zone: o.neighborhood?.trim() || o.city,
     city: o.city,
     type: propertyTypeLabel(o.propertyType, lang),
@@ -195,7 +198,8 @@ const mapOpportunityCards = (
     discountPct: o.discountVsRefPct,
     sampleSize: o.compSampleSize ?? null,
     imageUrl: o.imageUrl ?? null,
-    href: o.url,
+    detailHref: listingPath(lang, o.id),
+    sourceHref: o.url,
   }))
 
 export default function HomePage({ locale: pageLocale = "es", initialData }: Props) {
@@ -239,10 +243,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
       ? mapOpportunityCards(initialData.featuredOpportunities, lang, localeFmt)
       : [],
   )
-  const featuredCity =
-    initialData?.featuredCities[0]?.name ??
-    initialData?.featuredZones[0]?.displayName ??
-    "Pereira"
+  const featuredCity = initialData?.featuredCity ?? "Pereira"
   const zonePreviews =
     initialData?.featuredZones.slice(0, 6).map((z) => ({
       name: z.displayName,
@@ -320,7 +321,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
     e.preventDefault()
     const trimmed = inlineUrl.trim()
     if (!trimmed) return
-    router.push(`/analyze-url?url=${encodeURIComponent(trimmed)}`)
+    router.push(localeToolPath(lang, "/analyze-url", `url=${encodeURIComponent(trimmed)}`))
   }
 
   return (
@@ -363,14 +364,33 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
             </form>
 
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button href="/analyze-url">{copy.ctaPrimary}</Button>
+              <Button href={lp("/analyze-url")}>{copy.ctaPrimary}</Button>
               <Button href={lp("/zones")} variant="secondary">
                 {copy.ctaSecondary}
               </Button>
-              <Button href="/price-drops" variant="secondary">
+              <Button href={lp("/price-drops")} variant="secondary">
                 {txt.priceDropsNav}
               </Button>
             </div>
+
+            <section className="mt-8" aria-labelledby="home-journeys-heading">
+              <h2 id="home-journeys-heading" className="text-display text-lg font-semibold">
+                {copy.journeysTitle}
+              </h2>
+              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                {copy.journeys.map((journey) => (
+                  <Link
+                    key={journey.title}
+                    href={lp(journey.href)}
+                    className="surface-panel block p-4 transition hover:border-accent/35 hover:shadow-card-hover link-focus"
+                  >
+                    <h3 className="text-display text-sm font-semibold text-foreground">{journey.title}</h3>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted">{journey.description}</p>
+                    <span className="mt-3 inline-flex text-xs font-semibold text-accent">{journey.cta} →</span>
+                  </Link>
+                ))}
+              </div>
+            </section>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
               {highlights.map((item) => (
@@ -394,26 +414,19 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
             ) : null}
           </div>
 
-          <div className="relative z-10 space-y-4">
-            {zonePreviews.length > 0 ? (
-              <CartographicPreview
-                cityName={featuredCity}
-                zones={zonePreviews}
-                locale={localeFmt}
-                heatmapHref="/heatmap"
-                labels={{
-                  title: copy.mapTitle,
-                  viewMap: copy.mapView,
-                  median: copy.mapMedian,
-                  listings: copy.mapListings,
-                }}
-              />
-            ) : (
-              <Skeleton className="min-h-[320px] w-full rounded-2xl" />
-            )}
-
+          <div className="relative z-10">
             <div className="surface-panel p-4 sm:p-5">
-              <p className="text-section-label">{copy.dealsLabel}</p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-section-label">{copy.dealsLabel}</p>
+                {cards.length > 0 ? (
+                  <Link
+                    href={lp("/oportunidades")}
+                    className="text-xs font-semibold text-accent hover:underline link-focus"
+                  >
+                    {txt.nextStepsViewAllDeals} →
+                  </Link>
+                ) : null}
+              </div>
               <div className="mt-3 space-y-3">
                 {cards.length === 0 && !statsFailed ? (
                   <>
@@ -422,12 +435,10 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                   </>
                 ) : null}
                 {cards.map((card) => (
-                  <a
-                    key={`${card.zone}-${card.href}`}
-                    href={card.href}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="flex gap-3 rounded-lg border border-border-subtle bg-elevated p-3 transition hover:border-accent/35 hover:shadow-sm"
+                  <Link
+                    key={card.id}
+                    href={card.detailHref}
+                    className="flex gap-3 rounded-lg border border-border-subtle bg-elevated p-3 transition hover:border-accent/35 hover:shadow-sm link-focus"
                   >
                     <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-surface">
                       {card.imageUrl ? (
@@ -465,43 +476,26 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                         <p className="mt-1 text-meta">n={card.sampleSize} comparables</p>
                       ) : null}
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
           </div>
         </div>
 
-        <section className="mt-14" aria-labelledby="home-journeys-heading">
-          <h2 id="home-journeys-heading" className="text-display text-xl font-semibold">
-            {copy.journeysTitle}
-          </h2>
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {copy.journeys.map((journey) => (
-              <Link
-                key={journey.title}
-                href={lp(journey.href)}
-                className="surface-panel block p-5 transition hover:border-accent/35 hover:shadow-card-hover link-focus"
-              >
-                <h3 className="text-display text-base font-semibold text-foreground">{journey.title}</h3>
-                <p className="mt-2 text-sm leading-relaxed text-muted">{journey.description}</p>
-                <span className="mt-4 inline-flex text-sm font-semibold text-accent">{journey.cta} →</span>
-              </Link>
-            ))}
-          </div>
-        </section>
-
         {initialData && initialData.featuredCities.length > 0 ? (
-          <section className="mt-14">
-            <h2 className="text-display text-xl font-semibold">
-              {lang === "en" ? "Explore by city" : "Explorar por ciudad"}
+          <section className="mt-14" aria-labelledby="home-cities-heading">
+            <h2 id="home-cities-heading" className="text-display text-xl font-semibold">
+              {txt.homepageCitiesTitle}
             </h2>
+            <p className="mt-1 text-sm text-muted">{txt.homepageCitiesHint}</p>
             <div className="mt-4 flex flex-wrap gap-2">
               {initialData.featuredCities.map((c) => (
                 <Link
                   key={c.slug}
                   href={lp(`/zones/${c.slug}`)}
-                  className="rounded-lg border border-border-subtle bg-elevated px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-surface"
+                  className="rounded-lg border border-border-subtle bg-elevated px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-surface link-focus"
+                  aria-label={`${c.name} — ${c.zoneCount} ${lang === "en" ? "neighborhoods" : "barrios"}`}
                 >
                   {c.name} <span className="text-muted">({c.zoneCount})</span>
                 </Link>
@@ -533,6 +527,23 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                 </Link>
               ))}
             </div>
+          </section>
+        ) : null}
+
+        {zonePreviews.length > 0 ? (
+          <section className="mt-14">
+            <CartographicPreview
+              cityName={featuredCity}
+              zones={zonePreviews}
+              locale={localeFmt}
+              heatmapHref={lp("/heatmap")}
+              labels={{
+                title: copy.mapTitle,
+                viewMap: copy.mapView,
+                median: copy.mapMedian,
+                listings: copy.mapListings,
+              }}
+            />
           </section>
         ) : null}
 

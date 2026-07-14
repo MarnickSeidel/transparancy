@@ -260,8 +260,9 @@ type RawZoneRow = {
   missing_count: bigint;
 };
 
-export function mapRawZoneRow(row: RawZoneRow, citySlug: string): PublishableZone {
+export function mapRawZoneRow(row: RawZoneRow, citySlug?: string): PublishableZone {
   const bucketKey = row.bucket_key;
+  const resolvedCitySlug = citySlugFromBucketKey(bucketKey) || citySlug || row.city.toLowerCase().replace(/\s+/g, "-");
   const confidenceMix = {
     catalog: Number(row.catalog_count),
     source_id: Number(row.source_id_count),
@@ -273,7 +274,7 @@ export function mapRawZoneRow(row: RawZoneRow, citySlug: string): PublishableZon
     slug: zoneSlugFromBucketKey(bucketKey),
     displayName: row.display_name?.trim() || bucketKey.split(":").slice(1).join(":"),
     city: row.city,
-    citySlug,
+    citySlug: resolvedCitySlug,
     bucketKey,
     listingCount: Number(row.listing_count),
     dataPointCount: Number(row.data_point_count),

@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import PageFooter from "@/app/components/PageFooter";
 import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
+import SearchableSelect, { matchesSearchQuery } from "@/app/components/ui/SearchableSelect";
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
@@ -60,12 +62,14 @@ export default function ZonesIndex({
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
   const lp = (path: string) => localePath(lang, path);
+  const router = useRouter();
 
   const [city, setCity] = useState(initialCity ?? DEFAULT_ZONE_CITY);
   const [cities, setCities] = useState<string[]>(initialCities ?? [DEFAULT_ZONE_CITY]);
   const [data, setData] = useState<ZonesResponse | null>(initialData ?? null);
   const [loading, setLoading] = useState(initialData == null);
   const [error, setError] = useState<string | null>(null);
+  const [filterQuery, setFilterQuery] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -100,6 +104,34 @@ export default function ZonesIndex({
   const zones = data?.zones ?? [];
   const minDataPoints = data?.minDataPoints ?? data?.minCount ?? DEFAULT_MIN_ZONE_DATA_POINTS;
   const citySlug = data?.citySlug ?? city.toLowerCase().replace(/\s+/g, "-");
+
+  const zoneOptions = useMemo(
+    () => zones.map((zone) => ({ value: zone.slug, label: zone.displayName })),
+    [zones],
+  );
+
+  const filteredZones = useMemo(() => {
+    if (!filterQuery.trim()) return zones;
+    return zones.filter((zone) =>
+      matchesSearchQuery(zone.displayName, filterQuery, "contains"),
+    );
+  }, [filterQuery, zones]);
+
+  const handleZoneSelect = useCallback(
+    (slug: string) => {
+      if (!slug) return;
+      router.push(lp(`/zones/${citySlug}/${slug}`));
+    },
+    [citySlug, lp, router],
+  );
+
+  const handleQueryChange = useCallback((query: string) => {
+    setFilterQuery(query);
+  }, []);
+
+  useEffect(() => {
+    setFilterQuery("");
+  }, [city]);
 
   const subtitle = useMemo(
     () => fmtTemplate(txt.zonesMinCountNote, { n: minDataPoints }),
@@ -147,6 +179,31 @@ export default function ZonesIndex({
           </Link>
         </Card>
 
+        {!loading && zones.length > 0 ? (
+          <Card className="mb-6 border-slate-200/90 p-4 shadow-card">
+            <label className="block text-xs font-medium text-muted" htmlFor="zones-barrio-search">
+              {txt.zonesSearchLabel}
+            </label>
+            <SearchableSelect
+              id="zones-barrio-search"
+              options={zoneOptions}
+              value=""
+              onChange={handleZoneSelect}
+              onQueryChange={handleQueryChange}
+              filterMode="contains"
+              placeholder={txt.zonesSearchPlaceholder}
+              noResultsLabel={txt.zonesSearchNoResults}
+              aria-label={txt.zonesSearchPlaceholder}
+              className="mt-1.5 max-w-xl"
+            />
+            {filterQuery.trim() ? (
+              <p className="mt-2 text-xs text-muted">
+                {fmtTemplate(txt.zonesSearchResults, { count: filteredZones.length })}
+              </p>
+            ) : null}
+          </Card>
+        ) : null}
+
         {loading ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
@@ -157,9 +214,13 @@ export default function ZonesIndex({
           <Card>
             <p className="text-sm text-muted">{txt.zonesEmpty}</p>
           </Card>
+        ) : filteredZones.length === 0 ? (
+          <Card>
+            <p className="text-sm text-muted">{txt.zonesSearchNoResults}</p>
+          </Card>
         ) : (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {zones.map((zone) => (
+            {filteredZones.map((zone) => (
               <Link
                 key={zone.slug}
                 href={lp(`/zones/${citySlug}/${zone.slug}`)}

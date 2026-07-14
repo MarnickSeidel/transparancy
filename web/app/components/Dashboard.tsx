@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import EmailSignupForm from "@/app/components/EmailSignupForm";
+import ToolNextSteps from "@/app/components/ToolNextSteps";
 import PageFooter from "./PageFooter";
 import CollapsibleSection from "./CollapsibleSection";
 import SiteHeader from "./SiteHeader";
@@ -12,7 +13,8 @@ import Skeleton from "./ui/Skeleton";
 import TrustMeta from "./TrustMeta";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { MIN_SAMPLE_SIZE } from "@/lib/analytics";
-import { opportunitiesPath } from "@/lib/locale";
+import { opportunitiesPath, localePath } from "@/lib/locale";
+import { buildListingContextLinks } from "@/lib/listingContextLinks";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 import { DEFAULT_ZONE_CITY } from "@/lib/zones";
@@ -147,6 +149,36 @@ export default function Dashboard() {
     const s = p.toString();
     return s ? `?${s}` : "";
   }, [city, estrato, neighborhood]);
+
+  const nextSteps = useMemo(() => {
+    const ctxCity = city !== "all" ? city : DEFAULT_ZONE_CITY
+    const links = buildListingContextLinks({
+      lang,
+      city: ctxCity,
+      neighborhood: neighborhood !== "all" ? neighborhood : null,
+      estrato: estrato !== "all" ? Number.parseInt(estrato, 10) : null,
+    })
+    return [
+      {
+        title: txt.nextStepsOpportunitiesTitle,
+        description: txt.nextStepsOpportunitiesDesc,
+        href: links.opportunitiesHref,
+        cta: txt.opportunitiesNav,
+      },
+      {
+        title: txt.nextStepsHeatmapTitle,
+        description: txt.nextStepsHeatmapDesc,
+        href: links.heatmapHref,
+        cta: txt.heatmapNav,
+      },
+      {
+        title: txt.nextStepsAnalyzeTitle,
+        description: txt.nextStepsAnalyzeDesc,
+        href: links.analyzeHref,
+        cta: txt.analyzeUrlNav,
+      },
+    ]
+  }, [city, estrato, lang, neighborhood, txt])
 
   const qualifiedMonthlyStats = useMemo(
     () => monthlyStats.filter((r) => r.minSampleMet && r.medianPpm2 != null),
@@ -359,7 +391,7 @@ export default function Dashboard() {
               {txt.dashboardSeeOpportunities}
             </Link>
             <Link
-              href="/estimate"
+              href={localePath(lang, "/estimate")}
               className="rounded-xl border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-100"
             >
               {txt.dashboardOpenEstimator}
@@ -780,6 +812,8 @@ export default function Dashboard() {
           </div>
         </section>
         </CollapsibleSection>
+
+        <ToolNextSteps title={txt.nextStepsTitle} steps={nextSteps} />
 
         <EmailSignupForm
           lang={lang}

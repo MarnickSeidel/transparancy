@@ -1,13 +1,14 @@
 import type { Metadata, Viewport } from "next";
 
+import { BRAND_COLOR, BRAND_COPY, BRAND_LOGO, BRAND_NAME } from "@/lib/brand";
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { opportunitiesPath, ogLocale, type Locale } from "@/lib/locale";
 import { localeOgImage, ogImageMeta, opportunitiesOgImage } from "@/lib/ogImages";
 import { absoluteUrl } from "@/lib/siteUrl";
 
 export const defaultSiteMetadata = {
-  siteName: "Habidata",
-  defaultTitle: "Habidata — Inteligencia inmobiliaria con datos en Colombia",
+  siteName: BRAND_NAME,
+  defaultTitle: BRAND_COPY.es.defaultTitle,
   defaultDescription:
     "Analítica de publicaciones Finca Raíz: precio/m² por barrio, oportunidades infravaloradas, mapas y estimadores para inversionistas en Colombia.",
 };
@@ -18,7 +19,7 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
 
   const defaultTitle =
     locale === "en"
-      ? "Habidata — Real estate data intelligence for Colombia"
+      ? BRAND_COPY.en.defaultTitle
       : defaultSiteMetadata.defaultTitle;
   const defaultDescription =
     locale === "en"
@@ -29,7 +30,7 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
     metadataBase: new URL(absoluteUrl("/")),
     title: {
       default: defaultTitle,
-      template: "%s | Habidata",
+      template: `%s | ${BRAND_NAME}`,
     },
     description: defaultDescription,
     alternates: {
@@ -52,9 +53,9 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
       images: [localeOgImage(locale)],
     },
     icons: {
-      icon: "/branding/habidata-mark.svg",
-      shortcut: "/branding/habidata-mark.svg",
-      apple: "/branding/habidata-mark.svg",
+      icon: BRAND_LOGO.mark,
+      shortcut: BRAND_LOGO.mark,
+      apple: BRAND_LOGO.markImage,
     },
   };
 }
@@ -125,7 +126,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
   const alt = hreflangAlternates(path);
 
   if (locale === "en") {
-    const title = "Habidata — Spot undervalued property in Colombia";
+    const title = BRAND_COPY.en.homeTitle;
     const description =
       "Data-driven real estate platform: price/m² by neighborhood, deal scoring, heatmaps, and price estimator from Finca Raíz listings. Built for local and US investors.";
     const url = canonicalForLocale(path, locale);
@@ -146,7 +147,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
     };
   }
 
-  const title = "Habidata — Detecta propiedades infravaloradas en Colombia";
+  const title = BRAND_COPY.es.homeTitle;
   const description =
     "Plataforma de datos inmobiliarios: precio/m² por barrio, scoring de oportunidades, heatmaps y estimador basado en publicaciones Finca Raíz.";
   const url = alt.canonical;
@@ -171,5 +172,5 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
 export const siteViewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#c45c26",
+  themeColor: BRAND_COLOR,
 };

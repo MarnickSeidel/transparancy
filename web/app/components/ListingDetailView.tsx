@@ -10,6 +10,7 @@ import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection"
 import PageFooter from "@/app/components/PageFooter"
 import ShareReportActions from "@/app/components/ShareReportActions"
 import SiteHeader from "@/app/components/SiteHeader"
+import ToolNextSteps from "@/app/components/ToolNextSteps"
 import VerdictBanner from "@/app/components/VerdictBanner"
 import WhyDealPanel from "@/app/components/WhyDealPanel"
 import Button from "@/app/components/ui/Button"
@@ -21,6 +22,7 @@ import { formatFreshnessDate } from "@/lib/getDataFreshness"
 import type { ListingDetailResponse } from "@/lib/getListingDetail"
 import { uiText } from "@/lib/i18n"
 import { listingPath, opportunitiesPath, type Locale } from "@/lib/locale"
+import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import type { SharedAnalyzePayload } from "@/lib/shareReport"
 import { useUiLang } from "@/lib/useUiLang"
@@ -159,6 +161,44 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
     if (data.listing.propertyType) p.set("propertyType", data.listing.propertyType)
     return opportunitiesPath(lang, p.toString())
   }, [data.listing.city, data.listing.neighborhood, data.listing.propertyType, lang])
+
+  const nextSteps = useMemo(() => {
+    const links = buildListingContextLinks({
+      lang,
+      city: data.listing.city,
+      neighborhood: data.listing.neighborhood,
+      propertyType: data.listing.propertyType,
+      estrato: data.listing.estrato,
+      areaM2: data.listing.areaM2,
+    })
+    const nb = data.listing.neighborhood?.trim()
+    return [
+      links.zoneHref
+        ? {
+            title: nb
+              ? txt.nextStepsZoneBarrio.replace("{barrio}", nb)
+              : txt.nextStepsZonesTitle,
+            description: txt.nextStepsZonesDesc,
+            href: links.zoneHref,
+            cta: txt.zonesNav,
+          }
+        : null,
+      {
+        title: nb
+          ? txt.nextStepsExploreBarrio.replace("{barrio}", nb)
+          : txt.nextStepsExploreTitle,
+        description: txt.nextStepsExploreDesc,
+        href: links.exploreHref,
+        cta: txt.exploreNav,
+      },
+      {
+        title: txt.nextStepsAnalyzeTitle,
+        description: txt.nextStepsAnalyzeDesc,
+        href: links.analyzeHref,
+        cta: txt.analyzeUrlNav,
+      },
+    ].filter((step): step is NonNullable<typeof step> => step != null).slice(0, 3)
+  }, [data.listing, lang, txt])
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -426,6 +466,8 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
               </table>
             </div>
           </section>
+
+          <ToolNextSteps title={txt.nextStepsTitle} steps={nextSteps} />
         </div>
       </main>
 

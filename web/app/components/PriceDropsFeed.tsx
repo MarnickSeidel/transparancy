@@ -16,6 +16,7 @@ import { fetchJsonCached } from "@/lib/clientFetchCache"
 import type { FiltersData } from "@/lib/getFiltersData"
 import { formatDomDays } from "@/lib/formatDom"
 import { uiText } from "@/lib/i18n"
+import { localePath } from "@/lib/locale"
 import type { PriceDropRow } from "@/lib/getPriceDrops"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { useUiLang } from "@/lib/useUiLang"
@@ -100,7 +101,7 @@ export default function PriceDropsFeed({
     }
   }, [city, txt.couldNotLoad])
 
-  const analyzeHref = useMemo(() => "/analyze-url", [])
+  const analyzeHref = useMemo(() => localePath(lang, "/analyze-url"), [lang])
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -222,7 +223,7 @@ export default function PriceDropsFeed({
           title={txt.priceDropsAnalyzeCta}
           description=""
           href={analyzeHref}
-          cta={txt.analyzeUrlNav}
+          cta={txt.analyzeUrlCta}
         />
       </main>
 

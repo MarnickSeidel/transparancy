@@ -20,6 +20,8 @@ type Props = {
   lang: Lang
   locale: string
   compact?: boolean
+  /** Hide the default listing title (e.g. zone dossiers use their own heading). */
+  hideTitle?: boolean
 }
 
 const categoryLabel = (lang: Lang, id: PoiCategoryId): string => {
@@ -88,6 +90,7 @@ export default function NearbyAmenitiesCard({
   lang,
   locale,
   compact = false,
+  hideTitle = false,
 }: Props) {
   const txt = uiText[lang]
   const [expandedId, setExpandedId] = useState<PoiCategoryId | null>(null)
@@ -102,8 +105,8 @@ export default function NearbyAmenitiesCard({
   if (!hasCoordinates) {
     return (
       <Card className="border-slate-200/90 shadow-card">
-        <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>
-        <p className="mt-2 text-sm text-muted">{txt.nearbyAmenitiesNoGeo}</p>
+        {hideTitle ? null : <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>}
+        <p className={`text-sm text-muted ${hideTitle ? "" : "mt-2"}`}>{txt.nearbyAmenitiesNoGeo}</p>
       </Card>
     )
   }
@@ -111,8 +114,8 @@ export default function NearbyAmenitiesCard({
   if (loading) {
     return (
       <Card className="border-slate-200/90 shadow-card">
-        <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>
-        <p className="mt-1 text-xs text-muted">
+        {hideTitle ? null : <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>}
+        <p className={`text-xs text-muted ${hideTitle ? "" : "mt-1"}`}>
           {txt.nearbyAmenitiesSubtitle.replace("{radius}", radiusKm)}
         </p>
         <div className="mt-4 space-y-3">
@@ -130,8 +133,8 @@ export default function NearbyAmenitiesCard({
 
   return (
     <Card className="border-slate-200/90 shadow-card">
-      <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>
-      <p className="mt-1 text-xs text-muted">
+      {hideTitle ? null : <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>}
+      <p className={`text-xs text-muted ${hideTitle ? "" : "mt-1"}`}>
         {txt.nearbyAmenitiesSubtitle.replace("{radius}", radiusKm)}
       </p>
 

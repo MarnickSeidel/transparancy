@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { localePath, opportunitiesPath, stripLocalePrefix } from "@/lib/locale";
+import { BRAND_COPY, BRAND_NAME } from "@/lib/brand";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -32,10 +33,10 @@ export default function PageFooter() {
               href={lp("/")}
               className="text-display link-focus text-sm font-semibold text-foreground transition hover:text-accent"
             >
-              Habidata
+              {BRAND_NAME}
             </Link>
             <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted">
-              {txt.siteFooterTagline}
+              {locale === "en" ? BRAND_COPY.en.footerTagline : BRAND_COPY.es.footerTagline}
             </p>
           </div>
           <div>
@@ -107,7 +108,7 @@ export default function PageFooter() {
           className="mt-10"
         />
 
-        <p className="mt-8 text-meta tabular-nums">© {year} Habidata · Finca Raíz data</p>
+        <p className="mt-8 text-meta tabular-nums">© {year} {BRAND_NAME} · Finca Raíz data</p>
       </div>
     </footer>
   );

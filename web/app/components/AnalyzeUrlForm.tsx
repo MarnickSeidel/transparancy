@@ -13,11 +13,13 @@ import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
 import SiteHeader from "@/app/components/SiteHeader"
+import ToolNextSteps from "@/app/components/ToolNextSteps"
 import WhyDealPanel from "@/app/components/WhyDealPanel"
 import type { WhyDeal } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
 import { opportunitiesPath } from "@/lib/locale"
+import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { uiText } from "@/lib/i18n"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { useUiLang } from "@/lib/useUiLang"
@@ -132,6 +134,53 @@ export default function AnalyzeUrlForm() {
     if (data.listing.propertyType) p.set("propertyType", data.listing.propertyType)
     return opportunitiesPath(lang, p.toString())
   }, [data, lang])
+
+  const nextSteps = useMemo(() => {
+    if (!data) return []
+    const links = buildListingContextLinks({
+      lang,
+      city: data.listing.city,
+      neighborhood: data.listing.neighborhood,
+      propertyType: data.listing.propertyType,
+      estrato: data.listing.estrato,
+      areaM2: data.listing.areaM2,
+    })
+    const nb = data.listing.neighborhood?.trim()
+    const steps = [
+      links.zoneHref
+        ? {
+            title: nb
+              ? txt.nextStepsZoneBarrio.replace("{barrio}", nb)
+              : txt.nextStepsZonesTitle,
+            description: txt.nextStepsZonesDesc,
+            href: links.zoneHref,
+            cta: txt.zonesNav,
+          }
+        : null,
+      {
+        title: nb
+          ? txt.nextStepsExploreBarrio.replace("{barrio}", nb)
+          : txt.nextStepsExploreTitle,
+        description: txt.nextStepsExploreDesc,
+        href: links.exploreHref,
+        cta: txt.exploreNav,
+      },
+      {
+        title: txt.nextStepsOpportunitiesTitle,
+        description: txt.nextStepsOpportunitiesDesc,
+        href: links.opportunitiesHref,
+        cta: txt.opportunitiesNav,
+      },
+      {
+        title: txt.nextStepsEstimateTitle,
+        description: txt.nextStepsEstimateDesc,
+        href: links.estimateHref,
+        cta: txt.estimateNav,
+      },
+    ].filter((step): step is NonNullable<typeof step> => step != null)
+
+    return steps.slice(0, 3)
+  }, [data, lang, txt])
 
   const priceTimelinePoints = useMemo(
     () =>
@@ -520,6 +569,8 @@ export default function AnalyzeUrlForm() {
                 </table>
               </div>
             </section>
+
+            <ToolNextSteps title={txt.nextStepsTitle} steps={nextSteps} />
           </div>
         ) : null}
       </main>

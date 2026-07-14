@@ -25,6 +25,7 @@ import { uiText } from "@/lib/i18n";
 import { normalizeNeighborhoodKey, resolveNeighborhoodLabel } from "@/lib/neighborhoods";
 import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
 import { similarListingsHref, similarOpportunitiesHref } from "@/lib/similarListingsQuery";
+import { localePath, localeToolPath } from "@/lib/locale";
 import { useUiLang } from "@/lib/useUiLang";
 
 const EstimateMapPicker = dynamic(() => import("./EstimateMapPicker"), {
@@ -329,17 +330,17 @@ export default function EstimateForm({
 
   const resultLinks = useMemo(() => {
     if (!result || !submitted) return null;
-    const exploreHref = similarListingsHref(result, submitted);
+    const exploreHref = similarListingsHref(result, submitted, lang);
     const opportunitiesHref = similarOpportunitiesHref(result, submitted, lang);
     const p = new URLSearchParams();
     p.set("city", result.city);
     const nb = submitted.useGeo ? "" : submitted.neighborhood.trim();
     if (nb) p.set("neighborhood", nb);
     if (submitted.propertyType.trim()) p.set("propertyType", submitted.propertyType.trim());
-    const analyzeHref = `/analyze-url?${p.toString()}`;
+    const analyzeHref = localeToolPath(lang, "/analyze-url", p.toString());
     const zoneHref =
       nb && result.city
-        ? `/zones/${encodeURIComponent(cityNameToSlug(result.city))}/${encodeURIComponent(normalizeNeighborhoodKey(nb))}`
+        ? localePath(lang, `/zones/${encodeURIComponent(cityNameToSlug(result.city))}/${encodeURIComponent(normalizeNeighborhoodKey(nb))}`)
         : null;
     return { exploreHref, opportunitiesHref, analyzeHref, zoneHref };
   }, [result, submitted, lang]);

@@ -13,6 +13,7 @@ type Props = {
   radiusM?: number
   compact?: boolean
   className?: string
+  hideTitle?: boolean
 }
 
 export default function NearbyAmenitiesSection({
@@ -24,6 +25,7 @@ export default function NearbyAmenitiesSection({
   radiusM,
   compact = false,
   className = "",
+  hideTitle = false,
 }: Props) {
   const { data, loading, hasCoordinates } = useNearbyAmenities(latitude, longitude, {
     enabled,
@@ -41,6 +43,7 @@ export default function NearbyAmenitiesSection({
         lang={lang}
         locale={locale}
         compact={compact}
+        hideTitle={hideTitle}
       />
     </div>
   )

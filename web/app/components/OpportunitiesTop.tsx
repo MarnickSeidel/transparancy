@@ -3,6 +3,8 @@ import dynamic from "next/dynamic"
 import { Fragment, useCallback, useEffect, useMemo, useState } from "react"
 
 import PageFooter from "@/app/components/PageFooter"
+import EmailSignupForm from "@/app/components/EmailSignupForm"
+import ToolNextSteps from "@/app/components/ToolNextSteps"
 import CollapsibleSection from "@/app/components/CollapsibleSection"
 import OpportunityMobileCard from "@/app/components/OpportunityMobileCard"
 import ListingThumbnail from "@/app/components/ListingThumbnail"
@@ -22,6 +24,7 @@ import {
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
 } from "@/lib/getTopOpportunities"
 import { listingPath } from "@/lib/locale"
+import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { uiText } from "@/lib/i18n"
 import { propertyTypeOptions } from "@/lib/propertyTypes"
 import { useUiLang } from "@/lib/useUiLang"
@@ -260,6 +263,35 @@ export default function OpportunitiesTop({
     similarFilters,
     sortBy,
   ])
+
+  const nextSteps = useMemo(() => {
+    const links = buildListingContextLinks({
+      lang,
+      city,
+      neighborhood: neighborhood !== "all" ? neighborhood : null,
+      propertyType: propertyType !== "all" ? propertyType : null,
+    })
+    return [
+      {
+        title: txt.nextStepsAnalyzeTitle,
+        description: txt.nextStepsAnalyzeDesc,
+        href: links.analyzeHref,
+        cta: txt.analyzeUrlNav,
+      },
+      {
+        title: txt.nextStepsExploreTitle,
+        description: txt.nextStepsExploreDesc,
+        href: links.exploreHref,
+        cta: txt.exploreNav,
+      },
+      {
+        title: txt.nextStepsHeatmapTitle,
+        description: txt.nextStepsHeatmapDesc,
+        href: links.heatmapHref,
+        cta: txt.heatmapNav,
+      },
+    ]
+  }, [city, lang, neighborhood, propertyType, txt])
 
   const clearSimilarFilters = () => {
     setSimilarFilters(null)
@@ -927,6 +959,20 @@ export default function OpportunitiesTop({
             </Card>
           </div>
         </div>
+
+        <ToolNextSteps title={txt.nextStepsTitle} steps={nextSteps} />
+
+        <EmailSignupForm
+          lang={lang}
+          source="opportunities"
+          title={txt.subscribeTitle}
+          hint={txt.subscribeHint}
+          defaultCity={city}
+          defaultLists={["deals_city", "price_drops_city"]}
+          visibleLists={["deals_city", "deals_neighborhood", "price_drops_city", "market_monthly_city"]}
+          collapsedByDefault
+          className="mt-8"
+        />
       </main>
       <PageFooter />
     </div>

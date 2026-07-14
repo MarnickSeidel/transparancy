@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { getCityFromSlug } from "@/lib/getCityFromSlug";
 import { queryMonthlyTrends } from "@/lib/monthlyTrends";
 import { prisma } from "@/lib/prisma";
 import {
@@ -21,6 +22,9 @@ export async function getZoneDossier(
   zoneSlug: string,
   minDataPoints = DEFAULT_MIN_ZONE_DATA_POINTS,
 ): Promise<ZoneDossier | null> {
+  const cityName = await getCityFromSlug(citySlug, minDataPoints);
+  if (!cityName) return null;
+
   const bucketKey = bucketKeyFromSlug(citySlug, zoneSlug);
 
   const summaryRows = await prisma.$queryRaw<
@@ -54,7 +58,7 @@ export async function getZoneDossier(
         COALESCE(l.quality_flags->>'neighborhood_confidence', 'missing') AS confidence
       FROM listings l
       WHERE l.is_active = true
-        AND l.city_slug = ${citySlug}
+        AND l.city = ${cityName}
     ),
     bucket AS (
       SELECT * FROM tagged WHERE bucket_key = ${bucketKey}

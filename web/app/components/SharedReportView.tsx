@@ -15,6 +15,7 @@ import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
+import { localePath } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import type { SharedAnalyzePayload } from "@/lib/shareReport"
 
@@ -141,7 +142,7 @@ export default function SharedReportView({
           <Button href={payload.listing.url} variant="secondary">
             {txt.analyzeOpenSource}
           </Button>
-          <Button href="/analyze-url" variant="secondary">
+          <Button href={localePath(lang, "/analyze-url")} variant="secondary">
             {txt.shareReportAnalyzeAnother}
           </Button>
         </div>

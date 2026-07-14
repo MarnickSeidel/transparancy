@@ -1,5 +1,6 @@
 import { Prisma } from "@prisma/client";
 
+import { cityNameToSlug } from "@/lib/getCityFromSlug";
 import { catalogKeyForCity } from "@/lib/neighborhoodResolver";
 import { prisma } from "@/lib/prisma";
 import {
@@ -100,7 +101,7 @@ export async function getZonesForCity(
   city: string,
   minDataPoints = DEFAULT_MIN_ZONE_DATA_POINTS,
 ): Promise<{ city: string; citySlug: string; minDataPoints: number; minCount: number; zones: PublishableZone[] }> {
-  const citySlug = city.toLowerCase().replace(/\s+/g, "-");
+  const citySlug = cityNameToSlug(city);
   let rows;
   try {
     rows = await queryZonesFromView(city, minDataPoints);

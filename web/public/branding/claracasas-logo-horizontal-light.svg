@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 48" role="img" aria-label="ClaraCasas">
+  <g transform="translate(2 4) scale(0.078)">
+    <circle cx="256" cy="248" r="232" fill="#EF7B38"/>
+    <path fill="#0f172a" d="M286 332 L352 268 L418 332 L418 438 L286 438 Z"/>
+    <rect x="328" y="368" width="22" height="22" rx="2" fill="#EF7B38"/>
+    <rect x="354" y="368" width="22" height="22" rx="2" fill="#EF7B38"/>
+    <rect x="328" y="394" width="22" height="22" rx="2" fill="#EF7B38"/>
+    <rect x="354" y="394" width="22" height="22" rx="2" fill="#EF7B38"/>
+  </g>
+  <text
+    x="48"
+    y="32"
+    font-family="Segoe UI, system-ui, -apple-system, sans-serif"
+    font-size="23"
+    font-weight="600"
+    letter-spacing="-0.03em"
+    fill="#1e293b"
+  >ClaraCasas</text>
+</svg>

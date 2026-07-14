@@ -23,7 +23,7 @@ import {
   type ZoneConfidence,
   type ZoneDossier,
 } from "@/lib/zones";
-import { localePath, opportunitiesPath, type Locale } from "@/lib/locale";
+import { localePath, localeToolPath, opportunitiesPath, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -121,12 +121,12 @@ export default function ZoneDossier({
   }, [load, initialData]);
 
   const exploreHref = useMemo(() => {
-    if (!data) return "/explore";
+    if (!data) return localePath(lang, "/explore");
     const p = new URLSearchParams();
     p.set("city", data.city);
     p.set("neighborhood", data.exploreNeighborhood);
-    return `/explore?${p.toString()}`;
-  }, [data]);
+    return localeToolPath(lang, "/explore", p.toString());
+  }, [data, lang]);
 
   const opportunitiesHref = useMemo(() => {
     if (!data) return opportunitiesPath(lang);
@@ -142,20 +142,20 @@ export default function ZoneDossier({
   }, [data]);
 
   const analyzeHref = useMemo(() => {
-    if (!data) return "/analyze-url";
+    if (!data) return localePath(lang, "/analyze-url");
     const p = new URLSearchParams();
     p.set("city", data.city);
     if (data.exploreNeighborhood) p.set("neighborhood", data.exploreNeighborhood);
-    return `/analyze-url?${p.toString()}`;
-  }, [data]);
+    return localeToolPath(lang, "/analyze-url", p.toString());
+  }, [data, lang]);
 
   const estimateHref = useMemo(() => {
-    if (!data) return "/estimate";
+    if (!data) return localePath(lang, "/estimate");
     const p = new URLSearchParams();
     p.set("city", data.city);
     if (data.exploreNeighborhood) p.set("neighborhood", data.exploreNeighborhood);
-    return `/estimate?${p.toString()}`;
-  }, [data]);
+    return localeToolPath(lang, "/estimate", p.toString());
+  }, [data, lang]);
 
   const lastUpdatedLabel = useMemo(() => {
     if (!data?.lastUpdatedAt) return null;
@@ -321,6 +321,7 @@ export default function ZoneDossier({
                   longitude={data.centroidLongitude}
                   lang={lang}
                   locale={locale}
+                  hideTitle
                 />
               </div>
             ) : null}

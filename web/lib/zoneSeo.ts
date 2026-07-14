@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { localePath, ogLocale, type Locale } from "@/lib/locale";
 import { ogImageMeta, zoneOgImage } from "@/lib/ogImages";
+import { BRAND_NAME } from "@/lib/brand";
 import { absoluteUrl } from "@/lib/siteUrl";
 import type { ZoneDossier } from "@/lib/zones";
 
@@ -26,15 +27,15 @@ export function zonePageMetadata(dossier: ZoneDossier, locale: Locale = "es"): M
   let description: string;
 
   if (locale === "en") {
-    title = `${displayName}, ${city} — Price per m² | Habidata`;
+    title = `${displayName}, ${city} — Price per m² | BRAND_NAME`;
     description = ppm2
       ? `Median asking price per m² in ${displayName}, ${city}: ${ppm2} COP. ${dossier.listingCount.toLocaleString("en-US")} active listings, ${dossier.opportunityCount} opportunities flagged. Finca Raíz data for US and international investors.`
-      : `Real estate market dossier for ${displayName}, ${city}, Colombia: active listings, median price/m², and monthly trends. Habidata.`;
+      : `Real estate market dossier for ${displayName}, ${city}, Colombia: active listings, median price/m², and monthly trends. BRAND_NAME.`;
   } else {
-    title = `Precio m² en ${displayName}, ${city} | Habidata`;
+    title = `Precio m² en ${displayName}, ${city} | BRAND_NAME`;
     description = ppm2
       ? `Mediana de precio por m² en ${displayName} (${city}): ${ppm2}. ${dossier.listingCount.toLocaleString("es-CO")} publicaciones activas, ${dossier.opportunityCount} oportunidades detectadas. Datos de anuncios Finca Raíz.`
-      : `Dossier de mercado inmobiliario en ${displayName}, ${city}: publicaciones activas, mediana de precio/m² y tendencia mensual. Habidata.`;
+      : `Dossier de mercado inmobiliario en ${displayName}, ${city}: publicaciones activas, mediana de precio/m² y tendencia mensual. BRAND_NAME.`;
   }
 
   const canonical = canonicalForLocale(path, locale);
@@ -49,7 +50,7 @@ export function zonePageMetadata(dossier: ZoneDossier, locale: Locale = "es"): M
       title,
       description,
       url: canonical,
-      siteName: "Habidata",
+      siteName: "BRAND_NAME",
       locale: ogLocale(locale),
       type: "article",
       images: published ? [ogImageMeta(ogImage)] : undefined,
@@ -83,7 +84,7 @@ export function zoneJsonLd(dossier: ZoneDossier, locale: Locale = "es") {
     inLanguage: locale === "en" ? "en-US" : "es-CO",
     creator: {
       "@type": "Organization",
-      name: "Habidata",
+      name: "BRAND_NAME",
       url: absoluteUrl("/"),
     },
     spatialCoverage: {
@@ -108,7 +109,7 @@ export function zonesIndexMetadata(locale: Locale = "es"): Metadata {
   const alt = hreflangAlternates(path);
 
   if (locale === "en") {
-    const title = "Neighborhood dossiers — price per m² by zone | Habidata";
+    const title = "Neighborhood dossiers — price per m² by zone | BRAND_NAME";
     const description =
       "Explore median price per m², active listings, and trends by neighborhood in Bogotá, Medellín, Cali, Pereira, and more Colombian cities. Data for local and US investors.";
     return {
@@ -119,14 +120,14 @@ export function zonesIndexMetadata(locale: Locale = "es"): Metadata {
         title,
         description,
         url: canonicalForLocale(path, locale),
-        siteName: "Habidata",
+        siteName: "BRAND_NAME",
         locale: ogLocale(locale),
       },
       twitter: { card: "summary", title, description },
     };
   }
 
-  const title = "Dossiers de barrios — precio m² por zona | Habidata";
+  const title = "Dossiers de barrios — precio m² por zona | BRAND_NAME";
   const description =
     "Explora mediana de precio por m², publicaciones activas y tendencias por barrio en Bogotá, Medellín, Cali, Pereira y más ciudades de Colombia.";
   return {
@@ -137,7 +138,7 @@ export function zonesIndexMetadata(locale: Locale = "es"): Metadata {
       title,
       description,
       url: alt.canonical,
-      siteName: "Habidata",
+      siteName: "BRAND_NAME",
       locale: ogLocale(locale),
     },
     twitter: { card: "summary", title, description },

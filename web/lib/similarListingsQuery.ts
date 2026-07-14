@@ -1,6 +1,6 @@
 import { MIN_ANALYTICS_AREA_M2 } from "@/lib/analytics"
 import type { Locale } from "@/lib/locale"
-import { opportunitiesPath } from "@/lib/locale"
+import { opportunitiesPath, localeToolPath } from "@/lib/locale"
 
 type EstimateResultLike = {
   city: string
@@ -76,8 +76,13 @@ export function buildSimilarOpportunitiesSearchParams(
 export function similarListingsHref(
   result: EstimateResultLike,
   submitted: EstimateSubmittedLike,
+  locale: Locale = "es",
 ): string {
-  return `/explore?${buildSimilarListingsSearchParams(result, submitted).toString()}`
+  return localeToolPath(
+    locale,
+    "/explore",
+    buildSimilarListingsSearchParams(result, submitted).toString(),
+  )
 }
 
 export function similarOpportunitiesHref(
