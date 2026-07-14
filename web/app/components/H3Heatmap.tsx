@@ -1,9 +1,8 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-import H3HeatmapMap from "@/app/components/H3HeatmapMap";
 import PageFooter from "@/app/components/PageFooter";
 import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
@@ -21,6 +20,11 @@ const mapPlaceholder = (
     …
   </div>
 );
+
+const H3HeatmapMap = dynamic(() => import("@/app/components/H3HeatmapMap"), {
+  ssr: false,
+  loading: () => mapPlaceholder,
+});
 
 type HeatmapResponse = {
   city: string;
@@ -78,11 +82,6 @@ export default function H3Heatmap({
   const [dossierHref, setDossierHref] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mapMounted, setMapMounted] = useState(false);
-
-  useEffect(() => {
-    setMapMounted(true);
-  }, []);
 
   const fmtPpm2 = useCallback(
     (v: number) => `$ ${Math.round(v).toLocaleString(locale)}`,
@@ -324,23 +323,19 @@ export default function H3Heatmap({
           </p>
         ) : null}
 
-        {mapMounted ? (
-          <H3HeatmapMap
-            center={mapCenterForCity(city)}
-            cells={data?.cells ?? []}
-            fitKey={mapFitKey}
-            selectedCell={selectedForMap}
-            onCellSelect={handleCellSelect}
-            formatPpm2={fmtPpm2}
-            tooltipForCell={(cell) =>
-              `${fmtPpm2(cell.medianPpm2)} · ${cell.count} ${txt.heatmapListingsShort}${
-                cell.topNeighborhood ? ` · ${cell.topNeighborhood}` : ""
-              }`
-            }
-          />
-        ) : (
-          mapPlaceholder
-        )}
+        <H3HeatmapMap
+          center={mapCenterForCity(city)}
+          cells={data?.cells ?? []}
+          fitKey={mapFitKey}
+          selectedCell={selectedForMap}
+          onCellSelect={handleCellSelect}
+          formatPpm2={fmtPpm2}
+          tooltipForCell={(cell) =>
+            `${fmtPpm2(cell.medianPpm2)} · ${cell.count} ${txt.heatmapListingsShort}${
+              cell.topNeighborhood ? ` · ${cell.topNeighborhood}` : ""
+            }`
+          }
+        />
 
         {selected ? (
           <Card className="mt-4 border-slate-200/90 p-4 shadow-card">
