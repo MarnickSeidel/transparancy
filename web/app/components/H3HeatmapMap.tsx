@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
 import type { FeatureCollection } from "geojson";
 import type { Layer } from "leaflet";
@@ -8,6 +8,7 @@ import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
+import { isValidColombiaCoordinate } from "@/lib/nearbyAmenities";
 import type { H3HeatCell } from "@/lib/h3Heatmap";
 
 function fixLeafletIcons() {
@@ -25,31 +26,76 @@ function fixLeafletIcons() {
   });
 }
 
-function FlyToCenter({
-  center,
-  zoom = 12,
+function FitCityCells({
+  cells,
+  cityCenter,
+  fitKey,
 }: {
-  center: [number, number];
-  zoom?: number;
+  cells: H3HeatCell[];
+  cityCenter: [number, number];
+  fitKey: string;
 }) {
   const map = useMap();
-  const [lat, lng] = center;
+  const lastFitKey = useRef<string | null>(null);
+
   useEffect(() => {
-    map.flyTo([lat, lng], zoom, { duration: 0.75 });
-  }, [lat, lng, zoom, map]);
+    if (lastFitKey.current === fitKey) return;
+    lastFitKey.current = fitKey;
+
+    if (cells.length === 0) {
+      map.setView(cityCenter, 12);
+      return;
+    }
+
+    const points: L.LatLngTuple[] = cells.flatMap((cell) =>
+      cell.boundary.filter(([lat, lng]) => isValidColombiaCoordinate(lat, lng)),
+    );
+
+    if (points.length === 0) {
+      map.setView(cityCenter, 12);
+      return;
+    }
+
+    const bounds = L.latLngBounds(points);
+    const ne = bounds.getNorthEast();
+    const sw = bounds.getSouthWest();
+    const latSpan = ne.lat - sw.lat;
+    const lngSpan = ne.lng - sw.lng;
+
+    // Outlier coords can span all of South America — stay on the city instead.
+    if (latSpan > 2.5 || lngSpan > 3.5) {
+      map.setView(cityCenter, 12);
+      return;
+    }
+
+    map.fitBounds(bounds.pad(0.08), { maxZoom: 14 });
+  }, [cells, cityCenter, fitKey, map]);
+
   return null;
 }
 
-function FitBounds({ cells }: { cells: H3HeatCell[] }) {
+function FlyToSelectedCell({
+  cell,
+}: {
+  cell: { h3Index: string; center: { lat: number; lng: number } } | null;
+}) {
   const map = useMap();
+  const lastIndex = useRef<string | null>(null);
+
   useEffect(() => {
-    if (cells.length === 0) return;
-    const points: L.LatLngTuple[] = cells.flatMap((cell) =>
-      cell.boundary.map(([lat, lng]) => [lat, lng] as L.LatLngTuple),
-    );
-    const bounds = L.latLngBounds(points);
-    map.fitBounds(bounds.pad(0.08));
-  }, [cells, map]);
+    if (!cell) {
+      lastIndex.current = null;
+      return;
+    }
+    if (lastIndex.current === cell.h3Index) return;
+    lastIndex.current = cell.h3Index;
+
+    const { lat, lng } = cell.center;
+    if (!isValidColombiaCoordinate(lat, lng)) return;
+
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 0.5 });
+  }, [cell, map]);
+
   return null;
 }
 
@@ -59,6 +105,8 @@ type CellProps = {
   medianPpm2: number;
   bucket: PriceBucket;
   topNeighborhood: string | null;
+  centerLat: number;
+  centerLng: number;
 };
 
 function toGeoJson(cells: H3HeatCell[]): FeatureCollection {
@@ -72,6 +120,8 @@ function toGeoJson(cells: H3HeatCell[]): FeatureCollection {
         medianPpm2: cell.medianPpm2,
         bucket: cell.bucket,
         topNeighborhood: cell.topNeighborhood,
+        centerLat: cell.center.lat,
+        centerLng: cell.center.lng,
       },
       geometry: {
         type: "Polygon",
@@ -86,11 +136,15 @@ function toGeoJson(cells: H3HeatCell[]): FeatureCollection {
 export default function H3HeatmapMap({
   center,
   cells,
+  fitKey,
+  selectedCell,
   onCellSelect,
   tooltipForCell,
 }: {
   center: [number, number];
   cells: H3HeatCell[];
+  fitKey: string;
+  selectedCell: { h3Index: string; center: { lat: number; lng: number } } | null;
   onCellSelect: (cell: CellProps) => void;
   formatPpm2?: (v: number) => string;
   tooltipForCell: (cell: CellProps) => string;
@@ -124,8 +178,8 @@ export default function H3HeatmapMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
-      <FlyToCenter center={center} zoom={12} />
-      <FitBounds cells={cells} />
+      <FitCityCells cells={cells} cityCenter={center} fitKey={fitKey} />
+      <FlyToSelectedCell cell={selectedCell} />
       <GeoJSON
         key={`${cells.length}-${cells[0]?.h3Index ?? "empty"}`}
         data={geojson}

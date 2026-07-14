@@ -41,6 +41,7 @@ type SelectedCell = {
   medianPpm2: number;
   bucket: 0 | 1 | 2 | 3;
   topNeighborhood: string | null;
+  center: { lat: number; lng: number };
 };
 
 function initialParam(name: string, fallback = "all"): string {
@@ -105,8 +106,40 @@ export default function H3Heatmap({
     return `/explore?${p.toString()}`;
   }, [city, selected]);
 
+  const mapFitKey = useMemo(
+    () => `${city}-${resolution}-${propertyType}-${estrato}-${data?.cellCount ?? 0}`,
+    [city, resolution, propertyType, estrato, data?.cellCount],
+  );
+
+  const selectedForMap = useMemo(
+    () =>
+      selected
+        ? { h3Index: selected.h3Index, center: selected.center }
+        : null,
+    [selected],
+  );
+
+  const handleCellSelect = useCallback((cell: {
+    h3Index: string;
+    count: number;
+    medianPpm2: number;
+    bucket: 0 | 1 | 2 | 3;
+    topNeighborhood: string | null;
+    centerLat: number;
+    centerLng: number;
+  }) => {
+    setSelected({
+      h3Index: cell.h3Index,
+      count: cell.count,
+      medianPpm2: cell.medianPpm2,
+      bucket: cell.bucket,
+      topNeighborhood: cell.topNeighborhood,
+      center: { lat: cell.centerLat, lng: cell.centerLng },
+    });
+  }, []);
+
   const load = useCallback(async (signal?: AbortSignal) => {
-    if (!data) setLoading(true);
+    setLoading(true);
     setError(null);
     setSelected(null);
     try {
@@ -130,7 +163,7 @@ export default function H3Heatmap({
     } finally {
       if (!signal?.aborted) setLoading(false);
     }
-  }, [city, queryString, txt.couldNotLoad, data]);
+  }, [city, queryString, txt.couldNotLoad]);
 
   useEffect(() => {
     const ac = new AbortController();
@@ -292,7 +325,9 @@ export default function H3Heatmap({
         <H3HeatmapMap
           center={mapCenterForCity(city)}
           cells={data?.cells ?? []}
-          onCellSelect={setSelected}
+          fitKey={mapFitKey}
+          selectedCell={selectedForMap}
+          onCellSelect={handleCellSelect}
           formatPpm2={fmtPpm2}
           tooltipForCell={(cell) =>
             `${fmtPpm2(cell.medianPpm2)} · ${cell.count} ${txt.heatmapListingsShort}${

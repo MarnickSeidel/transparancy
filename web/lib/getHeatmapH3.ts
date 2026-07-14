@@ -1,5 +1,9 @@
 import { MIN_ANALYTICS_AREA_M2, MIN_SAMPLE_SIZE } from "@/lib/analytics"
 import { aggregateListingsToH3, parseH3Resolution } from "@/lib/h3Heatmap"
+import {
+  isValidColombiaCoordinate,
+  normalizeListingCoordinates,
+} from "@/lib/nearbyAmenities"
 import { prisma } from "@/lib/prisma"
 
 export type HeatmapH3Query = {
@@ -56,12 +60,19 @@ export async function getHeatmapH3(query: HeatmapH3Query): Promise<HeatmapH3Data
         Number.isFinite(r.latitude) &&
         Number.isFinite(r.longitude),
     )
-    .map((r) => ({
-      latitude: r.latitude as number,
-      longitude: r.longitude as number,
-      pricePerM2: r.pricePerM2 as number,
-      neighborhood: r.neighborhood,
-    }))
+    .map((r) => {
+      const { lat, lng } = normalizeListingCoordinates(
+        r.latitude as number,
+        r.longitude as number,
+      )
+      return {
+        latitude: lat,
+        longitude: lng,
+        pricePerM2: r.pricePerM2 as number,
+        neighborhood: r.neighborhood,
+      }
+    })
+    .filter((r) => isValidColombiaCoordinate(r.latitude, r.longitude))
 
   if (listings.length < MIN_SAMPLE_SIZE) {
     return {
