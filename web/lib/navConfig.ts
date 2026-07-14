@@ -50,7 +50,7 @@ export const navGroups: NavGroup[] = [
     items: [
       { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
       { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
-      { key: "opportunities", href: "/opportunities", textKey: "opportunitiesNav" },
+      { key: "opportunities", href: "/oportunidades", textKey: "opportunitiesNav" },
       { key: "priceDrops", href: "/price-drops", textKey: "priceDropsNav" },
     ],
   },

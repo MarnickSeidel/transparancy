@@ -1,18 +1,23 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-import EmailSignupForm from "@/app/components/EmailSignupForm";
-import { localePath, stripLocalePrefix, type Locale } from "@/lib/locale";
+import { localePath, opportunitiesPath, stripLocalePrefix } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
+import { useUiLang } from "@/lib/useUiLang";
 
-type Props = {
-  locale?: Locale;
-};
+const EmailSignupForm = dynamic(() => import("@/app/components/EmailSignupForm"), {
+  ssr: false,
+  loading: () => (
+    <div className="mt-10 h-24 animate-pulse rounded-2xl border border-border-subtle bg-surface/60" />
+  ),
+});
 
-export default function PageFooter({ locale = "es" }: Props) {
+export default function PageFooter() {
   const pathname = usePathname();
+  const { lang: locale } = useUiLang("es");
   const txt = uiText[locale];
   const year = new Date().getFullYear();
   const lp = (path: string) => localePath(locale, path);
@@ -21,7 +26,7 @@ export default function PageFooter({ locale = "es" }: Props) {
   return (
     <footer className="mt-auto border-t border-border-subtle bg-elevated/90">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-5">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
           <div>
             <Link
               href={lp("/")}
@@ -47,7 +52,7 @@ export default function PageFooter({ locale = "es" }: Props) {
                 </Link>
               </li>
               <li>
-                <Link href="/opportunities" className="text-foreground hover:text-accent">
+                <Link href={opportunitiesPath(locale)} className="text-foreground hover:text-accent">
                   {txt.opportunitiesNav}
                 </Link>
               </li>
@@ -93,17 +98,15 @@ export default function PageFooter({ locale = "es" }: Props) {
               </li>
             </ul>
           </div>
-          <EmailSignupForm
-            lang={locale}
-            source="footer"
-            variant="footer"
-            showCitySelect
-            defaultLists={["market_monthly_city"]}
-            visibleLists={["market_monthly_city", "market_quarterly_colombia"]}
-            collapsedByDefault
-            className="sm:col-span-2 lg:col-span-1"
-          />
         </div>
+
+        <EmailSignupForm
+          lang={locale}
+          source="footer"
+          variant="footer-strip"
+          className="mt-10"
+        />
+
         <p className="mt-8 text-meta tabular-nums">© {year} Habidata · Finca Raíz data</p>
       </div>
     </footer>

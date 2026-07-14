@@ -2,9 +2,8 @@
 
 import Link from "next/link"
 import Image from "next/image"
-import { Fragment } from "react"
-import { useRouter } from "next/navigation"
-import { useEffect } from "react"
+import { Fragment, useCallback, useEffect, useState } from "react"
+import { usePathname, useRouter } from "next/navigation"
 
 import LanguageToggle from "@/app/components/LanguageToggle"
 import ThemeToggle from "@/app/components/ThemeToggle"
@@ -12,6 +11,7 @@ import Button from "@/app/components/ui/Button"
 import { navGroups, navItems, type NavKey } from "@/lib/navConfig"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
+import { resolveNavHref } from "@/lib/locale"
 import { useUiTheme } from "@/lib/useUiTheme"
 
 type HeaderText = {
@@ -58,34 +58,58 @@ export default function AppHeader({
 }: Props) {
   const txt = txtProp ?? uiText[lang]
   const router = useRouter()
+  const pathname = usePathname()
   const { theme, toggleTheme } = useUiTheme("light")
   const isDark = theme === "dark"
   const isMarketing = variant === "marketing"
+  const [pendingHref, setPendingHref] = useState<string | null>(null)
+
+  useEffect(() => {
+    setPendingHref(null)
+  }, [pathname])
 
   useEffect(() => {
     navItems.forEach((item) => {
-      router.prefetch(item.href)
+      router.prefetch(resolveNavHref(item.href, lang))
     })
-  }, [router])
+  }, [router, lang])
 
-  const navLinkClass = (key: NavKey) => {
+  const handlePrefetch = useCallback(
+    (href: string) => {
+      router.prefetch(href)
+    },
+    [router],
+  )
+
+  const navLinkClass = (key: NavKey, href: string) => {
     const isActive = key === active
+    const isPending = pendingHref === href
     if (isActive) {
       return "shrink-0 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-fg shadow-sm"
+    }
+    if (isPending) {
+      return "shrink-0 rounded-lg bg-surface px-2.5 py-1.5 text-xs font-medium text-foreground/60 ring-1 ring-accent/30"
     }
     return "shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-medium text-foreground/80 transition hover:bg-surface hover:text-foreground"
   }
 
-  const renderNavLink = (item: (typeof navItems)[number]) => (
+  const renderNavLink = (item: (typeof navItems)[number]) => {
+    const href = resolveNavHref(item.href, lang)
+    return (
     <Link
       key={item.key}
-      href={item.href}
-      className={navLinkClass(item.key)}
+      href={href}
+      className={navLinkClass(item.key, href)}
       aria-current={item.key === active ? "page" : undefined}
+      aria-busy={pendingHref === href ? true : undefined}
+      onMouseEnter={() => handlePrefetch(href)}
+      onFocus={() => handlePrefetch(href)}
+      onClick={() => setPendingHref(href)}
     >
       {txt[item.textKey]}
     </Link>
   )
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-border-subtle/60 bg-background/90 backdrop-blur-md">

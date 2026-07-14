@@ -1,6 +1,7 @@
 "use client"
 
 import DealComparisonBar from "@/app/components/DealComparisonBar"
+import ListingThumbnail from "@/app/components/ListingThumbnail"
 
 type Props = {
   title: string
@@ -58,8 +59,7 @@ export default function OpportunityMobileCard({
       <div className="flex gap-3">
         <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-md bg-surface">
           {imageUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={imageUrl} alt="" className="h-full w-full object-cover" loading="lazy" />
+            <ListingThumbnail src={imageUrl} width={64} height={56} sizes="64px" />
           ) : null}
         </div>
         <div className="min-w-0 flex-1">

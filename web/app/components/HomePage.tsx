@@ -15,7 +15,10 @@ import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
 import type { HomePageData } from "@/lib/getHomeStats"
 import { formatFreshnessDate } from "@/lib/getDataFreshness"
-import type { OpportunityRow } from "@/lib/getTopOpportunities"
+import {
+  DEFAULT_OPPORTUNITIES_CITY,
+  type OpportunityRow,
+} from "@/lib/getTopOpportunities"
 import { localePath, type Locale } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { uiText } from "@/lib/i18n"
@@ -221,7 +224,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
       try {
         const [summaryRes, oppRes] = await Promise.all([
           fetch("/api/summary"),
-          fetch("/api/opportunities?limit=3"),
+          fetch(`/api/opportunities?city=${encodeURIComponent(DEFAULT_OPPORTUNITIES_CITY)}&limit=3`),
         ])
         if (!summaryRes.ok) {
           if (!cancelled) setStatsFailed(true)
@@ -480,7 +483,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
         </section>
       </main>
 
-      <PageFooter locale={lang} />
+      <PageFooter />
     </div>
   )
 }

@@ -115,7 +115,7 @@ export default async function CityHubPage({ params }: Props) {
           </Card>
         ) : null}
       </main>
-      <PageFooter locale={locale} />
+      <PageFooter />
     </div>
   );
 }

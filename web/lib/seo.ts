@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
-import { ogLocale, type Locale } from "@/lib/locale";
+import { opportunitiesPath, ogLocale, type Locale } from "@/lib/locale";
 import { absoluteUrl } from "@/lib/siteUrl";
 
 export const defaultSiteMetadata = {
@@ -55,6 +55,54 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
       shortcut: "/branding/habidata-mark.svg",
       apple: "/branding/habidata-mark.svg",
     },
+  };
+}
+
+export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
+  const languages = {
+    es: absoluteUrl(opportunitiesPath("es")),
+    en: absoluteUrl(opportunitiesPath("en")),
+    "x-default": absoluteUrl(opportunitiesPath("es")),
+  };
+
+  if (locale === "en") {
+    const title = "Undervalued property opportunities in Colombia";
+    const description =
+      "Ranked Finca Raíz listings by relative discount vs neighborhood benchmarks — Habidata deal finder.";
+    const url = absoluteUrl(opportunitiesPath("en"));
+    return {
+      title,
+      description,
+      alternates: { canonical: url, languages },
+      openGraph: {
+        title,
+        description,
+        url,
+        siteName: defaultSiteMetadata.siteName,
+        locale: ogLocale(locale),
+        type: "website",
+      },
+      twitter: { card: "summary", title, description },
+    };
+  }
+
+  const title = "Oportunidades inmobiliarias";
+  const description =
+    "Ranking de publicaciones con mejor descuento relativo frente al mercado del barrio — herramienta Habidata.";
+  const url = absoluteUrl(opportunitiesPath("es"));
+  return {
+    title,
+    description,
+    alternates: { canonical: url, languages },
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: defaultSiteMetadata.siteName,
+      locale: ogLocale(locale),
+      type: "website",
+    },
+    twitter: { card: "summary", title, description },
   };
 }
 

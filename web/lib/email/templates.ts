@@ -1,5 +1,6 @@
 import type { EmailList } from "@prisma/client"
 
+import { opportunitiesPath } from "@/lib/locale"
 import { absoluteUrl } from "@/lib/siteUrl"
 
 type Locale = "es" | "en"
@@ -146,11 +147,11 @@ export function buildDealDigestEmail(args: {
     ? `<h1 style="font-size:20px">Deal digest — ${scope}</h1>
        <p style="font-size:13px;color:#64748b">Data refreshed ${args.dataDate}. Source: Finca Raíz listings.</p>
        ${rows}
-       <p><a href="${absoluteUrl("/opportunities")}">Browse all opportunities →</a></p>`
+       <p><a href="${absoluteUrl(opportunitiesPath("en"))}">Browse all opportunities →</a></p>`
     : `<h1 style="font-size:20px">Resumen de oportunidades — ${scope}</h1>
        <p style="font-size:13px;color:#64748b">Datos actualizados ${args.dataDate}. Fuente: publicaciones Finca Raíz.</p>
        ${rows}
-       <p><a href="${absoluteUrl("/opportunities")}">Ver todas las oportunidades →</a></p>`
+       <p><a href="${absoluteUrl(opportunitiesPath("es"))}">Ver todas las oportunidades →</a></p>`
 
   return {
     subject,

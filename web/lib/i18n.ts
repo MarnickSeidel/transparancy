@@ -235,6 +235,10 @@ export const uiText = {
     subscribeTitle: "Boletín y alertas",
     subscribeHint:
       "Elige qué quieres recibir. Te enviaremos un correo para confirmar tu suscripción.",
+    subscribeFooterTitle: "Alertas por email",
+    subscribeFooterHint:
+      "Oportunidades, bajas de precio y resumen de mercado en {city}. Te enviaremos un correo para confirmar.",
+    subscribeFooterPrivacy: "Cancela o ajusta tus temas cuando quieras.",
     subscribeEmailLabel: "Correo",
     subscribeEmailPlaceholder: "tu@email.com",
     subscribeCityLabel: "Ciudad",
@@ -256,13 +260,17 @@ export const uiText = {
       "Top 10 publicaciones con mejor puntaje de oportunidad segun comparables locales.",
     opportunitiesPurpose:
       "Encuentra anuncios con potencial descuento frente a referencias comparables.",
-    opportunitiesTop10: "Top 10 oportunidades",
+    opportunitiesTop10: "Oportunidades",
+    opportunitiesResultsCount: "{from}–{to} de {total}",
+    opportunitiesPage: "Página {page}",
+    opportunitiesPrevPage: "Anterior",
+    opportunitiesNextPage: "Siguiente",
     opportunitiesSimilarBannerTitle: "Oportunidades cerca de tu estimación",
     opportunitiesSimilarBannerBody:
       "Filtramos por la misma zona (mapa o barrio), área, precio y tipo que usaste en el estimador. Quita el filtro para ver toda la ciudad.",
     opportunitiesSimilarClear: "Ver toda la ciudad",
     opportunitiesEmpty: "No hay oportunidades para este filtro por ciudad.",
-    opportunityDiscount: "Descuento vs referencia",
+    opportunityDiscount: "Vs. mercado",
     opportunitiesExcludeNeighborhoods: "Excluir barrios",
     opportunitiesExcludeHint:
       "Escribe el nombre (coincidencia con sugerencias) y Enter o Agregar. Puedes usar texto libre si coincide con el barrio en datos.",
@@ -339,13 +347,13 @@ export const uiText = {
     opportunitiesExcludeBarter: "Excluir permuta",
     opportunitiesExcludeProjects: "Excluir proyectos",
     opportunitiesMinDiscount: "Descuento mínimo (%)",
-    opportunitiesMinDiscountHint: "Opcional. Solo anuncios con descuento vs referencia ≥ este valor.",
+    opportunitiesMinDiscountHint: "Opcional. Solo anuncios con ahorro vs. mercado ≥ este valor.",
     opportunitiesHideLowConfidence: "Ocultar baja confianza",
     opportunitiesPrimaryFilters: "Filtros principales",
     opportunitiesAdvancedFilters: "Filtros avanzados",
     opportunitiesSortedBy: "Ordenado por",
-    opportunitiesSortByDealScore: "Puntaje de oportunidad",
-    opportunitiesSortByDiscount: "Descuento vs referencia",
+    opportunitiesSortByDealScore: "Mejor puntaje",
+    opportunitiesSortByDiscount: "Mayor ahorro vs. mercado",
     opportunitiesSortByPrice: "Precio",
     opportunitiesSortByConfidence: "Confianza",
     analyzeUrlTitle: "Analizar anuncio por URL",
@@ -368,11 +376,14 @@ export const uiText = {
     analyzeVerdict: "Veredicto",
     analyzeVerdictGood: "Buena oportunidad",
     analyzeVerdictFair: "Precio razonable",
+    analyzeVerdictInsufficient: "Comparables insuficientes",
     analyzeVerdictOverpriced: "Sobrevalorado",
     analyzeVerdictSummaryGood:
       "Este inmueble está ~{pct}% por debajo de la referencia de comparables en {context}.",
     analyzeVerdictSummaryFair:
       "El precio por m² está en línea con la mediana de comparables similares en {context}.",
+    analyzeVerdictSummaryInsufficient:
+      "No encontramos suficientes anuncios activos similares en {context} para estimar una referencia de mercado confiable.",
     analyzeVerdictSummaryOver:
       "Este inmueble está ~{pct}% por encima de la referencia de comparables en {context}.",
     analyzeVerdictListingPpm2: "Anuncio / m²",
@@ -782,6 +793,10 @@ export const uiText = {
     subscribeTitle: "Newsletter & alerts",
     subscribeHint:
       "Choose what you want to receive. We will send a confirmation email to activate.",
+    subscribeFooterTitle: "Email alerts",
+    subscribeFooterHint:
+      "Deals, price drops, and market updates for {city}. We will send a confirmation email.",
+    subscribeFooterPrivacy: "Unsubscribe or adjust topics anytime.",
     subscribeEmailLabel: "Email",
     subscribeEmailPlaceholder: "you@email.com",
     subscribeCityLabel: "City",
@@ -803,13 +818,17 @@ export const uiText = {
       "Top 10 listings with the strongest opportunity score based on local comps.",
     opportunitiesPurpose:
       "Find listings with potential discount versus comparable market references.",
-    opportunitiesTop10: "Top 10 opportunities",
+    opportunitiesTop10: "Opportunities",
+    opportunitiesResultsCount: "{from}–{to} of {total}",
+    opportunitiesPage: "Page {page}",
+    opportunitiesPrevPage: "Previous",
+    opportunitiesNextPage: "Next",
     opportunitiesSimilarBannerTitle: "Deals near your estimate",
     opportunitiesSimilarBannerBody:
       "Filtered to the same area (map or neighborhood), size, price band, and type from your estimate. Remove the filter to see the whole city.",
     opportunitiesSimilarClear: "See whole city",
     opportunitiesEmpty: "No opportunities for this city filter.",
-    opportunityDiscount: "Discount vs reference",
+    opportunityDiscount: "Below market",
     opportunitiesExcludeNeighborhoods: "Exclude neighborhoods",
     opportunitiesExcludeHint:
       "Type a name (see suggestions), then Enter or Add. Free text works if it matches how the barrio is stored.",
@@ -886,13 +905,13 @@ export const uiText = {
     opportunitiesExcludeBarter: "Exclude barter",
     opportunitiesExcludeProjects: "Exclude projects",
     opportunitiesMinDiscount: "Min discount (%)",
-    opportunitiesMinDiscountHint: "Optional. Only listings with discount vs reference ≥ this value.",
+    opportunitiesMinDiscountHint: "Optional. Only listings with savings vs. market ≥ this value.",
     opportunitiesHideLowConfidence: "Hide low confidence",
     opportunitiesPrimaryFilters: "Primary filters",
     opportunitiesAdvancedFilters: "Advanced filters",
     opportunitiesSortedBy: "Sorted by",
-    opportunitiesSortByDealScore: "Deal score",
-    opportunitiesSortByDiscount: "Discount vs reference",
+    opportunitiesSortByDealScore: "Best deal score",
+    opportunitiesSortByDiscount: "Biggest savings vs. market",
     opportunitiesSortByPrice: "Price",
     opportunitiesSortByConfidence: "Confidence",
     analyzeUrlTitle: "Analyze listing by URL",
@@ -915,11 +934,14 @@ export const uiText = {
     analyzeVerdict: "Verdict",
     analyzeVerdictGood: "Good deal",
     analyzeVerdictFair: "Fairly priced",
+    analyzeVerdictInsufficient: "Insufficient comparables",
     analyzeVerdictOverpriced: "Overpriced",
     analyzeVerdictSummaryGood:
       "This listing is ~{pct}% below the comparable reference in {context}.",
     analyzeVerdictSummaryFair:
       "The price per m² is in line with the median for similar comparables in {context}.",
+    analyzeVerdictSummaryInsufficient:
+      "We could not find enough similar active listings in {context} to estimate a reliable market reference.",
     analyzeVerdictSummaryOver:
       "This listing is ~{pct}% above the comparable reference in {context}.",
     analyzeVerdictListingPpm2: "Listing / m²",

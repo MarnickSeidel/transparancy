@@ -54,6 +54,7 @@ export async function getZoneDossier(
         COALESCE(l.quality_flags->>'neighborhood_confidence', 'missing') AS confidence
       FROM listings l
       WHERE l.is_active = true
+        AND l.city_slug = ${citySlug}
     ),
     bucket AS (
       SELECT * FROM tagged WHERE bucket_key = ${bucketKey}

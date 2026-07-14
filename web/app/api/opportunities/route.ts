@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server"
 
+import {
+  DEFAULT_OPPORTUNITIES_CITY,
+  DEFAULT_OPPORTUNITIES_PAGE_SIZE,
+  type OpportunitySortBy,
+} from "@/lib/getTopOpportunities"
 import { getCachedTopOpportunities } from "@/lib/serverCache"
 
 export const revalidate = 60
@@ -31,9 +36,16 @@ function parseOptionalFloat(raw: string | null): number | null {
   return Number.isFinite(n) ? n : null
 }
 
+function parseSortBy(raw: string | null): OpportunitySortBy {
+  if (raw === "discount" || raw === "price" || raw === "confidence") return raw
+  return "dealScore"
+}
+
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url)
-  const city = searchParams.get("city")
+  const cityRaw = searchParams.get("city")?.trim()
+  const city =
+    cityRaw && cityRaw !== "all" ? cityRaw : DEFAULT_OPPORTUNITIES_CITY
   const propertyType = searchParams.get("propertyType")
   const neighborhood = searchParams.get("neighborhood")
   const excludeNeighborhoods = parseExcludeNeighborhoods(searchParams)
@@ -79,14 +91,22 @@ export async function GET(req: Request) {
   const longitude = parseOptionalFloat(searchParams.get("longitude"))
   const radiusMeters = parseOptionalInt(searchParams.get("radiusMeters"))
 
-  const limitRaw = searchParams.get("limit")
-  const limit =
-    limitRaw != null && limitRaw.trim() !== ""
-      ? Math.min(50, Math.max(1, Number.parseInt(limitRaw, 10) || 10))
-      : 10
+  const pageRaw = searchParams.get("page")
+  const page =
+    pageRaw != null && pageRaw.trim() !== ""
+      ? Math.max(1, Number.parseInt(pageRaw, 10) || 1)
+      : 1
+
+  const pageSizeRaw = searchParams.get("pageSize") ?? searchParams.get("limit")
+  const pageSize =
+    pageSizeRaw != null && pageSizeRaw.trim() !== ""
+      ? Math.min(50, Math.max(1, Number.parseInt(pageSizeRaw, 10) || DEFAULT_OPPORTUNITIES_PAGE_SIZE))
+      : DEFAULT_OPPORTUNITIES_PAGE_SIZE
+
+  const sortBy = parseSortBy(searchParams.get("sortBy"))
 
   try {
-    const opportunities = await getCachedTopOpportunities({
+    const result = await getCachedTopOpportunities({
       city,
       propertyType,
       neighborhood,
@@ -105,10 +125,23 @@ export async function GET(req: Request) {
       latitude,
       longitude,
       radiusMeters,
-      limit,
+      page,
+      pageSize,
+      sortBy,
     })
 
-    return NextResponse.json({ opportunities }, { headers: CACHE_HEADERS })
+    return NextResponse.json(
+      {
+        opportunities: result.items,
+        pagination: {
+          page: result.page,
+          pageSize: result.pageSize,
+          total: result.total,
+          hasMore: result.hasMore,
+        },
+      },
+      { headers: CACHE_HEADERS },
+    )
   } catch (e) {
     console.error(e)
     return NextResponse.json(

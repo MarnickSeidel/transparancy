@@ -12,10 +12,21 @@ import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
 
-const COMP_POOL_SIZE = 120
-const COMP_POOL_SIZE_TIGHT = 240
-const MAX_CANDIDATES = 72
-const DEFAULT_LIMIT = 10
+export const DEFAULT_OPPORTUNITIES_CITY = "Pereira"
+export const DEFAULT_OPPORTUNITIES_PAGE_SIZE = 10
+
+const SCORE_POOL_SIZE = 200
+const VALUE_POOL_SIZE = 150
+const MID_TIER_POOL_SIZE = 300
+const MAX_CANDIDATES = 400
+const COMP_ANALYSIS_POOL_SIZE = 2500
+const MAX_RESULTS = 120
+/** Ignore stored scores driven by implausible COP/m² (bad scrapes). */
+const CANDIDATE_PPM2_FLOOR = 400_000
+const MID_TIER_DEAL_SCORE_MIN = 45
+const MID_TIER_DEAL_SCORE_MAX = 82
+
+export type OpportunitySortBy = "dealScore" | "discount" | "price" | "confidence"
 
 const listingSelect = {
   id: true,
@@ -59,6 +70,8 @@ const listingSelect = {
   imageUrl: true,
 } satisfies Prisma.ListingSelect
 
+type ListingRow = Prisma.ListingGetPayload<{ select: typeof listingSelect }>
+
 export type OpportunityQuery = {
   city?: string | null
   propertyType?: string | null
@@ -78,6 +91,10 @@ export type OpportunityQuery = {
   latitude?: number | null
   longitude?: number | null
   radiusMeters?: number | null
+  page?: number
+  pageSize?: number
+  sortBy?: OpportunitySortBy
+  /** @deprecated use pageSize */
   limit?: number
 }
 
@@ -113,6 +130,14 @@ export type OpportunityRow = {
   sourceUpdatedAt: string | null
   latitude: number | null
   longitude: number | null
+}
+
+export type OpportunitiesResult = {
+  items: OpportunityRow[]
+  total: number
+  page: number
+  pageSize: number
+  hasMore: boolean
 }
 
 function parseExcludeNeighborhoods(values: string[]): Set<string> {
@@ -169,28 +194,78 @@ function applyGeoBBoxFilter(
   })
 }
 
-/** Uses precomputed deal_score index — analyzes at most ~200 rows, not 5k. */
-export async function getTopOpportunities(query: OpportunityQuery): Promise<OpportunityRow[]> {
+function mergeCandidateRows(...groups: ListingRow[][]): ListingRow[] {
+  const seen = new Set<string>()
+  const merged: ListingRow[] = []
+  for (const group of groups) {
+    for (const row of group) {
+      if (seen.has(row.id)) continue
+      seen.add(row.id)
+      merged.push(row)
+    }
+  }
+  return merged
+}
+
+export function sortOpportunityRows(
+  rows: OpportunityRow[],
+  sortBy: OpportunitySortBy,
+): OpportunityRow[] {
+  const confidenceWeight: Record<NonNullable<OpportunityRow["confidence"]>, number> = {
+    high: 3,
+    medium: 2,
+    low: 1,
+  }
+
+  return [...rows].sort((a, b) => {
+    if (sortBy === "discount") {
+      const va =
+        a.discountVsRefPct != null && Number.isFinite(a.discountVsRefPct)
+          ? a.discountVsRefPct
+          : -999
+      const vb =
+        b.discountVsRefPct != null && Number.isFinite(b.discountVsRefPct)
+          ? b.discountVsRefPct
+          : -999
+      return vb - va
+    }
+    if (sortBy === "price") {
+      const va = Number(String(a.priceCop).replace(/\D/g, "")) || 0
+      const vb = Number(String(b.priceCop).replace(/\D/g, "")) || 0
+      return va - vb
+    }
+    if (sortBy === "confidence") {
+      const aw = a.confidence ? confidenceWeight[a.confidence] : 0
+      const bw = b.confidence ? confidenceWeight[b.confidence] : 0
+      return bw - aw
+    }
+    const va = a.dealScore != null && Number.isFinite(a.dealScore) ? a.dealScore : -999
+    const vb = b.dealScore != null && Number.isFinite(b.dealScore) ? b.dealScore : -999
+    return vb - va
+  })
+}
+
+function buildBaseFilters(query: OpportunityQuery): {
+  andFilters: Prisma.ListingWhereInput[]
+  selectedNeighborhoodKey: string | null
+  excludedNeighborhoodKeys: Set<string>
+  useGeo: boolean
+} {
   const {
     city,
     propertyType,
     neighborhood,
     excludeNeighborhoods = [],
-    excludeUnknownNeighborhoods = false,
-    hideLowConfidence = true,
-    excludeBarter = false,
-    excludeProjects = false,
-    minDiscountPct = 0,
     maxPriceCop = null,
     minPriceCop = null,
     minAreaM2 = null,
     maxAreaM2 = null,
     estrato = null,
-    conjunto = null,
     latitude = null,
     longitude = null,
     radiusMeters = null,
-    limit = DEFAULT_LIMIT,
+    excludeBarter = false,
+    excludeProjects = false,
   } = query
 
   const useGeo =
@@ -208,17 +283,18 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
   const andFilters: Prisma.ListingWhereInput[] = [
     {
       isActive: true,
-      pricePerM2: { not: null },
+      pricePerM2: { not: null, gte: CANDIDATE_PPM2_FLOOR },
       areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
       operationType: { contains: "venta", mode: "insensitive" },
-      dealScore: { not: null },
     },
   ]
 
   if (maxPriceCop != null) andFilters.push({ priceCop: { lte: maxPriceCop } })
   if (minPriceCop != null) andFilters.push({ priceCop: { gte: minPriceCop } })
   if (city && city !== "all") andFilters.push({ city })
-  if (propertyType && propertyType.trim()) andFilters.push({ propertyType: propertyType.trim() })
+  if (propertyType && propertyType.trim()) {
+    andFilters.push({ propertyType: propertyType.trim() })
+  }
   if (estrato != null) andFilters.push({ estrato })
   if (minAreaM2 != null || maxAreaM2 != null) {
     andFilters.push({
@@ -233,7 +309,107 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
   if (useGeo) {
     applyGeoBBoxFilter(andFilters, latitude!, longitude!, radiusMeters!)
   }
-  if (conjunto?.trim() && city && city !== "all") {
+  if (excludeBarter) andFilters.push({ acceptsBarter: false })
+  if (excludeProjects) andFilters.push({ isProject: false })
+
+  return {
+    andFilters,
+    selectedNeighborhoodKey,
+    excludedNeighborhoodKeys,
+    useGeo,
+  }
+}
+
+function rowToOpportunity(
+  row: ListingRow,
+  analysis: ReturnType<typeof analyzeDeal>,
+  priceEvents: { priceCop: bigint; recordedAt: Date }[] | undefined,
+): OpportunityRow {
+  const whyDeal = buildWhyDeal(analysis, toDealListingInput(row))
+  const priceTimeline = (priceEvents ?? []).map((e) => ({
+    recordedAt: e.recordedAt.toISOString(),
+    priceCop: e.priceCop.toString(),
+  }))
+  const currentPriceStr = row.priceCop.toString()
+  if (
+    priceTimeline.length === 0 ||
+    priceTimeline[priceTimeline.length - 1]?.priceCop !== currentPriceStr
+  ) {
+    priceTimeline.push({
+      recordedAt: (row.sourceUpdatedAt ?? new Date()).toISOString(),
+      priceCop: currentPriceStr,
+    })
+  }
+
+  return {
+    id: row.id,
+    title: row.title,
+    city: row.city,
+    neighborhood: row.neighborhood,
+    zoneName: row.zoneName,
+    propertyType: row.propertyType,
+    priceCop: row.priceCop.toString(),
+    areaM2: row.areaM2,
+    areaPrivateM2: row.areaPrivateM2,
+    pricePerM2: analysis.subjectPpm2,
+    metricType: analysis.metricType,
+    refAvgUsed: analysis.refPpm2,
+    compSampleSize: analysis.compSampleSize,
+    compMethod: analysis.compMethod,
+    dealScore: analysis.dealScore,
+    scoreBreakdown: analysis.breakdown,
+    whyDeal,
+    confidence: analysis.confidence,
+    confidenceReasons: analysis.confidenceReasons,
+    discountVsRefPct: analysis.discountVsRefPct,
+    priceDropPct: analysis.priceDropPct,
+    domDays: analysis.domDays,
+    priceTimeline,
+    acceptsBarter: row.acceptsBarter,
+    terraceHeavy: row.terraceHeavyFlag,
+    isProject: row.isProject,
+    url: row.url,
+    imageUrl: row.imageUrl,
+    sourceUpdatedAt: row.sourceUpdatedAt?.toISOString() ?? null,
+    latitude: row.latitude,
+    longitude: row.longitude,
+  }
+}
+
+/** City-scoped ranked opportunities with pagination and server-side sort. */
+export async function getTopOpportunities(
+  query: OpportunityQuery,
+): Promise<OpportunitiesResult> {
+  const {
+    city,
+    excludeUnknownNeighborhoods = false,
+    hideLowConfidence = true,
+    minDiscountPct = 0,
+    conjunto = null,
+    page = 1,
+    sortBy = "dealScore",
+  } = query
+
+  const pageSize = Math.min(
+    50,
+    Math.max(1, query.pageSize ?? query.limit ?? DEFAULT_OPPORTUNITIES_PAGE_SIZE),
+  )
+  const safePage = Math.max(1, page)
+
+  const empty = (): OpportunitiesResult => ({
+    items: [],
+    total: 0,
+    page: safePage,
+    pageSize,
+    hasMore: false,
+  })
+
+  if (!city || city === "all") return empty()
+
+  const { andFilters, selectedNeighborhoodKey, excludedNeighborhoodKeys } =
+    buildBaseFilters(query)
+
+  if (conjunto?.trim()) {
     const variants = await resolveConjuntoVariants(city, conjunto)
     if (variants.length > 1) {
       andFilters.push({ conjunto: { in: variants } })
@@ -241,22 +417,58 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
       andFilters.push({ conjunto: variants[0] ?? conjunto.trim() })
     }
   }
-  if (excludeBarter) andFilters.push({ acceptsBarter: false })
-  if (excludeProjects) andFilters.push({ isProject: false })
 
-  const poolSize =
-    useGeo || conjunto?.trim() || minAreaM2 != null || maxAreaM2 != null
-      ? COMP_POOL_SIZE_TIGHT
-      : COMP_POOL_SIZE
+  const where = { AND: andFilters }
 
-  const rows = await prisma.listing.findMany({
-    where: { AND: andFilters },
-    orderBy: [{ dealScore: "desc" }, { dateScraped: "desc" }],
-    take: poolSize,
-    select: listingSelect,
-  })
+  const scoreWhere: Prisma.ListingWhereInput = {
+    AND: [...andFilters, { dealScore: { not: null } }],
+  }
+  const midTierWhere: Prisma.ListingWhereInput = {
+    AND: [
+      ...andFilters,
+      {
+        dealScore: {
+          gte: MID_TIER_DEAL_SCORE_MIN,
+          lte: MID_TIER_DEAL_SCORE_MAX,
+        },
+      },
+    ],
+  }
 
-  const filteredRows = rows
+  const [scoreRows, valueRows, midTierRows, compPoolRows] = await Promise.all([
+    prisma.listing.findMany({
+      where: scoreWhere,
+      orderBy: [{ dealScore: "desc" }, { dateScraped: "desc" }],
+      take: SCORE_POOL_SIZE,
+      select: listingSelect,
+    }),
+    prisma.listing.findMany({
+      where,
+      orderBy: [{ pricePerM2: "asc" }, { dealScore: "desc" }],
+      take: VALUE_POOL_SIZE,
+      select: listingSelect,
+    }),
+    prisma.listing.findMany({
+      where: midTierWhere,
+      orderBy: [{ pricePerM2: "asc" }, { dealScore: "desc" }],
+      take: MID_TIER_POOL_SIZE,
+      select: listingSelect,
+    }),
+    prisma.listing.findMany({
+      where: {
+        isActive: true,
+        city,
+        operationType: { contains: "venta", mode: "insensitive" },
+        pricePerM2: { not: null },
+        areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
+      },
+      take: COMP_ANALYSIS_POOL_SIZE,
+      select: listingSelect,
+    }),
+  ])
+
+  const mergedRows = mergeCandidateRows(midTierRows, valueRows, scoreRows)
+  const filteredRows = mergedRows
     .filter((r) =>
       neighborhoodPassesFilters(
         r.neighborhood,
@@ -265,12 +477,12 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
         excludeUnknownNeighborhoods,
       ),
     )
-    .slice(0, Math.min(Math.max(limit * 8, 24), MAX_CANDIDATES))
+    .slice(0, MAX_CANDIDATES)
 
-  if (filteredRows.length === 0) return []
+  if (filteredRows.length === 0) return empty()
 
-  const pool = rows.map((r) => toDealListingInput(r))
-  const houseFloor = minBuiltPpm2ForHouse(pool)
+  const compPool = compPoolRows.map((r) => toDealListingInput(r))
+  const houseFloor = minBuiltPpm2ForHouse(compPool)
 
   const candidateIds = filteredRows.map((r) => r.id)
   const priceEventsRaw = await prisma.listingPriceEvent.findMany({
@@ -288,16 +500,13 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
     priceEventsByListing.set(ev.listingId, arr)
   }
 
-  const sortedCandidates = [...filteredRows].sort(
-    (a, b) => (b.dealScore ?? -1) - (a.dealScore ?? -1),
-  )
-  const results: OpportunityRow[] = []
+  const allResults: OpportunityRow[] = []
 
-  for (const row of sortedCandidates) {
-    if (results.length >= limit) break
+  for (const row of filteredRows) {
+    if (allResults.length >= MAX_RESULTS) break
 
     const subject = toDealListingInput(row)
-    const analysis = analyzeDeal(subject, pool, {
+    const analysis = analyzeDeal(subject, compPool, {
       priceEvents: priceEventsByListing.get(row.id),
       minBuiltPpm2ForHouse: houseFloor,
       requirePositiveDiscount: true,
@@ -311,59 +520,21 @@ export async function getTopOpportunities(query: OpportunityQuery): Promise<Oppo
     }
     if (hideLowConfidence && analysis.confidence === "low") continue
 
-    const whyDeal = buildWhyDeal(analysis, subject)
-    const listingEvents = priceEventsByListing.get(row.id) ?? []
-    const priceTimeline = listingEvents.map((e) => ({
-      recordedAt: e.recordedAt.toISOString(),
-      priceCop: e.priceCop.toString(),
-    }))
-    const currentPriceStr = row.priceCop.toString()
-    if (
-      priceTimeline.length === 0 ||
-      priceTimeline[priceTimeline.length - 1]?.priceCop !== currentPriceStr
-    ) {
-      priceTimeline.push({
-        recordedAt: (row.sourceUpdatedAt ?? new Date()).toISOString(),
-        priceCop: currentPriceStr,
-      })
-    }
-
-    results.push({
-      id: row.id,
-      title: row.title,
-      city: row.city,
-      neighborhood: row.neighborhood,
-      zoneName: row.zoneName,
-      propertyType: row.propertyType,
-      priceCop: row.priceCop.toString(),
-      areaM2: row.areaM2,
-      areaPrivateM2: row.areaPrivateM2,
-      pricePerM2: analysis.subjectPpm2,
-      metricType: analysis.metricType,
-      refAvgUsed: analysis.refPpm2,
-      compSampleSize: analysis.compSampleSize,
-      compMethod: analysis.compMethod,
-      dealScore: analysis.dealScore,
-      scoreBreakdown: analysis.breakdown,
-      whyDeal,
-      confidence: analysis.confidence,
-      confidenceReasons: analysis.confidenceReasons,
-      discountVsRefPct: analysis.discountVsRefPct,
-      priceDropPct: analysis.priceDropPct,
-      domDays: analysis.domDays,
-      priceTimeline,
-      acceptsBarter: row.acceptsBarter,
-      terraceHeavy: row.terraceHeavyFlag,
-      isProject: row.isProject,
-      url: row.url,
-      imageUrl: row.imageUrl,
-      sourceUpdatedAt: row.sourceUpdatedAt?.toISOString() ?? null,
-      latitude: row.latitude,
-      longitude: row.longitude,
-    })
+    allResults.push(
+      rowToOpportunity(row, analysis, priceEventsByListing.get(row.id)),
+    )
   }
 
-  return results
-    .sort((a, b) => (b.dealScore ?? -1) - (a.dealScore ?? -1))
-    .slice(0, limit)
+  const sorted = sortOpportunityRows(allResults, sortBy)
+  const total = sorted.length
+  const offset = (safePage - 1) * pageSize
+  const items = sorted.slice(offset, offset + pageSize)
+
+  return {
+    items,
+    total,
+    page: safePage,
+    pageSize,
+    hasMore: offset + pageSize < total,
+  }
 }

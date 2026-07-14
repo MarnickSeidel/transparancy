@@ -25,6 +25,21 @@ function fixLeafletIcons() {
   });
 }
 
+function FlyToCenter({
+  center,
+  zoom = 12,
+}: {
+  center: [number, number];
+  zoom?: number;
+}) {
+  const map = useMap();
+  const [lat, lng] = center;
+  useEffect(() => {
+    map.flyTo([lat, lng], zoom, { duration: 0.75 });
+  }, [lat, lng, zoom, map]);
+  return null;
+}
+
 function FitBounds({ cells }: { cells: H3HeatCell[] }) {
   const map = useMap();
   useEffect(() => {
@@ -109,6 +124,7 @@ export default function H3HeatmapMap({
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
+      <FlyToCenter center={center} zoom={12} />
       <FitBounds cells={cells} />
       <GeoJSON
         key={`${cells.length}-${cells[0]?.h3Index ?? "empty"}`}

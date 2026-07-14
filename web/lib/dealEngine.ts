@@ -77,6 +77,7 @@ export type DealAnalysis = {
   refPpm2: number | null;
   compSampleSize: number;
   compMethod: string;
+  selectedComps: DealListingInput[];
   discountVsRefPct: number | null;
   dealScore: number | null;
   breakdown: DealScoreBreakdown | null;
@@ -497,10 +498,8 @@ function compCompatible(
   if (subject.city !== candidate.city) return false;
   if (!isVenta(candidate.operationType)) return false;
 
-  if (
-    subject.propertyType &&
-    candidate.propertyType
-  ) {
+  if (subject.propertyType) {
+    if (!candidate.propertyType) return false;
     if (isTerrainLike(subject.propertyType)) {
       if (!terrainTypesCompatible(subject.propertyType, candidate.propertyType)) {
         return false;
@@ -743,6 +742,13 @@ function computeConfidence(
   else if (score >= 55) confidence = "medium";
   else confidence = "low";
 
+  if (sampleSize === 0 || compMethod === "none") {
+    confidence = "low";
+    if (!reasons.includes("low_comp_sample")) {
+      reasons.push("low_comp_sample");
+    }
+  }
+
   const blockHigh =
     (discount != null && discount > 50) || Boolean(opts?.belowPriceFloor);
   if (blockHigh && confidence === "high") {
@@ -774,6 +780,7 @@ export function analyzeDeal(
       refPpm2: null,
       compSampleSize: 0,
       compMethod: "excluded",
+      selectedComps: [],
       discountVsRefPct: null,
       dealScore: null,
       breakdown: null,
@@ -823,6 +830,7 @@ export function analyzeDeal(
       refPpm2,
       compSampleSize: sampleSize,
       compMethod: method,
+      selectedComps: comps,
       discountVsRefPct,
       dealScore: null,
       breakdown: null,
@@ -845,6 +853,7 @@ export function analyzeDeal(
       refPpm2,
       compSampleSize: sampleSize,
       compMethod: method,
+      selectedComps: comps,
       discountVsRefPct,
       dealScore: null,
       breakdown: null,
@@ -972,6 +981,7 @@ export function analyzeDeal(
     refPpm2,
     compSampleSize: sampleSize,
     compMethod: method,
+    selectedComps: comps,
     discountVsRefPct,
     dealScore: dealScoreValue,
     breakdown,

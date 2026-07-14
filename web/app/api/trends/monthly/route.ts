@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { queryMonthlyTrends } from "@/lib/monthlyTrends";
+import { getCachedMonthlyTrends } from "@/lib/serverCache";
 
 export const revalidate = 90;
 
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const monthsParam = Number.parseInt(searchParams.get("months") ?? "12", 10);
 
   try {
-    const { monthsRequested, minSampleSize, rows } = await queryMonthlyTrends({
+    const { monthsRequested, minSampleSize, rows } = await getCachedMonthlyTrends({
       city,
       neighborhood,
       estrato,

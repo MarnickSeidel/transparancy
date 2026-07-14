@@ -69,14 +69,14 @@ async function sendForPreference(
     const opps = await getTopOpportunities({
       city: pref.city,
       neighborhood: pref.list === "deals_neighborhood" ? pref.neighborhood ?? undefined : undefined,
-      limit: 5,
+      pageSize: 5,
     })
-    if (opps.length === 0) return "skipped"
+    if (opps.items.length === 0) return "skipped"
     const mail = buildDealDigestEmail({
       locale,
       city: pref.city,
       neighborhood: pref.list === "deals_neighborhood" ? pref.neighborhood : null,
-      listings: opps.map((o) => ({
+      listings: opps.items.map((o) => ({
         title: o.title,
         url: o.url,
         priceCop: fmtCopBig(o.priceCop, localeTag),

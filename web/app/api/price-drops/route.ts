@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server"
 
-import { getRecentPriceDrops } from "@/lib/getPriceDrops"
+import { getCachedRecentPriceDrops } from "@/lib/serverCache"
 
 export const revalidate = 120
 
@@ -24,7 +24,7 @@ export async function GET(req: Request) {
       : 30
 
   try {
-    const drops = await getRecentPriceDrops({ city, limit, days })
+    const drops = await getCachedRecentPriceDrops({ city, limit, days })
     return NextResponse.json({ drops }, { headers: CACHE_HEADERS })
   } catch (e) {
     console.error(e)

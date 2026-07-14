@@ -54,7 +54,7 @@ export async function getRecentPriceDrops(
       first_seen_at: Date
     }>
   >(Prisma.sql`
-    WITH ordered_events AS (
+    WITH recent_events AS (
       SELECT
         e.id AS event_id,
         e.listing_id,
@@ -65,13 +65,13 @@ export async function getRecentPriceDrops(
           ORDER BY e.recorded_at ASC
         ) AS prev_price_cop
       FROM listing_price_events e
+      WHERE e.recorded_at >= NOW() - (${days} * INTERVAL '1 day')
     ),
     drops AS (
       SELECT *
-      FROM ordered_events
+      FROM recent_events
       WHERE prev_price_cop IS NOT NULL
         AND price_cop < prev_price_cop
-        AND recorded_at >= NOW() - (${days} * INTERVAL '1 day')
     )
     SELECT
       d.event_id,

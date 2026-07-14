@@ -115,15 +115,18 @@ export default function VerdictBanner({
 }: Props) {
   const txt = uiText[lang]
   const locale = localeProp ?? (lang === "es" ? "es-CO" : "en-US")
-  const localizedConfidence = confidenceLabel(confidence, lang)
   const domLabel = formatDomDays(domDays, lang)
 
-  const verdictLabel =
-    verdict === "good_deal"
-      ? txt.analyzeVerdictGood
-      : verdict === "overpriced"
-        ? txt.analyzeVerdictOverpriced
-        : txt.analyzeVerdictFair
+  const insufficientComps =
+    sampleSize == null ||
+    sampleSize === 0 ||
+    referencePpm2 == null ||
+    !Number.isFinite(referencePpm2) ||
+    referencePpm2 <= 0
+
+  const localizedConfidence = insufficientComps
+    ? confidenceLabel("low", lang)
+    : confidenceLabel(confidence, lang)
 
   const contextLine = buildContextLine({
     neighborhood,
@@ -133,7 +136,19 @@ export default function VerdictBanner({
     lang,
   })
 
-  const summary = buildSummary(verdict, discountPct, contextLine, txt)
+  const verdictLabel = insufficientComps
+    ? txt.analyzeVerdictInsufficient
+    : verdict === "good_deal"
+      ? txt.analyzeVerdictGood
+      : verdict === "overpriced"
+        ? txt.analyzeVerdictOverpriced
+        : txt.analyzeVerdictFair
+
+  const summary = insufficientComps
+    ? contextLine
+      ? txt.analyzeVerdictSummaryInsufficient.replace("{context}", contextLine)
+      : txt.analyzeNoComps
+    : buildSummary(verdict, discountPct, contextLine, txt)
 
   const totalPrice =
     priceCop != null
@@ -172,7 +187,9 @@ export default function VerdictBanner({
           <p className="text-section-label">{txt.analyzeVerdict}</p>
           <p className="text-display mt-1 text-2xl font-semibold sm:text-3xl">{verdictLabel}</p>
         </div>
-        <Badge variant={verdictBadge[verdict]}>{localizedConfidence}</Badge>
+        <Badge variant={insufficientComps ? "default" : verdictBadge[verdict]}>
+          {localizedConfidence}
+        </Badge>
       </div>
 
       {contextLine ? (

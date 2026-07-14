@@ -39,6 +39,21 @@ function MapClickLayer({
   return null;
 }
 
+function FlyToCenter({
+  center,
+  zoom = 13,
+}: {
+  center: [number, number];
+  zoom?: number;
+}) {
+  const map = useMap();
+  const [lat, lng] = center;
+  useEffect(() => {
+    map.flyTo([lat, lng], zoom, { duration: 0.75 });
+  }, [lat, lng, zoom, map]);
+  return null;
+}
+
 function FlyToMarker({
   marker,
 }: {
@@ -82,7 +97,6 @@ export default function EstimateMapPicker({
 
   return (
     <MapContainer
-      key={`${center[0].toFixed(4)},${center[1].toFixed(4)}`}
       center={center}
       zoom={13}
       className="z-0 h-64 w-full rounded-lg border border-slate-300"
@@ -93,7 +107,11 @@ export default function EstimateMapPicker({
         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
       />
       <MapClickLayer onPick={onPick} />
-      <FlyToMarker marker={marker} />
+      {marker ? (
+        <FlyToMarker marker={marker} />
+      ) : (
+        <FlyToCenter center={center} zoom={13} />
+      )}
       {marker ? <Marker position={[marker.lat, marker.lng]} /> : null}
     </MapContainer>
   );

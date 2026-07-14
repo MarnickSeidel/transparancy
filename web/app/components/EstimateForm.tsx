@@ -15,6 +15,8 @@ import { inputClassName } from "@/app/components/ui/Field";
 import SearchableSelect from "@/app/components/ui/SearchableSelect";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { mapCenterForCity, nearestCityFromCoords } from "@/lib/cityCenters";
+import { fetchJsonCached } from "@/lib/clientFetchCache";
+import type { FiltersData } from "@/lib/getFiltersData";
 import SiteHeader from "@/app/components/SiteHeader";
 import { cityNameToSlug } from "@/lib/getCityFromSlug";
 import { formatFreshnessDate } from "@/lib/getDataFreshness";
@@ -86,17 +88,25 @@ function fmtMoney(n: number, locale: string) {
   return `$ ${Math.round(n).toLocaleString(locale)}`;
 }
 
-export default function EstimateForm() {
+export default function EstimateForm({
+  initialFilters,
+}: {
+  initialFilters?: FiltersData;
+}) {
   const router = useRouter();
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
   const resultRef = useRef<HTMLDivElement>(null);
 
-  const [cities, setCities] = useState<string[]>([]);
-  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
-  const [estratos, setEstratos] = useState<number[]>([]);
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
+  const [cities, setCities] = useState<string[]>(initialFilters?.cities ?? []);
+  const [neighborhoods, setNeighborhoods] = useState<string[]>(
+    initialFilters?.neighborhoods ?? [],
+  );
+  const [estratos, setEstratos] = useState<number[]>(initialFilters?.estratos ?? []);
+  const [propertyTypes, setPropertyTypes] = useState<string[]>(
+    initialFilters?.propertyTypes ?? [],
+  );
 
   const [city, setCity] = useState("");
   const [neighborhood, setNeighborhood] = useState("");
@@ -116,7 +126,7 @@ export default function EstimateForm() {
   const [filterError, setFilterError] = useState<string | null>(null);
   const [result, setResult] = useState<EstimateResponse | null>(null);
   const [submitted, setSubmitted] = useState<SubmittedSnapshot | null>(null);
-  const [filtersLoading, setFiltersLoading] = useState(true);
+  const [filtersLoading, setFiltersLoading] = useState(!initialFilters);
 
   const [geoLoading, setGeoLoading] = useState(false);
   const [geoHint, setGeoHint] = useState<string | null>(null);
@@ -132,12 +142,12 @@ export default function EstimateForm() {
         citySlug && citySlug.length > 0
           ? `?city=${encodeURIComponent(citySlug)}`
           : "";
-      const res = await fetch(`/api/filters${q}`);
-      if (!res.ok) {
-        setFilterError(txt.couldNotLoad);
-        return;
-      }
-      const j = await res.json();
+      const j = await fetchJsonCached<{
+        cities?: string[];
+        neighborhoods?: string[];
+        estratos?: number[];
+        propertyTypes?: string[];
+      }>(`/api/filters${q}`);
       setCities(j.cities ?? []);
       setNeighborhoods(j.neighborhoods ?? []);
       setEstratos(j.estratos ?? []);
@@ -151,12 +161,9 @@ export default function EstimateForm() {
   }, [txt.couldNotLoad]);
 
   useEffect(() => {
-    void loadFilters("");
-  }, [loadFilters]);
-
-  useEffect(() => {
-    if (city) void loadFilters(city);
-  }, [city, loadFilters]);
+    if (initialFilters && !city) return;
+    void loadFilters(city);
+  }, [city, loadFilters, initialFilters]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -213,9 +220,8 @@ export default function EstimateForm() {
   }, [pendingNeighborhoodParam, neighborhoods]);
 
   useEffect(() => {
-    void fetch("/api/freshness")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { lastScrapedAt?: string | null } | null) => {
+    void fetchJsonCached<{ lastScrapedAt?: string | null }>("/api/freshness")
+      .then((j) => {
         if (!j?.lastScrapedAt) return;
         const label = formatFreshnessDate(new Date(j.lastScrapedAt), locale);
         if (label) setFreshnessDate(label);
@@ -324,7 +330,7 @@ export default function EstimateForm() {
   const resultLinks = useMemo(() => {
     if (!result || !submitted) return null;
     const exploreHref = similarListingsHref(result, submitted);
-    const opportunitiesHref = similarOpportunitiesHref(result, submitted);
+    const opportunitiesHref = similarOpportunitiesHref(result, submitted, lang);
     const p = new URLSearchParams();
     p.set("city", result.city);
     const nb = submitted.useGeo ? "" : submitted.neighborhood.trim();
@@ -336,7 +342,7 @@ export default function EstimateForm() {
         ? `/zones/${encodeURIComponent(cityNameToSlug(result.city))}/${encodeURIComponent(normalizeNeighborhoodKey(nb))}`
         : null;
     return { exploreHref, opportunitiesHref, analyzeHref, zoneHref };
-  }, [result, submitted]);
+  }, [result, submitted, lang]);
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

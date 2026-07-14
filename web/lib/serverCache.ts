@@ -8,7 +8,7 @@ import { getHeatmapH3, type HeatmapH3Query } from "@/lib/getHeatmapH3"
 import {
   getTopOpportunities,
   type OpportunityQuery,
-  type OpportunityRow,
+  type OpportunitiesResult,
 } from "@/lib/getTopOpportunities"
 import {
   fetchNearbyAmenities,
@@ -16,12 +16,16 @@ import {
   type NearbyAmenitiesResult,
 } from "@/lib/nearbyAmenities"
 import { queryMonthlyTrends } from "@/lib/monthlyTrends"
+import { getRecentPriceDrops, type PriceDropQuery } from "@/lib/getPriceDrops"
+import { getGlobalDataFreshness } from "@/lib/getDataFreshness"
 
 const REVALIDATE_SECONDS = 90
 const NEARBY_AMENITIES_REVALIDATE = 86400
 const OPPORTUNITIES_REVALIDATE = 60
 const FILTERS_REVALIDATE = 120
 const HEATMAP_REVALIDATE = 120
+const PRICE_DROPS_REVALIDATE = 120
+const FRESHNESS_REVALIDATE = 300
 
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
   "top-opportunities",
@@ -43,7 +47,9 @@ const opportunityCacheKey = (query: OpportunityQuery): string[] => [
   String(query.latitude ?? ""),
   String(query.longitude ?? ""),
   String(query.radiusMeters ?? ""),
-  String(query.limit ?? 10),
+  String(query.page ?? 1),
+  String(query.pageSize ?? query.limit ?? 10),
+  query.sortBy ?? "dealScore",
 ]
 
 export const getCachedDashboardSummary = (city: string | null) =>
@@ -63,7 +69,7 @@ export const getCachedFiltersData = (city: string | null) =>
 
 export const getCachedTopOpportunities = (
   query: OpportunityQuery,
-): Promise<OpportunityRow[]> =>
+): Promise<OpportunitiesResult> =>
   unstable_cache(
     async () => getTopOpportunities(query),
     opportunityCacheKey(query),
@@ -136,3 +142,24 @@ export const getCachedNearbyAmenities = (
     { revalidate: NEARBY_AMENITIES_REVALIDATE },
   )().catch(() => fetchNearbyAmenities(lat, lng, radiusM))
 }
+
+export const getCachedGlobalDataFreshness = () =>
+  unstable_cache(
+    async () => getGlobalDataFreshness(),
+    ["global-data-freshness"],
+    { revalidate: FRESHNESS_REVALIDATE },
+  )()
+
+const priceDropCacheKey = (query: PriceDropQuery): string[] => [
+  "price-drops",
+  query.city ?? "all",
+  String(query.limit ?? 30),
+  String(query.days ?? 30),
+]
+
+export const getCachedRecentPriceDrops = (query: PriceDropQuery) =>
+  unstable_cache(
+    async () => getRecentPriceDrops(query),
+    priceDropCacheKey(query),
+    { revalidate: PRICE_DROPS_REVALIDATE },
+  )()

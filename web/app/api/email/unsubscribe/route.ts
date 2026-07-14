@@ -16,6 +16,12 @@ export async function GET(req: Request) {
     return NextResponse.redirect(absoluteUrl("/email/unsubscribed?status=invalid"))
   }
 
+  if (!list) {
+    return NextResponse.redirect(
+      absoluteUrl(`/email/preferences?token=${encodeURIComponent(token)}`),
+    )
+  }
+
   const updated = await unsubscribeContact(token, list)
   if (!updated) {
     return NextResponse.redirect(absoluteUrl("/email/unsubscribed?status=invalid"))

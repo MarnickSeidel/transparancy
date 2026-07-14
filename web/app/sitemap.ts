@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { localePath } from "@/lib/locale";
+import { localePath, opportunitiesPath } from "@/lib/locale";
 import { listPublishableCitySlugs, listPublishableZones } from "@/lib/listPublishableZones";
 import { absoluteUrl } from "@/lib/siteUrl";
 
@@ -31,6 +31,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/", "en", now, 1, "daily"),
     entry("/zones", "es", now, 0.9, "daily"),
     entry("/zones", "en", now, 0.9, "daily"),
+    {
+      url: absoluteUrl(opportunitiesPath("es")),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.85,
+    },
+    {
+      url: absoluteUrl(opportunitiesPath("en")),
+      lastModified: now,
+      changeFrequency: "daily",
+      priority: 0.85,
+    },
   ];
 
   for (const path of TRUST_PATHS) {

@@ -203,7 +203,7 @@ export default function ZonesIndex({
         )}
       </main>
 
-      <PageFooter locale={lang} />
+      <PageFooter />
     </div>
   );
 }

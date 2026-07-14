@@ -6,6 +6,8 @@ import {
   buildWhyDeal,
   toDealListingInput,
 } from "@/lib/dealEngine";
+import { fetchAnalyzeCompPool } from "@/lib/fetchAnalyzeCompPool";
+import { haversineMeters } from "@/lib/geoHaversine";
 import { prisma } from "@/lib/prisma";
 import {
   fetchHtmlWithTimeout,
@@ -30,20 +32,40 @@ function verdictFromDiscount(discountPct: number | null): Verdict {
   return "fair";
 }
 
+function verdictFromAnalysis(analysis: {
+  compSampleSize: number;
+  refPpm2: number | null;
+  discountVsRefPct: number | null;
+  confidence: "high" | "medium" | "low";
+}): Verdict {
+  if (analysis.compSampleSize === 0 || analysis.refPpm2 == null) {
+    return "fair";
+  }
+  return verdictFromDiscount(analysis.discountVsRefPct);
+}
+
+function confidenceForResponse(analysis: {
+  compSampleSize: number;
+  refPpm2: number | null;
+  confidence: "high" | "medium" | "low";
+}): "high" | "medium" | "low" {
+  if (
+    analysis.compSampleSize === 0 ||
+    analysis.refPpm2 == null ||
+    !Number.isFinite(analysis.refPpm2) ||
+    analysis.refPpm2 <= 0
+  ) {
+    return "low";
+  }
+  return analysis.confidence;
+}
+
 async function buildAnalyzeResponse(upserted: Listing) {
-  const poolRows = await prisma.listing.findMany({
-    where: {
-      city: upserted.city,
-      isActive: true,
-      operationType: { contains: "venta", mode: "insensitive" },
-      pricePerM2: { not: null },
-    },
-    take: 5000,
-    orderBy: { dateScraped: "desc" },
-  });
+  const poolRows = await fetchAnalyzeCompPool(upserted);
 
   const pool = poolRows.map((r) => toDealListingInput(r));
   const subject = toDealListingInput(upserted);
+  const rowById = new Map(poolRows.map((r) => [r.id, r]));
 
   const priceEvents = await prisma.listingPriceEvent.findMany({
     where: {
@@ -60,11 +82,8 @@ async function buildAnalyzeResponse(upserted: Listing) {
     })),
   });
 
-  const comps = poolRows
-    .filter((c) => c.id !== upserted.id)
-    .slice(0, 12);
-
-  const verdict = verdictFromDiscount(analysis.discountVsRefPct);
+  const verdict = verdictFromAnalysis(analysis);
+  const responseConfidence = confidenceForResponse(analysis);
   const whyDeal = buildWhyDeal(analysis, subject);
 
   const priceTimeline = [
@@ -117,7 +136,7 @@ async function buildAnalyzeResponse(upserted: Listing) {
     analysis: {
       dealScore: analysis.dealScore,
       verdict,
-      confidence: analysis.confidence,
+      confidence: responseConfidence,
       warnings: analysis.excluded
         ? analysis.exclusionReasons
         : analysis.confidenceReasons,
@@ -134,17 +153,37 @@ async function buildAnalyzeResponse(upserted: Listing) {
       whyDeal,
     },
     priceTimeline,
-    comps: comps.slice(0, 8).map((c) => ({
-      id: c.id,
-      title: c.title,
-      city: c.city,
-      neighborhood: c.neighborhood,
-      priceCop: c.priceCop.toString(),
-      areaM2: c.areaM2,
-      pricePerM2: c.pricePerM2,
-      distanceMeters: null,
-      url: c.url,
-    })),
+    comps: analysis.selectedComps.slice(0, 8).flatMap((comp) => {
+      const c = rowById.get(comp.id);
+      if (!c) return [];
+      let distanceMeters: number | null = null;
+      if (
+        upserted.latitude != null &&
+        upserted.longitude != null &&
+        c.latitude != null &&
+        c.longitude != null
+      ) {
+        distanceMeters = haversineMeters(
+          upserted.latitude,
+          upserted.longitude,
+          c.latitude,
+          c.longitude,
+        );
+      }
+      return [
+        {
+          id: c.id,
+          title: c.title,
+          city: c.city,
+          neighborhood: c.neighborhood,
+          priceCop: c.priceCop.toString(),
+          areaM2: c.areaM2,
+          pricePerM2: c.pricePerM2,
+          distanceMeters,
+          url: c.url,
+        },
+      ];
+    }),
   };
 }
 

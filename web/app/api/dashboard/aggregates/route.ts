@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { getDashboardAggregates } from "@/lib/dashboardAggregates";
+import { getCachedDashboardAggregates } from "@/lib/serverCache";
 
 export const revalidate = 90;
 
@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   const neighborhood = searchParams.get("neighborhood");
 
   try {
-    const data = await getDashboardAggregates(city, estrato, neighborhood);
+    const data = await getCachedDashboardAggregates(city, estrato, neighborhood);
     return NextResponse.json(data, { headers: CACHE_HEADERS });
   } catch (e) {
     console.error(e);

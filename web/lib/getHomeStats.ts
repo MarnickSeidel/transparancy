@@ -1,5 +1,6 @@
 import type { OpportunityRow } from "@/lib/getTopOpportunities";
 import { getGlobalDataFreshness } from "@/lib/getDataFreshness";
+import { DEFAULT_OPPORTUNITIES_CITY } from "@/lib/getTopOpportunities";
 import { getCachedDashboardSummary, getCachedTopOpportunities } from "@/lib/serverCache";
 import { getZoneCities, getZoneCountsByCity, getZonesForCity } from "@/lib/getZonesIndex";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
@@ -17,10 +18,14 @@ export type HomePageData = {
 };
 
 export async function getHomePageData(): Promise<HomePageData> {
-  const [summary, cities, featuredOpportunities, freshness] = await Promise.all([
+  const [summary, cities, featuredOpportunitiesResult, freshness] = await Promise.all([
     getCachedDashboardSummary(null),
     getZoneCities(DEFAULT_MIN_ZONE_DATA_POINTS),
-    getCachedTopOpportunities({ limit: 3, hideLowConfidence: true }),
+    getCachedTopOpportunities({
+      city: DEFAULT_OPPORTUNITIES_CITY,
+      pageSize: 3,
+      hideLowConfidence: true,
+    }),
     getGlobalDataFreshness(),
   ]);
 
@@ -45,6 +50,6 @@ export async function getHomePageData(): Promise<HomePageData> {
     lastScrapedAt: freshness.lastScrapedAt?.toISOString() ?? null,
     featuredZones,
     featuredCities: featuredCities.slice(0, 8),
-    featuredOpportunities,
+    featuredOpportunities: featuredOpportunitiesResult.items,
   };
 }

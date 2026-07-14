@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import {
   isIndexablePath,
@@ -19,14 +19,53 @@ function readStoredLang(): Lang | null {
   return v === "es" || v === "en" ? v : null;
 }
 
+let toolLangStore: Lang = "es";
+let toolLangStoreReady = false;
+const toolLangListeners = new Set<() => void>();
+
+function subscribeToolLang(listener: () => void) {
+  toolLangListeners.add(listener);
+  return () => toolLangListeners.delete(listener);
+}
+
+function getToolLangSnapshot(): Lang {
+  return toolLangStore;
+}
+
+function getToolLangServerSnapshot(): Lang {
+  return "es";
+}
+
+function ensureToolLangStore(defaultLang: Lang) {
+  if (typeof window === "undefined" || toolLangStoreReady) return;
+  toolLangStoreReady = true;
+  toolLangStore = readStoredLang() ?? defaultLang;
+}
+
+function setToolLangStore(next: Lang) {
+  if (toolLangStore === next) return;
+  toolLangStore = next;
+  if (typeof window !== "undefined") {
+    window.localStorage.setItem(KEY, next);
+  }
+  toolLangListeners.forEach((listener) => listener());
+}
+
 /**
- * Sync UI language with URL locale on indexable routes; localStorage elsewhere.
+ * Sync UI language with URL locale on indexable routes; shared store on tool routes.
  */
 export function useUiLang(defaultLang: Lang = "es") {
   const pathname = usePathname();
   const indexable = isIndexablePath(pathname);
   const urlLang = parseLocaleFromPath(pathname) as Lang;
-  const [toolLang, setToolLang] = useState<Lang>(() => readStoredLang() ?? defaultLang);
+
+  ensureToolLangStore(defaultLang);
+
+  const toolLang = useSyncExternalStore(
+    subscribeToolLang,
+    getToolLangSnapshot,
+    getToolLangServerSnapshot,
+  );
 
   const lang: Lang = indexable ? urlLang : toolLang;
 
@@ -44,7 +83,7 @@ export function useUiLang(defaultLang: Lang = "es") {
       window.location.assign(target);
       return;
     }
-    setToolLang(next);
+    setToolLangStore(next);
   };
 
   const setLang = (next: Lang) => {
@@ -54,7 +93,7 @@ export function useUiLang(defaultLang: Lang = "es") {
       window.location.assign(target);
       return;
     }
-    setToolLang(next);
+    setToolLangStore(next);
   };
 
   return { lang, setLang, toggleLang };

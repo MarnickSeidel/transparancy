@@ -22,7 +22,7 @@ import {
   type ZoneConfidence,
   type ZoneDossier,
 } from "@/lib/zones";
-import { localePath, type Locale } from "@/lib/locale";
+import { localePath, opportunitiesPath, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -128,12 +128,12 @@ export default function ZoneDossier({
   }, [data]);
 
   const opportunitiesHref = useMemo(() => {
-    if (!data) return "/opportunities";
+    if (!data) return opportunitiesPath(lang);
     const p = new URLSearchParams();
     p.set("city", data.city);
     p.set("neighborhood", data.exploreNeighborhood);
-    return `/opportunities?${p.toString()}`;
-  }, [data]);
+    return opportunitiesPath(lang, p.toString());
+  }, [data, lang]);
 
   const fincaRaizHref = useMemo(() => {
     if (!data) return null;
@@ -538,7 +538,7 @@ export default function ZoneDossier({
         ) : null}
       </main>
 
-      <PageFooter locale={lang} />
+      <PageFooter />
     </div>
   );
 }

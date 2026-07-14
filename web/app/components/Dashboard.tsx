@@ -12,6 +12,7 @@ import Skeleton from "./ui/Skeleton";
 import TrustMeta from "./TrustMeta";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { MIN_SAMPLE_SIZE } from "@/lib/analytics";
+import { opportunitiesPath } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 import { DEFAULT_ZONE_CITY } from "@/lib/zones";
@@ -352,7 +353,7 @@ export default function Dashboard() {
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{txt.dashboardNextActions}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
-              href="/opportunities"
+              href={opportunitiesPath(lang)}
               className="rounded-xl border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-100"
             >
               {txt.dashboardSeeOpportunities}

@@ -49,14 +49,24 @@ function initialParam(name: string, fallback = "all"): string {
   return v && v.length > 0 ? v : fallback;
 }
 
-export default function H3Heatmap() {
+export default function H3Heatmap({
+  initialFilters,
+}: {
+  initialFilters?: {
+    cities?: string[];
+    propertyTypes?: string[];
+    estratos?: number[];
+  };
+}) {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
 
-  const [cities, setCities] = useState<string[]>([]);
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
-  const [estratos, setEstratos] = useState<number[]>([]);
+  const [cities, setCities] = useState<string[]>(initialFilters?.cities ?? []);
+  const [propertyTypes, setPropertyTypes] = useState<string[]>(
+    initialFilters?.propertyTypes ?? [],
+  );
+  const [estratos, setEstratos] = useState<number[]>(initialFilters?.estratos ?? []);
 
   const [city, setCity] = useState(() => initialParam("city", "Pereira"));
   const [propertyType, setPropertyType] = useState(() => initialParam("propertyType"));
@@ -107,10 +117,7 @@ export default function H3Heatmap() {
           propertyTypes?: string[];
           estratos?: number[];
         }>(filtersUrl),
-        fetch(`/api/heatmap/h3?${queryString}`, { signal }).then(async (res) => {
-          if (!res.ok) throw new Error("load");
-          return (await res.json()) as HeatmapResponse;
-        }),
+        fetchJsonCached<HeatmapResponse>(`/api/heatmap/h3?${queryString}`),
       ]);
       if (signal?.aborted) return;
       setCities(fJson.cities ?? []);

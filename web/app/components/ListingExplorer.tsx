@@ -11,6 +11,7 @@ import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
+import type { FiltersData } from "@/lib/getFiltersData";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
 import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
@@ -150,15 +151,23 @@ function NeighborhoodCell({
   );
 }
 
-export default function ListingExplorer() {
+export default function ListingExplorer({
+  initialFilters,
+}: {
+  initialFilters?: FiltersData;
+}) {
   const { lang, toggleLang } = useUiLang("es");
   const txt = uiText[lang];
   const locale = lang === "es" ? "es-CO" : "en-US";
 
-  const [cities, setCities] = useState<string[]>([]);
-  const [neighborhoods, setNeighborhoods] = useState<string[]>([]);
-  const [propertyTypes, setPropertyTypes] = useState<string[]>([]);
-  const [estratos, setEstratos] = useState<number[]>([]);
+  const [cities, setCities] = useState<string[]>(initialFilters?.cities ?? []);
+  const [neighborhoods, setNeighborhoods] = useState<string[]>(
+    initialFilters?.neighborhoods ?? [],
+  );
+  const [propertyTypes, setPropertyTypes] = useState<string[]>(
+    initialFilters?.propertyTypes ?? [],
+  );
+  const [estratos, setEstratos] = useState<number[]>(initialFilters?.estratos ?? []);
 
   const [city, setCity] = useState(() => initialParam("city"));
   const [neighborhood, setNeighborhood] = useState(() => initialParam("neighborhood"));

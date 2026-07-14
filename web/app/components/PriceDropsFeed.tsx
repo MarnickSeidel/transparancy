@@ -11,6 +11,7 @@ import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
 import SiteHeader from "@/app/components/SiteHeader"
 import { fetchJsonCached } from "@/lib/clientFetchCache"
+import type { FiltersData } from "@/lib/getFiltersData"
 import { formatDomDays } from "@/lib/formatDom"
 import { uiText } from "@/lib/i18n"
 import type { PriceDropRow } from "@/lib/getPriceDrops"
@@ -35,22 +36,51 @@ function initialCityParam(): string {
   return v && v.length > 0 ? v : "all"
 }
 
-export default function PriceDropsFeed() {
+export default function PriceDropsFeed({
+  initialFilters,
+}: {
+  initialFilters?: FiltersData
+}) {
   const { lang, toggleLang } = useUiLang("es")
   const txt = uiText[lang]
   const locale = lang === "es" ? "es-CO" : "en-US"
 
-  const [cities, setCities] = useState<string[]>([])
+  const [cities, setCities] = useState<string[]>(initialFilters?.cities ?? [])
   const [city, setCity] = useState(() => initialCityParam())
   const [drops, setDrops] = useState<PriceDropRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
-    void fetchJsonCached<{ cities: string[] }>("/api/filters")
-      .then((j) => setCities(j.cities ?? []))
-      .catch(() => setCities([]))
-  }, [])
+    let cancelled = false
+    const run = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const p = new URLSearchParams()
+        if (city !== "all") p.set("city", city)
+        p.set("limit", "40")
+        const needsFilters = cities.length === 0
+        const [fJson, j] = await Promise.all([
+          needsFilters
+            ? fetchJsonCached<{ cities: string[] }>("/api/filters")
+            : Promise.resolve({ cities }),
+          fetchJsonCached<{ drops: PriceDropRow[] }>(`/api/price-drops?${p.toString()}`),
+        ])
+        if (cancelled) return
+        if (needsFilters) setCities(fJson.cities ?? [])
+        setDrops(j.drops ?? [])
+      } catch {
+        if (!cancelled) setError(txt.couldNotLoad)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    }
+    void run()
+    return () => {
+      cancelled = true
+    }
+  }, [city, cities, txt.couldNotLoad])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -67,10 +97,6 @@ export default function PriceDropsFeed() {
       setLoading(false)
     }
   }, [city, txt.couldNotLoad])
-
-  useEffect(() => {
-    void load()
-  }, [load])
 
   const analyzeHref = useMemo(() => "/analyze-url", [])
 

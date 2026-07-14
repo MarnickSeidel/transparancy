@@ -17,6 +17,7 @@ import WhyDealPanel from "@/app/components/WhyDealPanel"
 import type { WhyDeal } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
+import { opportunitiesPath } from "@/lib/locale"
 import { uiText } from "@/lib/i18n"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { useUiLang } from "@/lib/useUiLang"
@@ -124,13 +125,13 @@ export default function AnalyzeUrlForm() {
   }, [])
 
   const opportunitiesHref = useMemo(() => {
-    if (!data) return "/opportunities"
+    if (!data) return opportunitiesPath(lang)
     const p = new URLSearchParams()
     p.set("city", data.listing.city)
     if (data.listing.neighborhood) p.set("neighborhood", data.listing.neighborhood)
     if (data.listing.propertyType) p.set("propertyType", data.listing.propertyType)
-    return `/opportunities?${p.toString()}`
-  }, [data])
+    return opportunitiesPath(lang, p.toString())
+  }, [data, lang])
 
   const priceTimelinePoints = useMemo(
     () =>

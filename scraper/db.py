@@ -227,6 +227,15 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           END,
           area_m2 = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_m2
+            WHEN EXCLUDED.area_private_m2 IS NOT NULL
+              AND (
+                listings.area_private_m2 IS NULL
+                OR EXCLUDED.terrace_heavy_flag = true
+                  AND listings.terrace_heavy_flag IS DISTINCT FROM true
+                OR EXCLUDED.area_mismatch_flag = true
+                  AND listings.area_mismatch_flag IS DISTINCT FROM true
+              )
+            THEN EXCLUDED.area_m2
             ELSE listings.area_m2
           END,
           estrato = CASE
@@ -262,6 +271,10 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           department_slug = EXCLUDED.department_slug,
           price_per_m2 = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.price_per_m2
+            WHEN EXCLUDED.area_private_m2 IS NOT NULL AND listings.area_private_m2 IS NULL THEN EXCLUDED.price_per_m2
+            WHEN EXCLUDED.terrace_heavy_flag = true
+              AND listings.terrace_heavy_flag IS DISTINCT FROM true
+            THEN EXCLUDED.price_per_m2
             ELSE listings.price_per_m2
           END,
           price_per_m2_built = CASE
@@ -286,6 +299,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           END,
           area_built_m2 = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_built_m2
+            WHEN EXCLUDED.area_private_m2 IS NOT NULL AND listings.area_private_m2 IS NULL THEN EXCLUDED.area_built_m2
             ELSE listings.area_built_m2
           END,
           area_terrain_m2 = CASE
@@ -294,7 +308,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           END,
           area_terrace_m2 = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_terrace_m2
-            ELSE listings.area_terrace_m2
+            ELSE COALESCE(listings.area_terrace_m2, EXCLUDED.area_terrace_m2)
           END,
           area_private_m2 = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_private_m2
@@ -302,7 +316,8 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           END,
           price_per_m2_private = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.price_per_m2_private
-            ELSE listings.price_per_m2_private
+            WHEN EXCLUDED.area_private_m2 IS NOT NULL AND listings.area_private_m2 IS NULL THEN EXCLUDED.price_per_m2_private
+            ELSE COALESCE(listings.price_per_m2_private, EXCLUDED.price_per_m2_private)
           END,
           description = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.description
@@ -394,10 +409,12 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           END,
           area_mismatch_flag = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.area_mismatch_flag
+            WHEN EXCLUDED.area_mismatch_flag = true THEN true
             ELSE listings.area_mismatch_flag
           END,
           terrace_heavy_flag = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.terrace_heavy_flag
+            WHEN EXCLUDED.terrace_heavy_flag = true THEN true
             ELSE listings.terrace_heavy_flag
           END,
           bedrooms = CASE

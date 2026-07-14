@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { isIndexablePath } from "@/lib/locale";
+import { isIndexablePath, isOpportunitiesPath } from "@/lib/locale";
 
 const TOOL_PREFIXES = [
   "/dashboard",
   "/explore",
-  "/opportunities",
   "/heatmap",
   "/estimate",
   "/analyze-url",
@@ -19,6 +18,21 @@ function isToolPath(pathname: string): boolean {
   );
 }
 
+function rewriteOpportunities(
+  request: NextRequest,
+  pathname: string,
+  locale: "es" | "en",
+): NextResponse {
+  const rewritePath = pathname
+    .replace("/en/opportunities", "/opportunities")
+    .replace("/oportunidades", "/opportunities");
+  const url = request.nextUrl.clone();
+  url.pathname = rewritePath;
+  const res = NextResponse.rewrite(url);
+  res.headers.set("x-locale", locale);
+  return res;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -26,6 +40,30 @@ export function middleware(request: NextRequest) {
     const res = NextResponse.next();
     res.headers.set("X-Robots-Tag", "noindex, nofollow");
     return res;
+  }
+
+  if (pathname === "/opportunities" || pathname.startsWith("/opportunities/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace("/opportunities", "/oportunidades");
+    return NextResponse.redirect(url, 301);
+  }
+
+  if (pathname === "/es/oportunidades" || pathname.startsWith("/es/oportunidades/")) {
+    const stripped =
+      pathname === "/es/oportunidades"
+        ? "/oportunidades"
+        : pathname.replace(/^\/es\/oportunidades/, "/oportunidades");
+    const url = request.nextUrl.clone();
+    url.pathname = stripped;
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === "/oportunidades" || pathname.startsWith("/oportunidades/")) {
+    return rewriteOpportunities(request, pathname, "es");
+  }
+
+  if (pathname === "/en/opportunities" || pathname.startsWith("/en/opportunities/")) {
+    return rewriteOpportunities(request, pathname, "en");
   }
 
   if (pathname.startsWith("/en/") && isToolPath(pathname.slice(3))) {
@@ -44,6 +82,7 @@ export function middleware(request: NextRequest) {
   if (
     !pathname.startsWith("/en") &&
     isIndexablePath(pathname) &&
+    !isOpportunitiesPath(pathname) &&
     !pathname.startsWith("/_next")
   ) {
     const rewritePath = pathname === "/" ? "/es" : `/es${pathname}`;
