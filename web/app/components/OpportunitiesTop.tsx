@@ -380,7 +380,7 @@ export default function OpportunitiesTop({
               <button
                 type="button"
                 onClick={clearSimilarFilters}
-                className="shrink-0 rounded-lg border border-slate-200/90 bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface dark:border-slate-700/80"
+                className="shrink-0 rounded-lg border border-border-subtle bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface dark:border-slate-700/80"
               >
                 {txt.opportunitiesSimilarClear}
               </button>
@@ -390,7 +390,7 @@ export default function OpportunitiesTop({
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
           <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:w-72 lg:self-start">
-            <Card className="border-slate-200/90 p-4 shadow-card">
+            <Card className="border-border-subtle p-4 shadow-card">
               <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">
                 {txt.opportunitiesPrimaryFilters}
               </p>
@@ -621,7 +621,7 @@ export default function OpportunitiesTop({
           </aside>
 
           <div className="min-w-0 flex-1">
-            <Card className="overflow-hidden border-slate-200/90 p-0 shadow-card">
+            <Card className="overflow-hidden border-border-subtle p-0 shadow-card">
               <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-surface/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-foreground">
@@ -657,15 +657,15 @@ export default function OpportunitiesTop({
 
               <div className="hidden overflow-x-auto md:block">
                 <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
-                  <thead className="bg-slate-50/80">
+                  <thead className="bg-surface">
                     <tr>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.listing}</th>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.neighborhood}</th>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.price}</th>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.pricePerM2}</th>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.opportunityDiscount}</th>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.dealScore}</th>
-                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesConfidence}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.listing}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.neighborhood}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.price}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.pricePerM2}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.opportunityDiscount}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.dealScore}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-muted">{txt.opportunitiesConfidence}</th>
                       <th scope="col" className="w-10 px-2 py-3" aria-label={txt.opportunitiesWhyDeal} />
                     </tr>
                   </thead>
@@ -774,7 +774,7 @@ export default function OpportunitiesTop({
                                       </div>
                                     ) : null}
                                     {r.priceTimeline && r.priceTimeline.length > 1 ? (
-                                      <div className="rounded-xl border border-slate-200/90 bg-elevated px-3 py-2 dark:border-slate-700/80">
+                                      <div className="rounded-xl border border-border-subtle bg-elevated px-3 py-2 dark:border-slate-700/80">
                                         <p className="mb-1 text-xs font-medium text-muted">
                                           {txt.priceTimelineTitle}
                                         </p>
@@ -882,7 +882,7 @@ export default function OpportunitiesTop({
               </div>
 
               {!loading && pagination.total > pagination.pageSize ? (
-                <div className="border-t border-slate-200/90 bg-slate-50/95 px-4 py-4 dark:border-slate-700/80 dark:bg-slate-900/40">
+                <div className="border-t border-border-subtle bg-slate-50/95 px-4 py-4 dark:border-slate-700/80 dark:bg-slate-900/40">
                   <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <button
                       type="button"
@@ -901,7 +901,7 @@ export default function OpportunitiesTop({
                       {txt.opportunitiesPrevPage}
                     </button>
 
-                    <p className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-center text-sm font-semibold text-slate-700 shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
+                    <p className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-center text-sm font-semibold text-muted shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
                       {txt.opportunitiesPage.replace("{page}", String(pagination.page))}
                     </p>
 

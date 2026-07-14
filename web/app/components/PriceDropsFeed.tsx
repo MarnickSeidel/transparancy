@@ -5,6 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from "react"
 import DomBadge from "@/app/components/DomBadge"
 import EmailSignupForm from "@/app/components/EmailSignupForm"
 import PageFooter from "@/app/components/PageFooter"
+import PromoCard from "@/app/components/ui/PromoCard"
+import ErrorBanner from "@/app/components/ui/ErrorBanner"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
@@ -110,8 +112,8 @@ export default function PriceDropsFeed({
         onToggleLang={toggleLang}
       />
 
-      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
-        <Card className="mb-6 border-slate-200/90 shadow-card">
+      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+        <Card className="mb-6 border-border-subtle shadow-card">
           <p className="text-sm text-muted">{txt.priceDropsHint}</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="flex-1 text-xs font-medium text-muted">
@@ -136,9 +138,7 @@ export default function PriceDropsFeed({
         </Card>
 
         {error ? (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
-            {error}
-          </div>
+          <ErrorBanner message={error} className="mb-6" />
         ) : null}
 
         {loading ? (
@@ -156,7 +156,7 @@ export default function PriceDropsFeed({
             {drops.map((row) => {
               const domLabel = formatDomDays(row.domDays, lang)
               return (
-                <Card key={row.id} className="border-slate-200/90 shadow-card">
+                <Card key={row.id} className="border-border-subtle shadow-card">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
                       <div className="flex flex-wrap items-center gap-2">
@@ -217,12 +217,13 @@ export default function PriceDropsFeed({
           className="mt-8"
         />
 
-        <Card className="mt-8 border-teal-200/80 bg-teal-50/40 dark:border-teal-900/60 dark:bg-teal-950/20">
-          <p className="text-sm text-foreground">{txt.priceDropsAnalyzeCta}</p>
-          <Button href={analyzeHref} className="mt-3">
-            {txt.analyzeUrlNav}
-          </Button>
-        </Card>
+        <PromoCard
+          className="mt-8"
+          title={txt.priceDropsAnalyzeCta}
+          description=""
+          href={analyzeHref}
+          cta={txt.analyzeUrlNav}
+        />
       </main>
 
       <PageFooter />

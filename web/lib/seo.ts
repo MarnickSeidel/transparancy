@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { opportunitiesPath, ogLocale, type Locale } from "@/lib/locale";
+import { localeOgImage, ogImageMeta, opportunitiesOgImage } from "@/lib/ogImages";
 import { absoluteUrl } from "@/lib/siteUrl";
 
 export const defaultSiteMetadata = {
@@ -42,13 +43,13 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
       siteName: defaultSiteMetadata.siteName,
       locale: ogLocale(locale),
       type: "website",
-      images: [{ url: absoluteUrl("/branding/habidata-logo-horizontal.svg") }],
+      images: [ogImageMeta(localeOgImage(locale))],
     },
     twitter: {
       card: "summary_large_image",
       title: defaultTitle,
       description: defaultDescription,
-      images: [absoluteUrl("/branding/habidata-mark.svg")],
+      images: [localeOgImage(locale)],
     },
     icons: {
       icon: "/branding/habidata-mark.svg",
@@ -70,6 +71,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
     const description =
       "Ranked Finca Raíz listings by relative discount vs neighborhood benchmarks — Habidata deal finder.";
     const url = absoluteUrl(opportunitiesPath("en"));
+    const ogImage = opportunitiesOgImage();
     return {
       title,
       description,
@@ -81,8 +83,9 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
         siteName: defaultSiteMetadata.siteName,
         locale: ogLocale(locale),
         type: "website",
+        images: [ogImageMeta(ogImage)],
       },
-      twitter: { card: "summary", title, description },
+      twitter: { card: "summary_large_image", title, description, images: [ogImage] },
     };
   }
 
@@ -90,6 +93,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
   const description =
     "Ranking de publicaciones con mejor descuento relativo frente al mercado del barrio — herramienta Habidata.";
   const url = absoluteUrl(opportunitiesPath("es"));
+  const ogImage = opportunitiesOgImage();
   return {
     title,
     description,
@@ -101,8 +105,9 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
       siteName: defaultSiteMetadata.siteName,
       locale: ogLocale(locale),
       type: "website",
+      images: [ogImageMeta(ogImage)],
     },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
   };
 }
 
@@ -135,8 +140,9 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
         siteName: defaultSiteMetadata.siteName,
         locale: ogLocale(locale),
         type: "website",
+        images: [ogImageMeta(localeOgImage(locale))],
       },
-      twitter: { card: "summary", title, description },
+      twitter: { card: "summary_large_image", title, description, images: [localeOgImage(locale)] },
     };
   }
 
@@ -144,6 +150,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
   const description =
     "Plataforma de datos inmobiliarios: precio/m² por barrio, scoring de oportunidades, heatmaps y estimador basado en publicaciones Finca Raíz.";
   const url = alt.canonical;
+  const ogImage = localeOgImage(locale);
   return {
     title,
     description,
@@ -155,8 +162,9 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
       siteName: defaultSiteMetadata.siteName,
       locale: ogLocale(locale),
       type: "website",
+      images: [ogImageMeta(ogImage)],
     },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
   };
 }
 

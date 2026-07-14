@@ -11,6 +11,7 @@ import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection";
 import SiteHeader from "@/app/components/SiteHeader";
 import Card from "@/app/components/ui/Card";
 import Skeleton from "@/app/components/ui/Skeleton";
+import PromoCard from "@/app/components/ui/PromoCard";
 import Button from "@/app/components/ui/Button";
 import { buildFincaRaizSearchUrl } from "@/lib/fincaraizSearch";
 import { formatFreshnessDate } from "@/lib/getDataFreshness";
@@ -504,15 +505,13 @@ export default function ZoneDossier({
               </Button>
             </Card>
 
-            <Card className="mb-6 border-teal-200/80 bg-teal-50/40 shadow-card dark:border-teal-900/60 dark:bg-teal-950/20">
-              <h2 className="text-base font-semibold text-foreground">
-                {fmtTemplate(txt.zonesEstimateCtaTitle, { barrio: data.displayName })}
-              </h2>
-              <p className="mt-2 text-sm text-muted">{txt.zonesEstimateCtaBody}</p>
-              <Button href={estimateHref} className="mt-4">
-                {txt.zonesEstimateCtaButton}
-              </Button>
-            </Card>
+            <PromoCard
+              className="mb-6"
+              title={fmtTemplate(txt.zonesEstimateCtaTitle, { barrio: data.displayName })}
+              description={txt.zonesEstimateCtaBody}
+              href={estimateHref}
+              cta={txt.zonesEstimateCtaButton}
+            />
 
             <Card className="border-teal-200/80 bg-teal-50/40 dark:border-teal-900/60 dark:bg-teal-950/20">
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">

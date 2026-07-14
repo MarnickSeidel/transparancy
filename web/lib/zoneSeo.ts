@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { localePath, ogLocale, type Locale } from "@/lib/locale";
+import { ogImageMeta, zoneOgImage } from "@/lib/ogImages";
 import { absoluteUrl } from "@/lib/siteUrl";
 import type { ZoneDossier } from "@/lib/zones";
 
@@ -37,6 +38,7 @@ export function zonePageMetadata(dossier: ZoneDossier, locale: Locale = "es"): M
   }
 
   const canonical = canonicalForLocale(path, locale);
+  const ogImage = zoneOgImage(dossier.citySlug, dossier.slug, locale);
 
   return {
     title,
@@ -50,8 +52,14 @@ export function zonePageMetadata(dossier: ZoneDossier, locale: Locale = "es"): M
       siteName: "Habidata",
       locale: ogLocale(locale),
       type: "article",
+      images: published ? [ogImageMeta(ogImage)] : undefined,
     },
-    twitter: { card: "summary", title, description },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: published ? [ogImage] : undefined,
+    },
   };
 }
 

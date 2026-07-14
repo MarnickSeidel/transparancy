@@ -7,7 +7,12 @@ export const dynamic = "force-dynamic"
 
 function authorized(req: Request): boolean {
   const secret = process.env.CRON_SECRET?.trim()
-  if (!secret) return process.env.NODE_ENV === "development"
+  if (!secret) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[cron] CRON_SECRET is not configured — denying request")
+    }
+    return process.env.NODE_ENV === "development"
+  }
   const header = req.headers.get("authorization")?.trim()
   if (header === `Bearer ${secret}`) return true
   const urlSecret = new URL(req.url).searchParams.get("secret")?.trim()

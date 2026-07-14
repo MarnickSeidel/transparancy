@@ -40,6 +40,8 @@ type Content = {
   mapMedian: string
   mapListings: string
   features: Array<{ title: string; description: string }>
+  journeysTitle: string
+  journeys: Array<{ title: string; description: string; href: string; cta: string }>
 }
 
 const content: Record<"es" | "en", Content> = {
@@ -76,6 +78,27 @@ const content: Record<"es" | "en", Content> = {
           "Pega un enlace de Finca Raíz y recibe veredicto, banda de precio y contexto en segundos.",
       },
     ],
+    journeysTitle: "Empieza aquí",
+    journeys: [
+      {
+        title: "Investigar un barrio",
+        description: "Mediana de precio/m², tendencias y mix de tipos por zona.",
+        href: "/zones",
+        cta: "Ver barrios",
+      },
+      {
+        title: "Analizar un anuncio",
+        description: "Pega una URL de Finca Raíz y recibe veredicto con comparables.",
+        href: "/analyze-url",
+        cta: "Analizar URL",
+      },
+      {
+        title: "Encontrar oportunidades",
+        description: "Ranking de publicaciones con descuento vs la mediana del barrio.",
+        href: "/oportunidades",
+        cta: "Ver oportunidades",
+      },
+    ],
   },
   en: {
     eyebrow: "Finca Raíz data · Colombia",
@@ -108,6 +131,27 @@ const content: Record<"es" | "en", Content> = {
         title: "URL diagnostics",
         description:
           "Paste a Finca Raíz link and get a verdict, price band, and context in seconds.",
+      },
+    ],
+    journeysTitle: "Start here",
+    journeys: [
+      {
+        title: "Research a neighborhood",
+        description: "Median price/m², trends, and property mix by zone.",
+        href: "/zones",
+        cta: "Browse zones",
+      },
+      {
+        title: "Analyze a listing",
+        description: "Paste a Finca Raíz URL for a verdict with comparables.",
+        href: "/analyze-url",
+        cta: "Analyze URL",
+      },
+      {
+        title: "Find opportunities",
+        description: "Ranked listings priced below neighborhood medians.",
+        href: "/oportunidades",
+        cta: "View deals",
       },
     ],
   },
@@ -427,6 +471,25 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
             </div>
           </div>
         </div>
+
+        <section className="mt-14" aria-labelledby="home-journeys-heading">
+          <h2 id="home-journeys-heading" className="text-display text-xl font-semibold">
+            {copy.journeysTitle}
+          </h2>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            {copy.journeys.map((journey) => (
+              <Link
+                key={journey.title}
+                href={lp(journey.href)}
+                className="surface-panel block p-5 transition hover:border-accent/35 hover:shadow-card-hover link-focus"
+              >
+                <h3 className="text-display text-base font-semibold text-foreground">{journey.title}</h3>
+                <p className="mt-2 text-sm leading-relaxed text-muted">{journey.description}</p>
+                <span className="mt-4 inline-flex text-sm font-semibold text-accent">{journey.cta} →</span>
+              </Link>
+            ))}
+          </div>
+        </section>
 
         {initialData && initialData.featuredCities.length > 0 ? (
           <section className="mt-14">

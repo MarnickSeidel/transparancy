@@ -352,7 +352,7 @@ export default function ListingExplorer({
               <button
                 type="button"
                 onClick={clearSimilarFilters}
-                className="shrink-0 rounded-lg border border-slate-200/90 bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface dark:border-slate-700/80"
+                className="shrink-0 rounded-lg border border-border-subtle bg-elevated px-3 py-1.5 text-xs font-semibold text-foreground hover:bg-surface dark:border-slate-700/80"
               >
                 {txt.exploreSimilarClear}
               </button>
@@ -371,7 +371,7 @@ export default function ListingExplorer({
           ) : null}
         </p>
 
-        <Card className="mb-6 border-slate-200/90 p-4 shadow-card">
+        <Card className="mb-6 border-border-subtle p-4 shadow-card">
           <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
             {txt.opportunitiesPrimaryFilters}
           </p>
@@ -522,7 +522,7 @@ export default function ListingExplorer({
           ) : null}
         </Card>
 
-        <Card className="overflow-hidden border-slate-200/90 shadow-card">
+        <Card className="overflow-hidden border-border-subtle shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-3 dark:border-slate-700/80">
             <div>
               <p className="text-sm font-semibold text-foreground">
@@ -653,7 +653,7 @@ export default function ListingExplorer({
                 return (
                   <article
                     key={row.id}
-                    className="rounded-xl border border-slate-200/90 bg-elevated p-4 dark:border-slate-700/80"
+                    className="rounded-xl border border-border-subtle bg-elevated p-4 dark:border-slate-700/80"
                   >
                     <span
                       className="inline-flex items-center gap-2 rounded-full px-2.5 py-1 text-xs font-semibold"

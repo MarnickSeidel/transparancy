@@ -17,7 +17,7 @@ import {
 } from "@/lib/nearbyAmenities"
 import { queryMonthlyTrends } from "@/lib/monthlyTrends"
 import { getRecentPriceDrops, type PriceDropQuery } from "@/lib/getPriceDrops"
-import { getGlobalDataFreshness } from "@/lib/getDataFreshness"
+import { getGlobalDataFreshness, normalizeDataFreshness } from "@/lib/getDataFreshness"
 
 const REVALIDATE_SECONDS = 90
 const NEARBY_AMENITIES_REVALIDATE = 86400
@@ -148,7 +148,7 @@ export const getCachedGlobalDataFreshness = () =>
     async () => getGlobalDataFreshness(),
     ["global-data-freshness"],
     { revalidate: FRESHNESS_REVALIDATE },
-  )()
+  )().then(normalizeDataFreshness)
 
 const priceDropCacheKey = (query: PriceDropQuery): string[] => [
   "price-drops",

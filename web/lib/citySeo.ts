@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { ogLocale, type Locale } from "@/lib/locale";
+import { localeOgImage, ogImageMeta } from "@/lib/ogImages";
 import { absoluteUrl } from "@/lib/siteUrl";
 import { cityNameToSlug } from "@/lib/getCityFromSlug";
 import type { PublishableZone } from "@/lib/zones";
@@ -22,24 +23,28 @@ export function cityHubMetadata(
   if (locale === "en") {
     const title = `${city} neighborhoods — price per m² data | Habidata`;
     const description = `Market data for ${zoneCount} neighborhoods in ${city}, Colombia. Median price per m², active listings, and trends from Finca Raíz — for local and US investors.`;
+    const url = canonicalForLocale(path, locale);
+    const ogImage = localeOgImage(locale);
     return {
       title,
       description,
-      alternates: { canonical: canonicalForLocale(path, locale), languages: alt.languages },
+      alternates: { canonical: url, languages: alt.languages },
       openGraph: {
         title,
         description,
-        url: canonicalForLocale(path, locale),
+        url,
         siteName: "Habidata",
         locale: ogLocale(locale),
         type: "website",
+        images: [ogImageMeta(ogImage)],
       },
-      twitter: { card: "summary", title, description },
+      twitter: { card: "summary_large_image", title, description, images: [ogImage] },
     };
   }
 
   const title = `Barrios en ${city} — precio m² por zona | Habidata`;
   const description = `Datos de mercado para ${zoneCount} barrios en ${city}: mediana de precio/m², publicaciones activas y tendencias basadas en anuncios Finca Raíz.`;
+  const ogImage = localeOgImage(locale);
   return {
     title,
     description,
@@ -51,8 +56,9 @@ export function cityHubMetadata(
       siteName: "Habidata",
       locale: ogLocale(locale),
       type: "website",
+      images: [ogImageMeta(ogImage)],
     },
-    twitter: { card: "summary", title, description },
+    twitter: { card: "summary_large_image", title, description, images: [ogImage] },
   };
 }
 
