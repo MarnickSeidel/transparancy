@@ -1,9 +1,9 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
+import H3HeatmapMap from "@/app/components/H3HeatmapMap";
 import PageFooter from "@/app/components/PageFooter";
 import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
@@ -16,14 +16,11 @@ import { BUCKET_COLORS } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
-const H3HeatmapMap = dynamic(() => import("@/app/components/H3HeatmapMap"), {
-  ssr: false,
-  loading: () => (
-    <div className="flex h-[min(70vh,640px)] items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
-      …
-    </div>
-  ),
-});
+const mapPlaceholder = (
+  <div className="flex h-[min(70vh,640px)] items-center justify-center rounded-2xl border border-dashed border-border-subtle bg-surface text-sm text-muted">
+    …
+  </div>
+);
 
 type HeatmapResponse = {
   city: string;
@@ -81,6 +78,11 @@ export default function H3Heatmap({
   const [dossierHref, setDossierHref] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [mapMounted, setMapMounted] = useState(false);
+
+  useEffect(() => {
+    setMapMounted(true);
+  }, []);
 
   const fmtPpm2 = useCallback(
     (v: number) => `$ ${Math.round(v).toLocaleString(locale)}`,
@@ -322,19 +324,23 @@ export default function H3Heatmap({
           </p>
         ) : null}
 
-        <H3HeatmapMap
-          center={mapCenterForCity(city)}
-          cells={data?.cells ?? []}
-          fitKey={mapFitKey}
-          selectedCell={selectedForMap}
-          onCellSelect={handleCellSelect}
-          formatPpm2={fmtPpm2}
-          tooltipForCell={(cell) =>
-            `${fmtPpm2(cell.medianPpm2)} · ${cell.count} ${txt.heatmapListingsShort}${
-              cell.topNeighborhood ? ` · ${cell.topNeighborhood}` : ""
-            }`
-          }
-        />
+        {mapMounted ? (
+          <H3HeatmapMap
+            center={mapCenterForCity(city)}
+            cells={data?.cells ?? []}
+            fitKey={mapFitKey}
+            selectedCell={selectedForMap}
+            onCellSelect={handleCellSelect}
+            formatPpm2={fmtPpm2}
+            tooltipForCell={(cell) =>
+              `${fmtPpm2(cell.medianPpm2)} · ${cell.count} ${txt.heatmapListingsShort}${
+                cell.topNeighborhood ? ` · ${cell.topNeighborhood}` : ""
+              }`
+            }
+          />
+        ) : (
+          mapPlaceholder
+        )}
 
         {selected ? (
           <Card className="mt-4 border-slate-200/90 p-4 shadow-card">
