@@ -21,6 +21,8 @@ const MID_TIER_POOL_SIZE = 300
 const MAX_CANDIDATES = 400
 const COMP_ANALYSIS_POOL_SIZE = 2500
 const MAX_RESULTS = 120
+/** Cap full deal re-analysis to avoid scanning every merged candidate. */
+const ANALYZE_CAP = 200
 /** Ignore stored scores driven by implausible COP/m² (bad scrapes). */
 const CANDIDATE_PPM2_FLOOR = 400_000
 const MID_TIER_DEAL_SCORE_MIN = 45
@@ -502,9 +504,21 @@ export async function getTopOpportunities(
 
   const allResults: OpportunityRow[] = []
 
-  for (const row of filteredRows) {
+  const sortedCandidates = [...filteredRows].sort((a, b) => {
+    const scoreA = a.dealScore ?? -Infinity
+    const scoreB = b.dealScore ?? -Infinity
+    if (scoreB !== scoreA) return scoreB - scoreA
+    const ppm2A = a.pricePerM2 ?? Infinity
+    const ppm2B = b.pricePerM2 ?? Infinity
+    return ppm2A - ppm2B
+  })
+
+  const analyzeLimit = Math.min(sortedCandidates.length, ANALYZE_CAP)
+
+  for (let i = 0; i < analyzeLimit; i++) {
     if (allResults.length >= MAX_RESULTS) break
 
+    const row = sortedCandidates[i]
     const subject = toDealListingInput(row)
     const analysis = analyzeDeal(subject, compPool, {
       priceEvents: priceEventsByListing.get(row.id),

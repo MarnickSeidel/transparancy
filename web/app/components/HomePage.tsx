@@ -283,7 +283,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
     <div className="app-shell flex min-h-screen flex-col">
       <AppHeader variant="marketing" homeHref={lp("/")} lang={lang} onToggleLang={toggleLang} />
 
-      <main className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+      <main id="main-content" className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
         <div className="grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-10">
           <div>
             <Badge variant="default">{copy.eyebrow}</Badge>
@@ -390,7 +390,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={card.imageUrl}
-                          alt=""
+                          alt={card.zone}
                           className="h-full w-full object-cover"
                           loading="lazy"
                         />

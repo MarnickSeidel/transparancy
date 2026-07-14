@@ -30,7 +30,7 @@ export default function PageFooter() {
           <div>
             <Link
               href={lp("/")}
-              className="text-display text-sm font-semibold text-foreground transition hover:text-accent"
+              className="text-display link-focus text-sm font-semibold text-foreground transition hover:text-accent"
             >
               Habidata
             </Link>
@@ -42,22 +42,22 @@ export default function PageFooter() {
             <p className="text-meta font-semibold">{locale === "en" ? "Explore" : "Explorar"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                <Link href={lp("/zones")} className="text-foreground hover:text-accent">
+                <Link href={lp("/zones")} className="link-focus text-foreground hover:text-accent">
                   {txt.zonesNav}
                 </Link>
               </li>
               <li>
-                <Link href="/explore" className="text-foreground hover:text-accent">
+                <Link href={lp("/explore")} className="link-focus text-foreground hover:text-accent">
                   {txt.exploreNav}
                 </Link>
               </li>
               <li>
-                <Link href={opportunitiesPath(locale)} className="text-foreground hover:text-accent">
+                <Link href={opportunitiesPath(locale)} className="link-focus text-foreground hover:text-accent">
                   {txt.opportunitiesNav}
                 </Link>
               </li>
               <li>
-                <Link href="/price-drops" className="text-foreground hover:text-accent">
+                <Link href={lp("/price-drops")} className="link-focus text-foreground hover:text-accent">
                   {txt.priceDropsNav}
                 </Link>
               </li>
@@ -67,17 +67,17 @@ export default function PageFooter() {
             <p className="text-meta font-semibold">{locale === "en" ? "Trust" : "Confianza"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                <Link href={lp("/methodology")} className="text-foreground hover:text-accent">
+                <Link href={lp("/methodology")} className="link-focus text-foreground hover:text-accent">
                   {locale === "en" ? "Methodology" : "Metodología"}
                 </Link>
               </li>
               <li>
-                <Link href={lp("/about")} className="text-foreground hover:text-accent">
+                <Link href={lp("/about")} className="link-focus text-foreground hover:text-accent">
                   {locale === "en" ? "About" : "Acerca de"}
                 </Link>
               </li>
               <li>
-                <Link href={lp("/privacy")} className="text-foreground hover:text-accent">
+                <Link href={lp("/privacy")} className="link-focus text-foreground hover:text-accent">
                   {locale === "en" ? "Privacy" : "Privacidad"}
                 </Link>
               </li>
@@ -87,12 +87,12 @@ export default function PageFooter() {
             <p className="text-meta font-semibold">{locale === "en" ? "Language" : "Idioma"}</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
-                <Link href={localePath("es", pathForLang)} className="text-foreground hover:text-accent">
+                <Link href={localePath("es", pathForLang)} className="link-focus text-foreground hover:text-accent">
                   Español
                 </Link>
               </li>
               <li>
-                <Link href={localePath("en", pathForLang)} className="text-foreground hover:text-accent">
+                <Link href={localePath("en", pathForLang)} className="link-focus text-foreground hover:text-accent">
                   English
                 </Link>
               </li>

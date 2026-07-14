@@ -1,5 +1,6 @@
 import type { EmailList } from "@prisma/client"
 
+import { escapeHtml, escapeHtmlAttr } from "@/lib/htmlEscape"
 import { opportunitiesPath } from "@/lib/locale"
 import { absoluteUrl } from "@/lib/siteUrl"
 
@@ -45,7 +46,7 @@ function layout(args: {
 
   return `<!DOCTYPE html>
 <html lang="${args.locale}">
-<head><meta charset="utf-8"><title>${args.title}</title></head>
+<head><meta charset="utf-8"><title>${escapeHtml(args.title)}</title></head>
 <body style="font-family:system-ui,sans-serif;line-height:1.5;color:#0f172a;max-width:560px;margin:0 auto;padding:24px">
   <p style="font-weight:600;font-size:18px;margin:0 0 16px">Habidata</p>
   ${args.bodyHtml}
@@ -70,7 +71,7 @@ export function buildConfirmEmail(args: {
           : p.city
             ? ` — ${p.city}`
             : ""
-      return `<li>${label}${scope}</li>`
+      return `<li>${escapeHtml(label)}${escapeHtml(scope)}</li>`
     })
     .join("")
 
@@ -82,12 +83,12 @@ export function buildConfirmEmail(args: {
     ? `<h1 style="font-size:20px;margin:0 0 12px">Confirm your subscription</h1>
        <p>You asked to receive:</p>
        <ul>${items}</ul>
-       <p><a href="${args.confirmUrl}" style="display:inline-block;background:#0d9488;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Confirm email</a></p>
+       <p><a href="${escapeHtmlAttr(args.confirmUrl)}" style="display:inline-block;background:#0d9488;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Confirm email</a></p>
        <p style="font-size:13px;color:#64748b">If you did not request this, ignore this message.</p>`
     : `<h1 style="font-size:20px;margin:0 0 12px">Confirma tu suscripción</h1>
        <p>Seleccionaste recibir:</p>
        <ul>${items}</ul>
-       <p><a href="${args.confirmUrl}" style="display:inline-block;background:#0d9488;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Confirmar correo</a></p>
+       <p><a href="${escapeHtmlAttr(args.confirmUrl)}" style="display:inline-block;background:#0d9488;color:#fff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Confirmar correo</a></p>
        <p style="font-size:13px;color:#64748b">Si no solicitaste esto, ignora este mensaje.</p>`
 
   const html = layout({
@@ -121,6 +122,7 @@ export function buildDealDigestEmail(args: {
 }) {
   const isEn = args.locale === "en"
   const scope = args.neighborhood ? `${args.neighborhood}, ${args.city}` : args.city
+  const scopeHtml = escapeHtml(scope)
   const subject = isEn
     ? `Top deals in ${scope} — Habidata`
     : `Mejores oportunidades en ${scope} — Habidata`
@@ -138,18 +140,18 @@ export function buildDealDigestEmail(args: {
               l.pricePerM2 != null
                 ? ` · $${Math.round(l.pricePerM2).toLocaleString(isEn ? "en-US" : "es-CO")}/m²`
                 : ""
-            const nh = l.neighborhood ? ` (${l.neighborhood})` : ""
-            return `<li style="margin-bottom:12px"><a href="${l.url}">${l.title}</a>${nh}<br/><span style="color:#334155">${l.priceCop}${ppm2}${discount}</span></li>`
+            const nh = l.neighborhood ? ` (${escapeHtml(l.neighborhood)})` : ""
+            return `<li style="margin-bottom:12px"><a href="${escapeHtmlAttr(l.url)}">${escapeHtml(l.title)}</a>${nh}<br/><span style="color:#334155">${escapeHtml(l.priceCop)}${ppm2}${discount}</span></li>`
           })
           .join("")}</ul>`
 
   const bodyHtml = isEn
-    ? `<h1 style="font-size:20px">Deal digest — ${scope}</h1>
-       <p style="font-size:13px;color:#64748b">Data refreshed ${args.dataDate}. Source: Finca Raíz listings.</p>
+    ? `<h1 style="font-size:20px">Deal digest — ${scopeHtml}</h1>
+       <p style="font-size:13px;color:#64748b">Data refreshed ${escapeHtml(args.dataDate)}. Source: Finca Raíz listings.</p>
        ${rows}
        <p><a href="${absoluteUrl(opportunitiesPath("en"))}">Browse all opportunities →</a></p>`
-    : `<h1 style="font-size:20px">Resumen de oportunidades — ${scope}</h1>
-       <p style="font-size:13px;color:#64748b">Datos actualizados ${args.dataDate}. Fuente: publicaciones Finca Raíz.</p>
+    : `<h1 style="font-size:20px">Resumen de oportunidades — ${scopeHtml}</h1>
+       <p style="font-size:13px;color:#64748b">Datos actualizados ${escapeHtml(args.dataDate)}. Fuente: publicaciones Finca Raíz.</p>
        ${rows}
        <p><a href="${absoluteUrl(opportunitiesPath("es"))}">Ver todas las oportunidades →</a></p>`
 
@@ -175,6 +177,7 @@ export function buildPriceDropDigestEmail(args: {
   dataDate: string
 }) {
   const isEn = args.locale === "en"
+  const cityHtml = escapeHtml(args.city)
   const subject = isEn
     ? `Recent price drops in ${args.city} — Habidata`
     : `Bajas de precio recientes en ${args.city} — Habidata`
@@ -184,18 +187,18 @@ export function buildPriceDropDigestEmail(args: {
       ? `<p>${isEn ? "No notable price drops this period." : "Sin bajas de precio destacadas en este período."}</p>`
       : `<ul style="padding-left:18px">${args.drops
           .map((d) => {
-            const nh = d.neighborhood ? ` (${d.neighborhood})` : ""
-            return `<li style="margin-bottom:12px"><a href="${d.url}">${d.title}</a>${nh}<br/>
-              <span style="color:#334155">${d.previousPriceCop} → ${d.priceCop} (−${d.dropPct.toFixed(1)}%)</span></li>`
+            const nh = d.neighborhood ? ` (${escapeHtml(d.neighborhood)})` : ""
+            return `<li style="margin-bottom:12px"><a href="${escapeHtmlAttr(d.url)}">${escapeHtml(d.title)}</a>${nh}<br/>
+              <span style="color:#334155">${escapeHtml(d.previousPriceCop)} → ${escapeHtml(d.priceCop)} (−${d.dropPct.toFixed(1)}%)</span></li>`
           })
           .join("")}</ul>`
 
   const bodyHtml = isEn
-    ? `<h1 style="font-size:20px">Price drops — ${args.city}</h1>
-       <p style="font-size:13px;color:#64748b">As of ${args.dataDate}</p>${rows}
+    ? `<h1 style="font-size:20px">Price drops — ${cityHtml}</h1>
+       <p style="font-size:13px;color:#64748b">As of ${escapeHtml(args.dataDate)}</p>${rows}
        <p><a href="${absoluteUrl("/price-drops")}">View all price drops →</a></p>`
-    : `<h1 style="font-size:20px">Bajas de precio — ${args.city}</h1>
-       <p style="font-size:13px;color:#64748b">Al ${args.dataDate}</p>${rows}
+    : `<h1 style="font-size:20px">Bajas de precio — ${cityHtml}</h1>
+       <p style="font-size:13px;color:#64748b">Al ${escapeHtml(args.dataDate)}</p>${rows}
        <p><a href="${absoluteUrl("/price-drops")}">Ver todas las bajas →</a></p>`
 
   return {
@@ -218,6 +221,8 @@ export function buildMarketDigestEmail(args: {
   unsubscribeUrl: string
 }) {
   const isEn = args.locale === "en"
+  const cityHtml = escapeHtml(args.city)
+  const monthHtml = escapeHtml(args.monthLabel)
   const subject = isEn
     ? `${args.city} market — ${args.monthLabel}`
     : `Mercado ${args.city} — ${args.monthLabel}`
@@ -234,7 +239,7 @@ export function buildMarketDigestEmail(args: {
         : "Historial insuficiente"
 
   const bodyHtml = isEn
-    ? `<h1 style="font-size:20px">${args.city} — ${args.monthLabel}</h1>
+    ? `<h1 style="font-size:20px">${cityHtml} — ${monthHtml}</h1>
        <p><strong>Median price/m²:</strong> ${median}<br/><strong>Change:</strong> ${change}</p>
        <ul>
          <li>Sample (median): ${args.sample} listings</li>
@@ -244,7 +249,7 @@ export function buildMarketDigestEmail(args: {
        </ul>
        <p><a href="${absoluteUrl("/dashboard")}">Open dashboard →</a> · <a href="${absoluteUrl("/zones")}">Zone dossiers →</a></p>
        <p style="font-size:12px;color:#64748b">Based on Finca Raíz data. Not investment advice.</p>`
-    : `<h1 style="font-size:20px">${args.city} — ${args.monthLabel}</h1>
+    : `<h1 style="font-size:20px">${cityHtml} — ${monthHtml}</h1>
        <p><strong>Mediana precio/m²:</strong> ${median}<br/><strong>Variación:</strong> ${change}</p>
        <ul>
          <li>Muestra (mediana): ${args.sample} anuncios</li>
@@ -274,6 +279,7 @@ export function buildColombiaDigestEmail(args: {
   unsubscribeUrl: string
 }) {
   const isEn = args.locale === "en"
+  const quarterHtml = escapeHtml(args.quarterLabel)
   const subject = isEn
     ? `Colombia real estate overview — ${args.quarterLabel}`
     : `Panorama inmobiliario Colombia — ${args.quarterLabel}`
@@ -286,16 +292,16 @@ export function buildColombiaDigestEmail(args: {
           : "—"
       const ch =
         c.momChangePct != null ? `${c.momChangePct >= 0 ? "+" : ""}${c.momChangePct.toFixed(1)}%` : "—"
-      return `<li><strong>${c.city}</strong>: ${med} (${ch}, n=${c.sample})</li>`
+      return `<li><strong>${escapeHtml(c.city)}</strong>: ${med} (${ch}, n=${c.sample})</li>`
     })
     .join("")
 
   const bodyHtml = isEn
-    ? `<h1 style="font-size:20px">Colombia — ${args.quarterLabel}</h1>
+    ? `<h1 style="font-size:20px">Colombia — ${quarterHtml}</h1>
        <p>Median price/m² and month-over-month change by city:</p>
        <ul>${rows}</ul>
        <p><a href="${absoluteUrl("/dashboard")}">Explore the dashboard →</a></p>`
-    : `<h1 style="font-size:20px">Colombia — ${args.quarterLabel}</h1>
+    : `<h1 style="font-size:20px">Colombia — ${quarterHtml}</h1>
        <p>Mediana precio/m² y variación mensual por ciudad:</p>
        <ul>${rows}</ul>
        <p><a href="${absoluteUrl("/dashboard")}">Explorar el tablero →</a></p>`

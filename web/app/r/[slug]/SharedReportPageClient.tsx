@@ -79,7 +79,7 @@ export default function SharedReportPageClient({ slug }: Props) {
         onToggleLang={toggleLang}
       />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
         {loading ? (
           <Card className="space-y-4 p-6">
             <Skeleton className="h-24 w-full rounded-2xl" />

@@ -7,6 +7,7 @@ import {
   isSharedAnalyzePayload,
   type SharedAnalyzePayload,
 } from "@/lib/shareReport"
+import { enforceRateLimit } from "@/lib/rateLimit"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +19,9 @@ type Body = {
 }
 
 export async function POST(req: Request) {
+  const limited = enforceRateLimit(req, "reports-share", 20, 60 * 60_000)
+  if (limited) return limited
+
   try {
     const body = (await req.json()) as Body
     if (!isSharedAnalyzePayload(body.payload)) {

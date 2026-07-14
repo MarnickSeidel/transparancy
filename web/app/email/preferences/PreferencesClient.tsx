@@ -126,7 +126,7 @@ export default function PreferencesClient() {
 
   return (
     <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-12">
-      <div className="w-full max-w-2xl">
+      <main id="main-content" className="w-full max-w-2xl">
         <h1 className="text-display text-2xl font-semibold text-foreground">
           {lang === "en" ? "Email preferences" : "Preferencias de email"}
         </h1>
@@ -181,7 +181,7 @@ export default function PreferencesClient() {
             </>
           )}
         </Card>
-      </div>
+      </main>
     </div>
   )
 }

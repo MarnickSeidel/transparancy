@@ -1,5 +1,6 @@
 import { Fraunces, Source_Sans_3 } from "next/font/google";
 import localFont from "next/font/local";
+import { headers } from "next/headers";
 import type { Viewport } from "next";
 
 import { rootMetadata, siteViewport } from "@/lib/seo";
@@ -32,8 +33,11 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const langHeader = headers().get("x-document-lang");
+  const lang = langHeader === "en" ? "en" : "es";
+
   return (
-    <html lang="es" suppressHydrationWarning>
+    <html lang={lang} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -44,6 +48,9 @@ export default function RootLayout({
       <body
         className={`${fraunces.variable} ${sourceSans.variable} ${geistMono.variable} font-sans antialiased`}
       >
+        <a href="#main-content" className="skip-link">
+          {lang === "en" ? "Skip to content" : "Saltar al contenido"}
+        </a>
         {children}
       </body>
     </html>

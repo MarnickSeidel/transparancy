@@ -335,7 +335,7 @@ export default function ListingExplorer({
         onToggleLang={toggleLang}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {error ? (
           <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
             {error}
@@ -551,15 +551,15 @@ export default function ListingExplorer({
               <table className="min-w-full text-left text-sm">
                 <thead className="bg-surface text-xs uppercase tracking-wide text-muted">
                   <tr>
-                    <th className="px-4 py-3">{txt.explorePriceSignal}</th>
-                    <th className="px-4 py-3">{txt.type}</th>
-                    <th className="px-4 py-3">{txt.cityLabel}</th>
-                    <th className="px-4 py-3">{txt.neighborhood}</th>
-                    <th className="px-4 py-3">{txt.medianPriceM2}</th>
-                    <th className="px-4 py-3">{txt.exploreSortPrice}</th>
-                    <th className="px-4 py-3">{txt.dealScore}</th>
-                    <th className="px-4 py-3">{txt.exploreSortArea}</th>
-                    <th className="px-4 py-3" />
+                    <th scope="col" className="px-4 py-3">{txt.explorePriceSignal}</th>
+                    <th scope="col" className="px-4 py-3">{txt.type}</th>
+                    <th scope="col" className="px-4 py-3">{txt.cityLabel}</th>
+                    <th scope="col" className="px-4 py-3">{txt.neighborhood}</th>
+                    <th scope="col" className="px-4 py-3">{txt.medianPriceM2}</th>
+                    <th scope="col" className="px-4 py-3">{txt.exploreSortPrice}</th>
+                    <th scope="col" className="px-4 py-3">{txt.dealScore}</th>
+                    <th scope="col" className="px-4 py-3">{txt.exploreSortArea}</th>
+                    <th scope="col" className="px-4 py-3" />
                   </tr>
                 </thead>
                 <tbody>

@@ -160,4 +160,25 @@ body {
     padding: 0.2rem 0.45rem;
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--border-subtle) 60%, transparent);
   }
+
+  .skip-link {
+    position: absolute;
+    left: -9999px;
+    top: 0.75rem;
+    z-index: 100;
+    border-radius: 0.5rem;
+    background: var(--accent);
+    color: var(--accent-fg);
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .skip-link:focus {
+    left: 1rem;
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
 }

@@ -1,0 +1,37 @@
+---
+description: React/TSX UI conventions for Habidata web app
+globs: web/**/*.tsx
+alwaysApply: false
+---
+
+# Web components (`web/**/*.tsx`)
+
+Style details: [front-end-cursor-rules.mdc](./front-end-cursor-rules.mdc). Architecture: [AGENTS.md](../../AGENTS.md).
+
+## Design tokens (prefer over raw Tailwind)
+
+```tsx
+// ❌ border-slate-200/90 text-slate-700 bg-emerald-100
+// ✅ border-border-subtle text-muted text-foreground bg-surface
+// Actions: bg-accent · Positive data: deal-good · Surfaces: surface-hero | surface-panel | surface-inline
+```
+
+Typography: `text-display`, `text-data-hero`, `text-section-label`, `text-meta`.
+
+## Structure
+
+- Tool pages: `SiteHeader` / `AppHeader variant="tool"`; marketing home: `variant="marketing"`.
+- Heavy clients: `dynamic()` or `loadToolPage()` from `lib/loadToolPage.tsx` (see `app/explore/page.tsx`).
+- `<main id="main-content">` on page shells (skip link target).
+- Event handlers: `handle` prefix. New TSX: **no semicolons**.
+
+## i18n & a11y
+
+- User-visible strings → `lib/i18n.ts` (`es` + `en` keys). Footer/nav → `localePath(lang, path)`.
+- Forms: visible labels or `sr-only` + `htmlFor`. Tables: `scope="col"` on `<th>`.
+- Listing images: meaningful `alt` from title (or decorative `alt=""` only if title is adjacent).
+- Interactive elements: `focus-visible:ring-2 focus-visible:ring-accent/50` or `.link-focus`.
+
+## UI primitives
+
+Reuse `app/components/ui/` (`Button`, `Card`, `Badge`, `Field`) before bespoke styled elements.

@@ -4,6 +4,7 @@ import Image from "next/image"
 
 type Props = {
   src: string
+  alt?: string
   width: number
   height: number
   className?: string
@@ -12,6 +13,7 @@ type Props = {
 
 export default function ListingThumbnail({
   src,
+  alt = "",
   width,
   height,
   className = "h-full w-full object-cover",
@@ -20,7 +22,7 @@ export default function ListingThumbnail({
   return (
     <Image
       src={src}
-      alt=""
+      alt={alt}
       width={width}
       height={height}
       className={className}

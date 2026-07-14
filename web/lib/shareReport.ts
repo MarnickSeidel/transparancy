@@ -57,7 +57,7 @@ export type SharedAnalyzePayload = {
 }
 
 export const createReportSlug = (): string => {
-  return randomBytes(6).toString("base64url")
+  return randomBytes(12).toString("base64url")
 }
 
 export const isSharedAnalyzePayload = (value: unknown): value is SharedAnalyzePayload => {

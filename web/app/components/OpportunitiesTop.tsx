@@ -21,6 +21,7 @@ import {
   DEFAULT_OPPORTUNITIES_CITY,
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
 } from "@/lib/getTopOpportunities"
+import { listingPath } from "@/lib/locale"
 import { uiText } from "@/lib/i18n"
 import { propertyTypeOptions } from "@/lib/propertyTypes"
 import { useUiLang } from "@/lib/useUiLang"
@@ -360,7 +361,7 @@ export default function OpportunitiesTop({
         onToggleLang={toggleLang}
       />
 
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {error ? (
           <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
             {error}
@@ -658,14 +659,14 @@ export default function OpportunitiesTop({
                 <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
                   <thead className="bg-slate-50/80">
                     <tr>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.listing}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.neighborhood}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.price}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.pricePerM2}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunityDiscount}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.dealScore}</th>
-                      <th className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesConfidence}</th>
-                      <th className="w-10 px-2 py-3" aria-label={txt.opportunitiesWhyDeal} />
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.listing}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.neighborhood}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.price}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.pricePerM2}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.opportunityDiscount}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.dealScore}</th>
+                      <th scope="col" className="px-4 py-3 font-medium text-slate-700">{txt.opportunitiesConfidence}</th>
+                      <th scope="col" className="w-10 px-2 py-3" aria-label={txt.opportunitiesWhyDeal} />
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -696,6 +697,7 @@ export default function OpportunitiesTop({
                                     {r.imageUrl ? (
                                       <ListingThumbnail
                                         src={r.imageUrl}
+                                        alt={r.title}
                                         width={48}
                                         height={40}
                                         sizes="48px"
@@ -703,9 +705,7 @@ export default function OpportunitiesTop({
                                     ) : null}
                                   </div>
                                   <a
-                                    href={r.url}
-                                    target="_blank"
-                                    rel="noreferrer"
+                                    href={listingPath(lang, r.id)}
                                     className="font-medium text-accent hover:underline"
                                   >
                                     {r.title}
@@ -835,7 +835,7 @@ export default function OpportunitiesTop({
                       <OpportunityMobileCard
                         key={r.id}
                         title={r.title}
-                        url={r.url}
+                        detailHref={listingPath(lang, r.id)}
                         location={`${r.city} · ${r.neighborhood ?? txt.unknown}`}
                         price={fmtCop(Number(r.priceCop), locale)}
                         pricePerM2={fmtCop(r.pricePerM2, locale)}

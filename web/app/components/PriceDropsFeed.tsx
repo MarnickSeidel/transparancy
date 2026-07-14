@@ -110,7 +110,7 @@ export default function PriceDropsFeed({
         onToggleLang={toggleLang}
       />
 
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
         <Card className="mb-6 border-slate-200/90 shadow-card">
           <p className="text-sm text-muted">{txt.priceDropsHint}</p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">

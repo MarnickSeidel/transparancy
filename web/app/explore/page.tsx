@@ -1,7 +1,11 @@
 import type { Metadata } from "next"
 
-import ListingExplorer from "@/app/components/ListingExplorer"
+import { loadToolPage } from "@/lib/loadToolPage"
 import { noIndexMetadata } from "@/lib/seo"
+
+const ListingExplorer = loadToolPage(
+  () => import("@/app/components/ListingExplorer"),
+)
 
 export const metadata: Metadata = noIndexMetadata(
   "Explorador de publicaciones",

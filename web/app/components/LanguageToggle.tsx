@@ -14,7 +14,7 @@ export default function LanguageToggle({ lang, onToggle }: Props) {
   return (
     <button
       type="button"
-      className="rounded-full border border-slate-200 bg-elevated px-3 py-2 text-xs font-medium text-slate-700 shadow-sm hover:bg-surface dark:border-slate-600 dark:text-slate-200"
+      className="rounded-full border border-border-subtle bg-elevated px-3 py-2 text-xs font-medium text-muted shadow-sm transition hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
       aria-label={ariaLabel}
       onClick={onToggle}
     >

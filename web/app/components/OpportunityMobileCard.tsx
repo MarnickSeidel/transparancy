@@ -5,7 +5,7 @@ import ListingThumbnail from "@/app/components/ListingThumbnail"
 
 type Props = {
   title: string
-  url: string
+  detailHref: string
   location: string
   price: string
   pricePerM2: string
@@ -31,7 +31,7 @@ type Props = {
 
 export default function OpportunityMobileCard({
   title,
-  url,
+  detailHref,
   location,
   price,
   pricePerM2,
@@ -59,14 +59,12 @@ export default function OpportunityMobileCard({
       <div className="flex gap-3">
         <div className="relative h-14 w-16 shrink-0 overflow-hidden rounded-md bg-surface">
           {imageUrl ? (
-            <ListingThumbnail src={imageUrl} width={64} height={56} sizes="64px" />
+            <ListingThumbnail src={imageUrl} alt={title} width={64} height={56} sizes="64px" />
           ) : null}
         </div>
         <div className="min-w-0 flex-1">
           <a
-            href={url}
-            target="_blank"
-            rel="noreferrer"
+            href={detailHref}
             className="font-semibold text-accent hover:underline"
           >
             {title}

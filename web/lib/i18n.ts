@@ -12,7 +12,7 @@ export const uiText = {
   es: {
     title: "Habidata — transparencia del mercado",
     subtitle:
-      "Publicaciones de Fincaraiz (MVP). Precio/m² vs promedio del barrio: verde por debajo, amarillo cerca, rojo por encima.",
+      "Publicaciones de Fincaraiz. Precio/m² vs promedio del barrio: verde por debajo, amarillo cerca, rojo por encima.",
     city: "Ciudad",
     estrato: "Estrato",
     neighborhood: "Barrio",
@@ -356,6 +356,13 @@ export const uiText = {
     opportunitiesSortByDiscount: "Mayor ahorro vs. mercado",
     opportunitiesSortByPrice: "Precio",
     opportunitiesSortByConfidence: "Confianza",
+    listingDetailBack: "Volver a oportunidades",
+    listingDetailPurpose: "Analisis Habidata de esta publicacion frente al mercado del barrio.",
+    listingDetailCtaFr: "Ver en Finca Raiz",
+    listingDetailUpdated: "Datos actualizados",
+    listingDetailNotFound: "Anuncio no encontrado",
+    listingDetailNotFoundBody:
+      "Este anuncio ya no esta disponible o el enlace no es valido.",
     analyzeUrlTitle: "Analizar anuncio por URL",
     analyzeUrlSubtitle:
       "Pega una URL de Fincaraiz: la extraemos, guardamos y calculamos si parece oportunidad frente a comparables.",
@@ -571,7 +578,7 @@ export const uiText = {
   en: {
     title: "Habidata — market transparency",
     subtitle:
-      "Fincaraiz listings (MVP). Price/m² vs neighborhood average: green below, yellow near, red above.",
+      "Fincaraiz listings. Price/m² vs neighborhood average: green below, yellow near, red above.",
     city: "City",
     estrato: "Estrato",
     neighborhood: "Neighborhood",
@@ -914,6 +921,13 @@ export const uiText = {
     opportunitiesSortByDiscount: "Biggest savings vs. market",
     opportunitiesSortByPrice: "Price",
     opportunitiesSortByConfidence: "Confidence",
+    listingDetailBack: "Back to opportunities",
+    listingDetailPurpose: "Habidata analysis of this listing vs neighborhood benchmarks.",
+    listingDetailCtaFr: "View on Finca Raiz",
+    listingDetailUpdated: "Data updated",
+    listingDetailNotFound: "Listing not found",
+    listingDetailNotFoundBody:
+      "This listing is no longer available or the link is invalid.",
     analyzeUrlTitle: "Analyze listing by URL",
     analyzeUrlSubtitle:
       "Paste a Fincaraiz URL: we extract it, save it, and assess if it looks like a deal vs comparables.",

@@ -20,8 +20,10 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
         subject: args.subject,
         textPreview: args.text?.slice(0, 200) ?? args.html.slice(0, 200),
       })
+      return { ok: true, id: null, devMode: true }
     }
-    return { ok: true, id: null, devMode: true }
+    console.error("[email] RESEND_API_KEY is not configured")
+    return { ok: false, error: "email_not_configured" }
   }
 
   try {

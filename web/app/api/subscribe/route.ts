@@ -7,6 +7,7 @@ import {
   normalizeOptional,
   parsePreferences,
 } from "@/lib/email/validate"
+import { enforceRateLimit } from "@/lib/rateLimit"
 
 export const dynamic = "force-dynamic"
 
@@ -39,6 +40,9 @@ function legacyListsFromBody(body: Body) {
 }
 
 export async function POST(req: Request) {
+  const limited = enforceRateLimit(req, "subscribe", 5, 60 * 60_000)
+  if (limited) return limited
+
   try {
     const body = (await req.json()) as Body
     const email = normalizeEmail(body.email)

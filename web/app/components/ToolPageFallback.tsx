@@ -11,7 +11,7 @@ export default function ToolPageFallback() {
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <AppHeader variant="tool" lang={lang} onToggleLang={toggleLang} />
-      <main className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <Skeleton className="h-9 w-56 max-w-full" />
         <Skeleton className="mt-3 h-5 w-96 max-w-full" />
         <div className="mt-8 space-y-4">

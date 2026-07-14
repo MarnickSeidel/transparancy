@@ -1,0 +1,40 @@
+---
+description: Next.js API route conventions for Habidata
+globs: web/app/api/**
+alwaysApply: false
+---
+
+# API routes (`web/app/api/**)
+
+See [AGENTS.md](../../AGENTS.md) for caching and deal-engine context.
+
+## Expensive or abuse-prone routes
+
+Use `lib/rateLimit.ts` (`checkRateLimit`, `clientIp`, `rateLimitResponse`):
+
+| Route | Suggested limit |
+|-------|-----------------|
+| `POST analyze-url` | 10 / 15 min / IP |
+| `POST subscribe` | 5 / hour / IP |
+| `POST reports/share` | 20 / hour / IP |
+| `GET nearby-amenities` | 30 / min / IP |
+
+Wire new expensive endpoints the same way.
+
+## Read paths
+
+- Hot reads: wrap with `lib/serverCache.ts` + `Cache-Control: s-maxage`.
+- Parse inputs manually; bound numerics (prices, coords, page sizes). No Zod yet — validate explicitly.
+- Errors: `try/catch` → `NextResponse.json({ error: "..." }, { status })` + `console.error`.
+
+## Security
+
+- SQL: Prisma or `Prisma.sql` with parameters only.
+- External fetch: host allowlists (analyze-url → `fincaraiz.com.co` only).
+- Email HTML: escape user/scraped strings via `lib/htmlEscape.ts`.
+- Cron: `CRON_SECRET` Bearer; deny in prod if unset.
+- Do not log secrets or full tokens.
+
+## Deal data
+
+Scoring logic lives in `lib/dealEngine.ts` — change it only with scraper parity in mind. Opportunities hot path: `lib/getTopOpportunities.ts`.

@@ -1,5 +1,13 @@
+import type { Metadata } from "next"
+
 import Button from "@/app/components/ui/Button"
+import { noIndexMetadata } from "@/lib/seo"
 import { absoluteUrl } from "@/lib/siteUrl"
+
+export const metadata: Metadata = noIndexMetadata(
+  "Correo confirmado",
+  "Confirmación de suscripción a alertas de Habidata.",
+)
 
 type Props = {
   searchParams: { status?: string; lang?: string }
@@ -31,7 +39,7 @@ export default function EmailConfirmedPage({ searchParams }: Props) {
 
   return (
     <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-16">
-      <div className="w-full max-w-md rounded-2xl border border-border-subtle bg-elevated p-8 shadow-card">
+      <main id="main-content" className="w-full max-w-md rounded-2xl border border-border-subtle bg-elevated p-8 shadow-card">
         <h1 className="text-display text-xl font-semibold text-foreground">
           {ok ? t.okTitle : t.invalidTitle}
         </h1>
@@ -44,7 +52,7 @@ export default function EmailConfirmedPage({ searchParams }: Props) {
             {t.zones}
           </Button>
         </div>
-      </div>
+      </main>
       <p className="mt-6 text-meta text-xs">{absoluteUrl("/")}</p>
     </div>
   )

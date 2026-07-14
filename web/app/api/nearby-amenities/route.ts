@@ -7,6 +7,7 @@ import {
   type NearbyAmenitiesResult,
 } from "@/lib/nearbyAmenities"
 import { getCachedNearbyAmenities } from "@/lib/serverCache"
+import { enforceRateLimit } from "@/lib/rateLimit"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +19,9 @@ const parseCoord = (raw: string | null): number | null => {
 }
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "nearby-amenities", 30, 60_000)
+  if (limited) return limited
+
   try {
     const { searchParams } = new URL(req.url)
     const latitude = parseCoord(searchParams.get("latitude"))

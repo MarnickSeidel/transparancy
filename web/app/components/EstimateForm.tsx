@@ -436,7 +436,7 @@ export default function EstimateForm({
         onToggleLang={toggleLang}
       />
 
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
         {filterError && (
           <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card">
             {filterError}
