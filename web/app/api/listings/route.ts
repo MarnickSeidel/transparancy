@@ -6,6 +6,7 @@ import { domDaysFromFirstSeen } from "@/lib/formatDom";
 import { pricePerM2Bucket, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { resolveNeighborhoodFilter } from "@/lib/neighborhoodAliases";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants";
 
 function parseOptionalInt(raw: string | null): number | null {
@@ -195,6 +196,9 @@ function pickRef(
 }
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "listings", 60, 60_000);
+  if (limited) return limited;
+
   const { searchParams } = new URL(req.url);
   const page = parsePositiveInt(searchParams.get("page"), 1, 10_000);
   const pageSize = parsePositiveInt(

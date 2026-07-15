@@ -1,7 +1,7 @@
-# Habidata — Website Audit Roadmap
+# ClaraCasas — Website Audit Roadmap
 
 Last updated: July 2026  
-Status: **committed on `main`** — audit batch + follow-up improvements shipped
+Status: **in progress** — brand/perf/token batches applied; scale work remains
 
 **Agent context:** [`AGENTS.md`](../AGENTS.md) · **Cursor rules:** [`.cursor/rules/`](../.cursor/rules/)
 
@@ -9,20 +9,20 @@ Status: **committed on `main`** — audit batch + follow-up improvements shipped
 
 ## Executive summary
 
-July 2026 audit improvements are largely **done**. Remaining work focuses on **scale** (Redis rate limits, heatmap SQL), **full design-token migration**, and **deeper product features**.
+July 2026 audit improvements are largely **done**. Remaining work focuses on **scale** (Redis rate limits, heatmap SQL), observability, and **deeper product features**.
 
 ### Audit scores (current)
 
 | Area | Score | Notes |
 |------|-------|-------|
-| UI | 7.5 | Token migration started; Dashboard/Estimate still slate-heavy |
+| UI | 8.0 | Tool pages on design tokens (Dashboard/Estimate/Analyze) |
 | UX | 8.0 | 3-item nav + More dropdown; intent-first labels (ES/EN) |
-| SEO | 9.0 | Dynamic `lang`, PNG OG routes, opportunities JSON-LD |
-| Performance | 6.5 | Explore split; opportunities cap; heatmap still full-city |
-| Accessibility | 7.0 | Skip link, alts, focus, table scope |
+| SEO | 9.0 | Dynamic `lang`, PNG OG, sitemap hreflang, brand-consistent metadata |
+| Performance | 7.5 | Opportunities comp-pool cache + stored-score ranking; heatmap still full-city |
+| Accessibility | 7.5 | Skip link, live regions, reduced-motion, select ARIA i18n |
 | Code quality | 7.5 | Playwright smoke tests added; no unit tests yet |
-| Security | 6.5 | Rate limits + headers; in-memory limits only |
-| Product | 7.5 | Listing detail pages; agent docs |
+| Security | 7.0 | Rate limits on more heavy routes; still in-memory only |
+| Product | 7.5 | Listing detail pages; ClaraCasas brand unified |
 
 ---
 
@@ -44,10 +44,24 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Home “Start here” 3 journeys section (above the fold)
 - Home featured deals link to internal listing detail pages
 - `ToolNextSteps` + `listingContextLinks` — contextual cross-links on analyze, listing detail, opportunities, explore, heatmap, dashboard
-- Nav restructure: **Barrios · ¿Buen precio? · Oportunidades** + **Más** dropdown (Explore, Estimate, Heatmap, Price drops, Dashboard)
+- Nav restructure: **Barrios · ¿Buen precio? · Oportunidades** + **Más** dropdown
 - Shared `ErrorBanner`, `PromoCard` components
 - Design tokens: OpportunitiesTop, ListingExplorer, PriceDrops (partial)
 - Playwright smoke tests (`tests/e2e/smoke.spec.ts`)
+
+### Brand + polish batch (July 2026)
+- Unify **ClaraCasas** across metadata, OG, JSON-LD, email, trust pages, share copy
+- Scope Leaflet CSS to map components only
+- `robots.txt` disallow `/anuncio/`, `/en/listing/`, `/email/`, `/r/`
+- Sitemap `alternates.languages` (hreflang pairs)
+- Rate limits on estimate, listings, heatmap, opportunities, dashboard bundle
+- Email signup `role="alert"` / `aria-live`; `prefers-reduced-motion`
+- SearchableSelect open/close ARIA i18n
+- Footer email signup SSR (no late `ssr: false` hydrate)
+
+### Perf + tokens batch (July 2026)
+- Opportunities: prefer stored `dealScore` pool; cached city comp pool (90s); leaner comp select; price events only for analyze slice; lower analyze/comp caps
+- Design tokens: Dashboard, Estimate, AnalyzeUrl, EmailSignupForm — `slate-*` → semantic tokens
 
 ---
 
@@ -57,9 +71,8 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | Task | Why |
 |------|-----|
 | Redis/Upstash rate limits | Multi-instance production |
-| Full design-token migration | Dashboard, Estimate, AnalyzeUrl still use `slate-*` |
 | Extract Pagination component | Opportunities vs Explore duplication |
-| Deeper opportunities perf | Trust stored scores / materialized rankings |
+| Wire Playwright into CI | After `npx playwright install` + test DB |
 
 ### Medium-term
 | Task | Why |
@@ -67,6 +80,8 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | SQL-aggregate heatmap | Bogotá/Medellín scale |
 | Zod on POST APIs | Input validation |
 | Split `i18n.ts` | Maintainability |
+| Privacy-respecting analytics + Sentry | Measure usage / catch errors |
+| CSP (+ HSTS at edge) | Hardening |
 | Saved listings | Retention |
 | Second data source | Market coverage |
 
@@ -78,9 +93,9 @@ Closed-sale data, user accounts, investment scoring product, B2B API, LATAM expa
 ## Top priorities
 
 1. Redis rate limits before multi-instance deploy
-2. Finish design-token migration on remaining tool pages
-3. Run `npm run test:e2e` in CI (after `npx playwright install`)
-4. Heatmap SQL aggregation
+2. Heatmap SQL aggregation
+3. Analytics + error tracking
+4. Run `npm run test:e2e` in CI
 
 ---
 
@@ -91,4 +106,4 @@ cd web && npm run dev
 # Optional: npx playwright install && npm run test:e2e
 ```
 
-See checklist in git history or prior audit notes for skip link, `/en` lang, rate limits, opportunities load.
+Check: brand name ClaraCasas on home/about/OG; maps still style correctly; `/robots.txt` disallows tools + anuncio/email; email signup errors announced; heavy API returns 429 when hammered.

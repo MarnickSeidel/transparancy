@@ -5,6 +5,7 @@ import { MIN_ANALYTICS_AREA_M2, MIN_SAMPLE_SIZE } from "@/lib/analytics";
 import { haversineWithinMetersSql } from "@/lib/geoHaversine";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants";
 
 export const dynamic = "force-dynamic";
@@ -199,6 +200,9 @@ function parseCoord(v: unknown): number | null {
 }
 
 export async function POST(req: Request) {
+  const limited = enforceRateLimit(req, "estimate", 20, 15 * 60_000);
+  if (limited) return limited;
+
   try {
     const body = (await req.json()) as Body;
     const city =

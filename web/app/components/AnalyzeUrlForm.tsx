@@ -324,7 +324,7 @@ export default function AnalyzeUrlForm() {
           </div>
         ) : null}
 
-        <Card className="mb-6 border-slate-200/90 shadow-card">
+        <Card className="mb-6 border-border-subtle shadow-card">
           <form id="analyze-url-form" onSubmit={(e) => void submit(e)}>
             <label className="block text-xs font-medium text-muted" htmlFor="analyze-url-input">
               {txt.analyzeUrlInputLabel}
@@ -349,7 +349,7 @@ export default function AnalyzeUrlForm() {
         </Card>
 
         {loading ? (
-          <Card className="mb-6 space-y-4 border-slate-200/90 p-6 shadow-card">
+          <Card className="mb-6 space-y-4 border-border-subtle p-6 shadow-card">
             <Skeleton className="h-24 w-full rounded-2xl" />
             <p className="text-sm text-muted">{txt.analyzeLoadingHint}</p>
             <Skeleton className="h-40 w-full" />
@@ -381,7 +381,7 @@ export default function AnalyzeUrlForm() {
             />
 
             {sharePayload ? (
-              <Card className="border-slate-200/90 shadow-card">
+              <Card className="border-border-subtle shadow-card">
                 <h2 className="text-sm font-semibold text-foreground">{txt.shareReportTitle}</h2>
                 <p className="mt-1 text-xs text-muted">{txt.shareReportHint}</p>
                 <div className="mt-3">
@@ -405,7 +405,7 @@ export default function AnalyzeUrlForm() {
               />
             ) : null}
 
-            <Card className="border-slate-200/90 shadow-card">
+            <Card className="border-border-subtle shadow-card">
               <h2 className="text-lg font-semibold text-foreground">{txt.analyzeDealAssessment}</h2>
               <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                 <p>
@@ -432,7 +432,7 @@ export default function AnalyzeUrlForm() {
               ) : null}
             </Card>
 
-            <Card className="border-slate-200/90 shadow-card">
+            <Card className="border-border-subtle shadow-card">
               <div className="flex flex-wrap items-center gap-2">
                 <h2 className="text-lg font-semibold text-foreground">{txt.analyzeListingSnapshot}</h2>
                 {domLabel ? (
@@ -486,7 +486,7 @@ export default function AnalyzeUrlForm() {
             </Card>
 
             {enrichmentRows.length > 0 ? (
-              <Card className="border-slate-200/90 shadow-card">
+              <Card className="border-border-subtle shadow-card">
                 <h2 className="text-lg font-semibold text-foreground">{txt.analyzeEnrichment}</h2>
                 <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
                   {enrichmentRows.map((row) => (
@@ -506,7 +506,7 @@ export default function AnalyzeUrlForm() {
             />
 
             {priceTimelinePoints.length >= 2 ? (
-              <Card className="border-slate-200/90 shadow-card">
+              <Card className="border-border-subtle shadow-card">
                 <h2 className="text-lg font-semibold text-foreground">{txt.analyzePriceTimeline}</h2>
                 <PriceTimelineChart
                   points={priceTimelinePoints}
@@ -517,12 +517,12 @@ export default function AnalyzeUrlForm() {
               </Card>
             ) : null}
 
-            <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card dark:border-slate-700/80">
-              <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground dark:border-slate-700/80">
+            <section className="overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
+              <div className="border-b border-border-subtle bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground">
                 {txt.analyzeComparableListings}
               </div>
               <div className="overflow-x-auto">
-                <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
+                <table className="data-table min-w-full divide-y divide-border-subtle text-left text-sm">
                   <thead className="bg-surface/80">
                     <tr>
                       <th className="px-4 py-3 font-medium text-muted">{txt.listing}</th>
@@ -532,7 +532,7 @@ export default function AnalyzeUrlForm() {
                       <th className="px-4 py-3 font-medium text-muted">{txt.pricePerM2}</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                  <tbody className="divide-y divide-border-subtle">
                     {data.comps.length === 0 ? (
                       <tr>
                         <td className="px-4 py-4 text-muted" colSpan={5}>
@@ -574,7 +574,7 @@ export default function AnalyzeUrlForm() {
           </div>
         ) : null}
       </main>
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-background/90 p-4 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md dark:border-slate-700/80 sm:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-background/90 p-4 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md sm:hidden">
         <Button
           type="submit"
           form="analyze-url-form"

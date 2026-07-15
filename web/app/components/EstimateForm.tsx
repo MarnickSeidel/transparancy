@@ -31,7 +31,7 @@ import { useUiLang } from "@/lib/useUiLang";
 const EstimateMapPicker = dynamic(() => import("./EstimateMapPicker"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 text-sm text-slate-500">
+    <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-border-subtle bg-surface text-sm text-muted">
       ...
     </div>
   ),
@@ -467,7 +467,7 @@ export default function EstimateForm({
               <button
                 type="button"
                 onClick={handleDismissLocationPrompt}
-                className="rounded-xl border border-slate-200/90 bg-elevated px-4 py-2 text-sm font-medium text-foreground hover:bg-surface dark:border-slate-700/80"
+                className="rounded-xl border border-border-subtle bg-elevated px-4 py-2 text-sm font-medium text-foreground hover:bg-surface"
               >
                 {txt.estimateLocationPromptDismiss}
               </button>
@@ -475,12 +475,12 @@ export default function EstimateForm({
           </Card>
         ) : null}
 
-        <Card className="space-y-4 border-slate-200/90 shadow-card sm:p-8">
+        <Card className="space-y-4 border-border-subtle shadow-card sm:p-8">
         <form id="estimate-form" onSubmit={(e) => void onSubmit(e)} className="space-y-4">
-          <p className="text-xs text-slate-500">{txt.requiredFieldLegend}</p>
-          <h2 className="text-sm font-semibold text-slate-800">{txt.estimateSectionLocation}</h2>
+          <p className="text-xs text-muted">{txt.requiredFieldLegend}</p>
+          <h2 className="text-sm font-semibold text-foreground">{txt.estimateSectionLocation}</h2>
           <div className="relative z-20">
-            <label className="block text-xs font-medium text-slate-600" htmlFor="estimate-city">
+            <label className="block text-xs font-medium text-muted" htmlFor="estimate-city">
               {txt.city} *
             </label>
             {filtersLoading ? (
@@ -494,6 +494,8 @@ export default function EstimateForm({
                 filterMode="auto"
                 placeholder={txt.searchableSelectPlaceholder}
                 noResultsLabel={txt.searchableSelectNoMatch}
+                openListLabel={txt.searchableSelectOpenList}
+                closeListLabel={txt.searchableSelectCloseList}
                 aria-label={`${txt.city} *`}
                 onChange={(next) => {
                   if (next !== city) {
@@ -522,7 +524,7 @@ export default function EstimateForm({
                   className={
                     locationMode === mode
                       ? "rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-accent-fg"
-                      : "rounded-xl border border-slate-200/90 bg-elevated px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground dark:border-slate-700/80"
+                      : "rounded-xl border border-border-subtle bg-elevated px-3 py-1.5 text-xs font-medium text-muted hover:text-foreground"
                   }
                   onClick={() => {
                     setLocationMode(mode);
@@ -536,14 +538,14 @@ export default function EstimateForm({
               ))}
             </div>
             {locationMode === "map" ? (
-              <p className="text-xs text-slate-600">{txt.estimateLocationMapRecommend}</p>
+              <p className="text-xs text-muted">{txt.estimateLocationMapRecommend}</p>
             ) : null}
           </div>
 
           {locationMode === "barrio" ? (
             <div className="relative z-10">
               <label
-                className="block text-xs font-medium text-slate-600"
+                className="block text-xs font-medium text-muted"
                 htmlFor="estimate-neighborhood"
               >
                 {txt.neighborhood}
@@ -561,13 +563,15 @@ export default function EstimateForm({
                   filterMode="auto"
                   placeholder={txt.searchableSelectPlaceholder}
                   noResultsLabel={txt.searchableSelectNoMatch}
+                  openListLabel={txt.searchableSelectOpenList}
+                  closeListLabel={txt.searchableSelectCloseList}
                   aria-label={txt.neighborhood}
                   onChange={setNeighborhood}
                 />
               )}
             </div>
           ) : (
-            <div className="space-y-3 rounded-2xl border border-slate-200/90 bg-slate-50/90 p-4 dark:border-slate-700/80">
+            <div className="space-y-3 rounded-2xl border border-border-subtle bg-surface/90 p-4">
               {!city && !mapMarker ? (
                 <p className="text-xs text-amber-800">{txt.estimateMapCityFirst}</p>
               ) : null}
@@ -589,7 +593,7 @@ export default function EstimateForm({
                 <>
                   {city ? (
                     <div>
-                      <label className="block text-xs font-medium text-slate-600" htmlFor="estimate-radius">
+                      <label className="block text-xs font-medium text-muted" htmlFor="estimate-radius">
                         {txt.estimateMapRadius}
                       </label>
                       <select
@@ -607,7 +611,7 @@ export default function EstimateForm({
                     </div>
                   ) : null}
                   {city ? (
-                    <p className="text-xs text-slate-600">{txt.estimateMapNeighborhoodOff}</p>
+                    <p className="text-xs text-muted">{txt.estimateMapNeighborhoodOff}</p>
                   ) : null}
                   <EstimateMapPicker
                     center={
@@ -625,9 +629,9 @@ export default function EstimateForm({
             </div>
           )}
 
-          <h2 className="pt-2 text-sm font-semibold text-slate-800">{txt.estimateSectionProperty}</h2>
+          <h2 className="pt-2 text-sm font-semibold text-foreground">{txt.estimateSectionProperty}</h2>
           <div>
-            <label className="block text-xs font-medium text-slate-600" htmlFor="estimate-property-type">
+            <label className="block text-xs font-medium text-muted" htmlFor="estimate-property-type">
               {txt.type}
             </label>
             <select
@@ -646,7 +650,7 @@ export default function EstimateForm({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600" htmlFor="estimate-estrato">
+            <label className="block text-xs font-medium text-muted" htmlFor="estimate-estrato">
               {txt.estrato}
             </label>
             <select
@@ -665,7 +669,7 @@ export default function EstimateForm({
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-600" htmlFor="estimate-area">
+            <label className="block text-xs font-medium text-muted" htmlFor="estimate-area">
               {txt.estimateArea} *
             </label>
             <input
@@ -687,7 +691,7 @@ export default function EstimateForm({
                   className={
                     areaM2 === String(preset)
                       ? "rounded-lg bg-accent px-2.5 py-1 text-xs font-semibold text-accent-fg"
-                      : "rounded-lg border border-slate-200/90 bg-elevated px-2.5 py-1 text-xs font-medium text-muted hover:text-foreground dark:border-slate-700/80"
+                      : "rounded-lg border border-border-subtle bg-elevated px-2.5 py-1 text-xs font-medium text-muted hover:text-foreground"
                   }
                   onClick={() => setAreaM2(String(preset))}
                 >
@@ -695,7 +699,7 @@ export default function EstimateForm({
                 </button>
               ))}
             </div>
-            <p className="mt-1 text-xs text-slate-500">{txt.estimateAreaHint}</p>
+            <p className="mt-1 text-xs text-muted">{txt.estimateAreaHint}</p>
           </div>
 
           <Button
@@ -709,7 +713,7 @@ export default function EstimateForm({
         </Card>
 
         {loading ? (
-          <Card className="mt-8 space-y-4 border-slate-200/90 p-6 shadow-card">
+          <Card className="mt-8 space-y-4 border-border-subtle p-6 shadow-card">
             <Skeleton className="h-8 w-48" />
             <Skeleton className="h-32 w-full rounded-2xl" />
             <Skeleton className="h-24 w-full" />
@@ -718,7 +722,7 @@ export default function EstimateForm({
 
         {result && submitted && (
           <div ref={resultRef} className="mt-8 space-y-4">
-            <Card className="space-y-4 border-slate-200/90 shadow-card sm:p-8">
+            <Card className="space-y-4 border-border-subtle shadow-card sm:p-8">
               <div className="space-y-2">
                 <h2 className="text-lg font-semibold text-foreground">{txt.estimateSectionResult}</h2>
                 <p className="text-sm text-muted">
@@ -762,7 +766,7 @@ export default function EstimateForm({
                 midLabel={txt.median}
                 highLabel="P75"
               />
-              <div className="border-t border-slate-100 pt-4 text-sm text-muted dark:border-slate-700">
+              <div className="border-t border-border-subtle pt-4 text-sm text-muted">
                 <p className="font-medium text-foreground">{txt.estimatePpm2Band}</p>
                 <p className="mt-1 tabular-nums">
                   {fmtMoney(result.ppm2.p25, locale)} –{" "}
@@ -773,7 +777,7 @@ export default function EstimateForm({
               <p className="text-sm text-muted">
                 {txt.estimateSample}: {result.sampleSize} (min {result.minSampleSize})
               </p>
-              <div className="rounded-xl border border-slate-200 bg-surface/70 p-3 text-sm dark:border-slate-700">
+              <div className="rounded-xl border border-border-subtle bg-surface/70 p-3 text-sm">
                 <p className="font-medium text-foreground">{txt.estimateDriversTitle}</p>
                 <ul className="mt-2 space-y-1 text-muted">
                   <li>{txt.city}: {result.city}</li>
@@ -803,7 +807,7 @@ export default function EstimateForm({
                 )}
               </p>
               {result.fallbackDropped.length > 0 && (
-                <p className="text-sm text-slate-600">
+                <p className="text-sm text-muted">
                   {txt.estimateFallbackNote}{" "}
                   {result.fallbackDropped
                     .map((key) => estimateFallbackLabel(key, lang))
@@ -811,7 +815,7 @@ export default function EstimateForm({
                 </p>
               )}
               {result.geo && (
-                <p className="text-sm text-slate-700">
+                <p className="text-sm text-foreground">
                   {txt.estimateGeoUsed.replace(
                     "{n}",
                     result.geo.radiusMeters.toLocaleString(locale),
@@ -856,7 +860,7 @@ export default function EstimateForm({
                   </Button>
                 </Card>
 
-                <Card className="border-slate-200/90 p-4 shadow-card sm:p-6">
+                <Card className="border-border-subtle p-4 shadow-card sm:p-6">
                   <h3 className="text-sm font-semibold text-foreground">
                     {txt.estimateResultMarketTitle}
                   </h3>
@@ -865,7 +869,7 @@ export default function EstimateForm({
                       <li>
                         <Link
                           href={resultLinks.zoneHref}
-                          className="flex h-full rounded-xl border border-slate-200/90 bg-surface/60 px-3 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-accent/5 dark:border-slate-700/80"
+                          className="flex h-full rounded-xl border border-border-subtle bg-surface/60 px-3 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-accent/5"
                         >
                           {txt.estimateResultNextZone} →
                         </Link>
@@ -874,7 +878,7 @@ export default function EstimateForm({
                     <li>
                       <Link
                         href={resultLinks.exploreHref}
-                        className="flex h-full rounded-xl border border-slate-200/90 bg-surface/60 px-3 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-accent/5 dark:border-slate-700/80"
+                        className="flex h-full rounded-xl border border-border-subtle bg-surface/60 px-3 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-accent/5"
                       >
                         {txt.estimateResultNextExplore} →
                       </Link>
@@ -882,7 +886,7 @@ export default function EstimateForm({
                     <li>
                       <Link
                         href={resultLinks.opportunitiesHref}
-                        className="flex h-full rounded-xl border border-slate-200/90 bg-surface/60 px-3 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-accent/5 dark:border-slate-700/80"
+                        className="flex h-full rounded-xl border border-border-subtle bg-surface/60 px-3 py-2.5 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-accent/5"
                       >
                         {txt.estimateResultNextOpportunities} →
                       </Link>
@@ -906,7 +910,7 @@ export default function EstimateForm({
           </div>
         )}
       </main>
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200/90 bg-background/90 p-4 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md dark:border-slate-700/80 md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border-subtle bg-background/90 p-4 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur-md md:hidden">
         <Button
           type="submit"
           form="estimate-form"

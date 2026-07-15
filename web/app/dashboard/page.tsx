@@ -5,7 +5,7 @@ import { noIndexMetadata } from "@/lib/seo"
 
 export const metadata: Metadata = noIndexMetadata(
   "Dashboard de mercado",
-  "Panel interno de analítica inmobiliaria Habidata.",
+  "Panel interno de analítica inmobiliaria ClaraCasas.",
 )
 
 export default function DashboardPage() {

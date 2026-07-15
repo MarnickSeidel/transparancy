@@ -16,7 +16,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
   es: {
     title: "Metodología de datos",
     intro:
-      "Habidata transforma anuncios públicos de Finca Raíz en estadísticas de mercado por barrio en ciudades colombianas. Nuestro objetivo es transparencia: mostrar lo que el mercado publica como precio de pedido, no lo que alguien desearía.",
+      "ClaraCasas transforma anuncios públicos de Finca Raíz en estadísticas de mercado por barrio en ciudades colombianas. Nuestro objetivo es transparencia: mostrar lo que el mercado publica como precio de pedido, no lo que alguien desearía.",
     sections: [
       {
         heading: "Recopilación",
@@ -41,7 +41,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
       },
       {
         q: "¿Es esto una tasación o asesoría de inversión?",
-        a: "No. Habidata agrega precios publicados en estadísticas (mediana, conteos, tendencias). No sustituye una valoración profesional, due diligence legal ni asesoría de inversión.",
+        a: "No. ClaraCasas agrega precios publicados en estadísticas (mediana, conteos, tendencias). No sustituye una valoración profesional, due diligence legal ni asesoría de inversión.",
       },
       {
         q: "¿Cómo se calcula el precio/m²?",
@@ -60,7 +60,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
   en: {
     title: "Data methodology",
     intro:
-      "Habidata transforms publicly listed Finca Raíz advertisements into neighborhood-level market statistics for Colombian cities. Our goal is transparency: show what the market is actually asking, not what anyone wishes it were.",
+      "ClaraCasas transforms publicly listed Finca Raíz advertisements into neighborhood-level market statistics for Colombian cities. Our goal is transparency: show what the market is actually asking, not what anyone wishes it were.",
     sections: [
       {
         heading: "Collection",
@@ -85,7 +85,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
       },
       {
         q: "Is this an appraisal or investment advice?",
-        a: "No. Habidata aggregates published asking prices into statistics (median, counts, trends). It is not a substitute for professional valuation, legal due diligence, or investment advice. US investors should consult local experts.",
+        a: "No. ClaraCasas aggregates published asking prices into statistics (median, counts, trends). It is not a substitute for professional valuation, legal due diligence, or investment advice. US investors should consult local experts.",
       },
       {
         q: "How is price per m² calculated?",

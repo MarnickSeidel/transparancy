@@ -23,13 +23,13 @@ export default function AboutPage({ params }: Props) {
   return (
     <TrustPageChrome locale={locale}>
       <h1 className="text-display text-3xl font-semibold text-foreground">
-        {locale === "en" ? "About Habidata" : "Acerca de Habidata"}
+        {locale === "en" ? "About ClaraCasas" : "Acerca de ClaraCasas"}
       </h1>
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-muted">
         {locale === "en" ? (
           <>
             <p>
-              Habidata brings transparency to Colombia&apos;s residential listing market. We aggregate
+              ClaraCasas brings transparency to Colombia&apos;s residential listing market. We aggregate
               Finca Raíz advertisements into neighborhood dossiers — median price per m², active
               listing counts, property-type mix, and monthly trends — so local buyers and US investors
               can research with data instead of anecdotes.
@@ -39,7 +39,7 @@ export default function AboutPage({ params }: Props) {
               estimator) for deeper research. Those tools are not indexed by search engines.
             </p>
             <p>
-              <strong className="text-foreground">Disclaimer:</strong> Habidata is not a licensed
+              <strong className="text-foreground">Disclaimer:</strong> ClaraCasas is not a licensed
               broker, appraiser, or investment advisor. All figures reflect published asking prices.
             </p>
             <p>
@@ -57,7 +57,7 @@ export default function AboutPage({ params }: Props) {
         ) : (
           <>
             <p>
-              Habidata aporta transparencia al mercado de publicaciones residenciales en Colombia.
+              ClaraCasas aporta transparencia al mercado de publicaciones residenciales en Colombia.
               Agregamos anuncios de Finca Raíz en dossiers por barrio — mediana de precio/m²,
               publicaciones activas, mix por tipo de inmueble y tendencias mensuales.
             </p>
@@ -66,7 +66,7 @@ export default function AboutPage({ params }: Props) {
               estimador) para investigación más profunda. Esas herramientas no están indexadas.
             </p>
             <p>
-              <strong className="text-foreground">Aviso:</strong> Habidata no es corredor, tasador ni
+              <strong className="text-foreground">Aviso:</strong> ClaraCasas no es corredor, tasador ni
               asesor de inversión. Las cifras reflejan precios publicados.
             </p>
           </>

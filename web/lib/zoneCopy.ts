@@ -37,7 +37,7 @@ export function zoneIntroParagraphs(dossier: ZoneDossier, locale: Locale): strin
 
   if (locale === "es") {
     paragraphs.push(
-      `${displayName} es un barrio en ${city}, Colombia, con ${listingCount.toLocaleString("es-CO")} publicaciones activas analizadas en Habidata. Los datos provienen de anuncios de Finca Raíz y se actualizan periódicamente.`,
+      `${displayName} es un barrio en ${city}, Colombia, con ${listingCount.toLocaleString("es-CO")} publicaciones activas analizadas en ClaraCasas. Los datos provienen de anuncios de Finca Raíz y se actualizan periódicamente.`,
     );
     if (medianPricePerM2 != null) {
       paragraphs.push(
@@ -48,7 +48,7 @@ export function zoneIntroParagraphs(dossier: ZoneDossier, locale: Locale): strin
     if (trend) paragraphs.push(trend);
   } else {
     paragraphs.push(
-      `${displayName} is a neighborhood in ${city}, Colombia, with ${listingCount.toLocaleString("en-US")} active listings tracked on Habidata. Data is sourced from Finca Raíz listings and updated on a rolling basis — useful for US and international investors researching Colombian real estate markets.`,
+      `${displayName} is a neighborhood in ${city}, Colombia, with ${listingCount.toLocaleString("en-US")} active listings tracked on ClaraCasas. Data is sourced from Finca Raíz listings and updated on a rolling basis — useful for US and international investors researching Colombian real estate markets.`,
     );
     if (medianPricePerM2 != null) {
       const usd = fmtUsdFromCop(medianPricePerM2);
@@ -69,7 +69,7 @@ export function cityIntroParagraph(
   locale: Locale,
 ): string {
   if (locale === "es") {
-    return `${city} cuenta con ${zoneCount} barrios con datos suficientes en Habidata. Explora la mediana de precio por m², publicaciones activas y tendencias de cada zona.`;
+    return `${city} cuenta con ${zoneCount} barrios con datos suficientes en ClaraCasas. Explora la mediana de precio por m², publicaciones activas y tendencias de cada zona.`;
   }
-  return `${city} has ${zoneCount} neighborhoods with sufficient listing data on Habidata. Explore median price per m², active listings, and monthly trends for each barrio — a practical starting point for US investors evaluating ${city}.`;
+  return `${city} has ${zoneCount} neighborhoods with sufficient listing data on ClaraCasas. Explore median price per m², active listings, and monthly trends for each barrio — a practical starting point for US investors evaluating ${city}.`;
 }

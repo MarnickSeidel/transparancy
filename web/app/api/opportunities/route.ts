@@ -5,6 +5,7 @@ import {
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
   type OpportunitySortBy,
 } from "@/lib/getTopOpportunities"
+import { enforceRateLimit } from "@/lib/rateLimit"
 import { getCachedTopOpportunities } from "@/lib/serverCache"
 
 export const revalidate = 60
@@ -42,6 +43,9 @@ function parseSortBy(raw: string | null): OpportunitySortBy {
 }
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "opportunities", 60, 60_000)
+  if (limited) return limited
+
   const { searchParams } = new URL(req.url)
   const cityRaw = searchParams.get("city")?.trim()
   const city =

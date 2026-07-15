@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/rateLimit";
 import { getCachedHeatmapH3 } from "@/lib/serverCache";
 
 export const revalidate = 120;
@@ -9,6 +10,9 @@ const CACHE_HEADERS = {
 };
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "heatmap-h3", 30, 60_000);
+  if (limited) return limited;
+
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city")?.trim();
   const propertyType = searchParams.get("propertyType");

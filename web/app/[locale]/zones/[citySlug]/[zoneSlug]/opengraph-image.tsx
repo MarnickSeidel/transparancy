@@ -54,7 +54,7 @@ export default async function OgImage({ params }: Props) {
         {ppm2 ? (
           <div style={{ fontSize: 40, marginTop: 32, fontWeight: 600 }}>{ppm2}</div>
         ) : null}
-        <div style={{ fontSize: 28, marginTop: 48, opacity: 0.75 }}>Habidata</div>
+        <div style={{ fontSize: 28, marginTop: 48, opacity: 0.75 }}>ClaraCasas</div>
       </div>
     ),
     { ...size },

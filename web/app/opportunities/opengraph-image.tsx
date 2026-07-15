@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og"
 
 export const runtime = "edge"
-export const alt = "Habidata opportunities"
+export const alt = "ClaraCasas opportunities"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 
@@ -27,7 +27,7 @@ export default async function OpportunitiesOgImage() {
         <div style={{ fontSize: 28, marginTop: 24, opacity: 0.92 }}>
           Descuentos vs mediana del barrio · Finca Raíz
         </div>
-        <div style={{ fontSize: 36, marginTop: 48, fontWeight: 600 }}>Habidata</div>
+        <div style={{ fontSize: 36, marginTop: 48, fontWeight: 600 }}>ClaraCasas</div>
       </div>
     ),
     { ...size },

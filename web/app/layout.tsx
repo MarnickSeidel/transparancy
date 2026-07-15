@@ -4,7 +4,6 @@ import { headers } from "next/headers";
 import type { Viewport } from "next";
 
 import { rootMetadata, siteViewport } from "@/lib/seo";
-import "leaflet/dist/leaflet.css";
 import "./globals.css";
 
 const fraunces = Fraunces({

@@ -325,8 +325,16 @@ export default function EmailSignupForm({
         </Link>
       </p>
 
-      {error ? <p className="text-sm text-amber-900">{error}</p> : null}
-      {message ? <p className="text-sm text-emerald-800">{message}</p> : null}
+      {error ? (
+        <p className="text-sm text-amber-900" role="alert">
+          {error}
+        </p>
+      ) : null}
+      {message ? (
+        <p className="text-sm text-emerald-800" role="status" aria-live="polite">
+          {message}
+        </p>
+      ) : null}
       {devConfirmUrl ? (
         <p className="break-all text-xs text-muted">
           <a href={devConfirmUrl} className="text-accent hover:underline">
@@ -364,7 +372,7 @@ export default function EmailSignupForm({
   }
 
   return (
-    <Card className={`border-slate-200/70 bg-slate-50/60 p-4 shadow-card dark:border-slate-700/70 dark:bg-slate-900/20 sm:p-5 ${className}`}>
+    <Card className={`border-border-subtle bg-surface/60 p-4 shadow-card sm:p-5 ${className}`}>
       <h3 className="text-sm font-semibold text-foreground">{resolvedTitle}</h3>
       <p className="mt-1 text-xs text-muted">{resolvedHint}</p>
       <div className="mt-3">{formInner}</div>

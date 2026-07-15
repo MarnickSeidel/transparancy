@@ -9,6 +9,14 @@ export const dynamic = "force-dynamic";
 
 const TRUST_PATHS = ["/methodology", "/privacy", "/about"];
 
+function languageAlternates(path: string): Record<string, string> {
+  return {
+    es: absoluteUrl(localePath("es", path)),
+    en: absoluteUrl(localePath("en", path)),
+    "x-default": absoluteUrl(localePath("es", path)),
+  };
+}
+
 function entry(
   path: string,
   locale: "es" | "en",
@@ -21,11 +29,20 @@ function entry(
     lastModified,
     changeFrequency,
     priority,
+    alternates: {
+      languages: languageAlternates(path),
+    },
   };
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const opportunitiesLanguages = {
+    es: absoluteUrl(opportunitiesPath("es")),
+    en: absoluteUrl(opportunitiesPath("en")),
+    "x-default": absoluteUrl(opportunitiesPath("es")),
+  };
+
   const pages: MetadataRoute.Sitemap = [
     entry("/", "es", now, 1, "daily"),
     entry("/", "en", now, 1, "daily"),
@@ -36,12 +53,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.85,
+      alternates: { languages: opportunitiesLanguages },
     },
     {
       url: absoluteUrl(opportunitiesPath("en")),
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.85,
+      alternates: { languages: opportunitiesLanguages },
     },
   ];
 

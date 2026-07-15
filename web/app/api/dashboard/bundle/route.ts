@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/rateLimit";
 import {
   getCachedDashboardAggregates,
   getCachedDashboardFilters,
@@ -14,6 +15,9 @@ const CACHE_HEADERS = {
 };
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "dashboard-bundle", 40, 60_000);
+  if (limited) return limited;
+
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city");
   const estrato = searchParams.get("estrato");

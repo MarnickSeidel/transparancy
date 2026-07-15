@@ -3,7 +3,7 @@ description: Habidata project context, docs, and agent workflow
 alwaysApply: true
 ---
 
-# Habidata — project rules
+# ClaraCasas — project rules
 
 Read **[AGENTS.md](../../AGENTS.md)** for architecture, locale routing, deal engine, and workflow.  
 Backlog: **[docs/ROADMAP.md](../../docs/ROADMAP.md)**.

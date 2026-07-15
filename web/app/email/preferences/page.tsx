@@ -7,7 +7,7 @@ import { noIndexMetadata } from "@/lib/seo"
 
 export const metadata: Metadata = noIndexMetadata(
   "Preferencias de email",
-  "Administra tus alertas y resúmenes de Habidata.",
+  "Administra tus alertas y resúmenes de ClaraCasas.",
 )
 
 export default function EmailPreferencesPage() {

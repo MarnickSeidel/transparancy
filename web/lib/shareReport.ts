@@ -99,7 +99,7 @@ export const buildShareMessage = (
       : "—"
 
   if (lang === "es") {
-    return `Análisis Habidata: ${payload.listing.title}\nVeredicto: ${verdictLabel} (${discount} vs referencia)\n${reportUrl}`
+    return `Análisis ClaraCasas: ${payload.listing.title}\nVeredicto: ${verdictLabel} (${discount} vs referencia)\n${reportUrl}`
   }
-  return `Habidata analysis: ${payload.listing.title}\nVerdict: ${verdictLabel} (${discount} vs reference)\n${reportUrl}`
+  return `ClaraCasas analysis: ${payload.listing.title}\nVerdict: ${verdictLabel} (${discount} vs reference)\n${reportUrl}`
 }

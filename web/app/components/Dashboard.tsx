@@ -333,7 +333,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.activeListings}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-foreground">
               {loading ? "…" : (summary?.activeListings ?? summary?.totalListings ?? "—")}
             </p>
             <p className="mt-1 text-xs text-muted">
@@ -345,7 +345,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.inactiveListings}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-foreground">
               {loading ? "…" : (summary?.inactiveListings ?? "—")}
             </p>
           </div>
@@ -353,7 +353,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.newTodayUtc}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-foreground">
               {loading ? "…" : (summary?.listingsNewToday ?? "—")}
             </p>
           </div>
@@ -361,7 +361,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.coveragePriceM2}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-foreground">
               {loading
                 ? "…"
                 : `${(summary?.coveragePricePerM2Pct ?? 0).toFixed(1)}%`}
@@ -371,7 +371,7 @@ export default function Dashboard() {
             <p className="text-xs font-medium uppercase tracking-wide text-muted">
               {txt.kpiQualityCheck}
             </p>
-            <p className="mt-2 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+            <p className="mt-2 text-xl font-semibold tabular-nums text-foreground">
               {loading ? "…" : summary?.minSampleMet ? txt.pass : txt.lowSample}
             </p>
             <p className="mt-1 text-xs text-muted">
@@ -381,32 +381,32 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="mb-6 rounded-2xl border border-slate-200/90 bg-elevated p-4 shadow-card">
+        <section className="mb-6 rounded-2xl border border-border-subtle bg-elevated p-4 shadow-card">
           <p className="text-xs font-medium uppercase tracking-wide text-muted">{txt.dashboardNextActions}</p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Link
               href={opportunitiesPath(lang)}
-              className="rounded-xl border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-100"
+              className="rounded-xl border border-border-subtle bg-surface px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-surface"
             >
               {txt.dashboardSeeOpportunities}
             </Link>
             <Link
               href={localePath(lang, "/estimate")}
-              className="rounded-xl border border-slate-200 bg-surface px-4 py-2 text-sm font-semibold text-slate-800 shadow-sm hover:bg-slate-100"
+              className="rounded-xl border border-border-subtle bg-surface px-4 py-2 text-sm font-semibold text-foreground shadow-sm hover:bg-surface"
             >
               {txt.dashboardOpenEstimator}
             </Link>
           </div>
         </section>
 
-        <section className="mb-8 flex flex-wrap items-end gap-3 rounded-2xl border border-slate-200/90 bg-elevated p-4 shadow-card">
+        <section className="mb-8 flex flex-wrap items-end gap-3 rounded-2xl border border-border-subtle bg-elevated p-4 shadow-card">
           <div>
             <label className="block text-xs font-medium text-muted" htmlFor="dashboard-city-filter">
               {txt.city}
             </label>
             <select
               id="dashboard-city-filter"
-              className="mt-1 min-w-[180px] rounded-xl border border-slate-200 bg-elevated px-3 py-2.5 text-sm shadow-sm"
+              className="mt-1 min-w-[180px] rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
               value={city}
               onChange={(e) => {
                 setCity(e.target.value);
@@ -427,7 +427,7 @@ export default function Dashboard() {
             </label>
             <select
               id="dashboard-estrato-filter"
-              className="mt-1 rounded-xl border border-slate-200 bg-elevated px-3 py-2.5 text-sm shadow-sm"
+              className="mt-1 rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
               value={estrato}
               onChange={(e) => setEstrato(e.target.value)}
             >
@@ -445,7 +445,7 @@ export default function Dashboard() {
             </label>
             <select
               id="dashboard-neighborhood-filter"
-              className="mt-1 min-w-[200px] rounded-xl border border-slate-200 bg-elevated px-3 py-2.5 text-sm shadow-sm"
+              className="mt-1 min-w-[200px] rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
               value={neighborhood}
               onChange={(e) => setNeighborhood(e.target.value)}
             >
@@ -466,14 +466,14 @@ export default function Dashboard() {
           </button>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
+          <div className="border-b border-border-subtle bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground">
             {txt.whatChangedThisMonth}
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-3">
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">{txt.momMedianM2}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                 {monthlyNarrative?.momPct != null
                   ? `${monthlyNarrative.momPct >= 0 ? "+" : ""}${monthlyNarrative.momPct.toFixed(1)}%`
                   : "—"}
@@ -481,7 +481,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">{txt.trend3m}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                 {monthlyNarrative?.trend3mPct != null
                   ? `${monthlyNarrative.trend3mPct >= 0 ? "+" : ""}${monthlyNarrative.trend3mPct.toFixed(1)}%`
                   : "—"}
@@ -489,16 +489,16 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wide text-muted">{txt.currentMonthSample}</p>
-              <p className="mt-1 text-xl font-semibold tabular-nums text-slate-900 dark:text-slate-50">
+              <p className="mt-1 text-xl font-semibold tabular-nums text-foreground">
                 {monthlyNarrative?.current.sample ?? 0}
               </p>
             </div>
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3">
-            <p className="text-sm font-semibold text-slate-800">{txt.monthlyMonitoring}</p>
+        <section className="mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
+          <div className="border-b border-border-subtle bg-surface/80 px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">{txt.monthlyMonitoring}</p>
             <p className="mt-0.5 text-xs text-muted">{txt.monthlyMedianChart}</p>
           </div>
           <MonthlyTrendChart
@@ -507,26 +507,26 @@ export default function Dashboard() {
             noDataLabel={txt.monthlyChartNoData}
             tooltipLabel={txt.monthlyMedianTooltipLabel}
           />
-          <div className="hidden overflow-x-auto border-t border-slate-100 md:block">
-            <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
-              <thead className="sticky top-0 bg-slate-50/80">
+          <div className="hidden overflow-x-auto border-t border-border-subtle md:block">
+            <table className="data-table min-w-full divide-y divide-border-subtle text-left text-sm">
+              <thead className="sticky top-0 bg-surface/80">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.month}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.sample}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.medianPriceM2}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">P25-P75</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.quality}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.month}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.sample}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.medianPriceM2}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">P25-P75</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.quality}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border-subtle">
                 {monthlyStats.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={5}>
+                    <td className="px-4 py-4 text-muted" colSpan={5}>
                       {txt.noDataForFilters}
                     </td>
                   </tr>
                 ) : monthlyStats.map((r) => (
-                  <tr key={r.month} className="odd:bg-slate-50/40 hover:bg-surface/50">
+                  <tr key={r.month} className="odd:bg-surface/40 hover:bg-surface/50">
                     <td className="px-4 py-3 tabular-nums">{r.month}</td>
                     <td className="px-4 py-3 tabular-nums">{r.sample}</td>
                     <td className="px-4 py-3 tabular-nums">{fmtCop(r.medianPpm2, locale)}</td>
@@ -539,14 +539,14 @@ export default function Dashboard() {
               </tbody>
             </table>
           </div>
-          <div className="space-y-3 border-t border-slate-100 p-4 md:hidden">
+          <div className="space-y-3 border-t border-border-subtle p-4 md:hidden">
             {monthlyStats.length === 0 ? (
-              <p className="text-sm text-slate-500">{txt.noDataForFilters}</p>
+              <p className="text-sm text-muted">{txt.noDataForFilters}</p>
             ) : (
               monthlyStats.map((r) => (
-                <article key={r.month} className="rounded-xl border border-slate-200 bg-surface p-3">
+                <article key={r.month} className="rounded-xl border border-border-subtle bg-surface p-3">
                   <p className="text-xs uppercase tracking-wide text-muted">{txt.month}</p>
-                  <p className="text-sm font-semibold text-slate-800">{r.month}</p>
+                  <p className="text-sm font-semibold text-foreground">{r.month}</p>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                     <p>
                       <span className="text-muted">{txt.sample}: </span>
@@ -574,26 +574,26 @@ export default function Dashboard() {
         <CollapsibleSection title={txt.propertyTypeComparison} className="mb-8">
         <section className="overflow-hidden surface-panel">
           <div className="hidden overflow-x-auto md:block">
-            <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
-              <thead className="sticky top-0 bg-slate-50/80">
+            <table className="data-table min-w-full divide-y divide-border-subtle text-left text-sm">
+              <thead className="sticky top-0 bg-surface/80">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.type}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.count}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">P25</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.median}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">P75</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.medianArea}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.type}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.count}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">P25</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.median}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">P75</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.medianArea}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border-subtle">
                 {typeStats.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={6}>
+                    <td className="px-4 py-4 text-muted" colSpan={6}>
                       {txt.noDataForFilters} {txt.adjustFiltersHint}
                     </td>
                   </tr>
                 ) : typeStats.map((r) => (
-                  <tr key={r.type ?? NULL_TYPE} className="odd:bg-slate-50/40">
+                  <tr key={r.type ?? NULL_TYPE} className="odd:bg-surface/40">
                     <td className="px-4 py-3">{r.type ?? txt.unknown}</td>
                     <td className="px-4 py-3 tabular-nums">{r.count}</td>
                     <td className="px-4 py-3 tabular-nums">{fmtCop(r.p25, locale)}</td>
@@ -609,13 +609,13 @@ export default function Dashboard() {
           </div>
           <div className="space-y-3 p-4 md:hidden">
             {typeStats.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 {txt.noDataForFilters} {txt.adjustFiltersHint}
               </p>
             ) : (
               typeStats.map((r) => (
-                <article key={r.type ?? NULL_TYPE} className="rounded-xl border border-slate-200 bg-surface p-3">
-                  <p className="text-sm font-semibold text-slate-800">{r.type ?? txt.unknown}</p>
+                <article key={r.type ?? NULL_TYPE} className="rounded-xl border border-border-subtle bg-surface p-3">
+                  <p className="text-sm font-semibold text-foreground">{r.type ?? txt.unknown}</p>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                     <p>
                       <span className="text-muted">{txt.count}: </span>
@@ -648,26 +648,26 @@ export default function Dashboard() {
         <CollapsibleSection title={txt.neighborhoodTransparency} className="mb-8">
         <section className="overflow-hidden surface-panel">
           <div className="hidden overflow-x-auto md:block">
-            <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
-              <thead className="sticky top-0 bg-slate-50/80">
+            <table className="data-table min-w-full divide-y divide-border-subtle text-left text-sm">
+              <thead className="sticky top-0 bg-surface/80">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.neighborhood}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.count}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.sampleCheck}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.medianPriceM2}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">{txt.deltaVsCity}</th>
-                  <th className="px-4 py-3 font-medium text-slate-700">IQR (P25-P75)</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.neighborhood}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.count}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.sampleCheck}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.medianPriceM2}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">{txt.deltaVsCity}</th>
+                  <th className="px-4 py-3 font-medium text-foreground">IQR (P25-P75)</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border-subtle">
                 {neighborhoodStats.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={6}>
+                    <td className="px-4 py-4 text-muted" colSpan={6}>
                       {txt.noDataForFilters} {txt.adjustFiltersHint}
                     </td>
                   </tr>
                 ) : neighborhoodStats.map((r) => (
-                  <tr key={r.name ?? "__unknown_nb"} className="odd:bg-slate-50/40">
+                  <tr key={r.name ?? "__unknown_nb"} className="odd:bg-surface/40">
                     <td className="px-4 py-3">{r.name ?? txt.unknown}</td>
                     <td className="px-4 py-3 tabular-nums">{r.count}</td>
                     <td className="px-4 py-3">{r.minSampleMet ? `${txt.pass} (${r.sampleSize})` : `${txt.lowSample} (${r.sampleSize})`}</td>
@@ -689,13 +689,13 @@ export default function Dashboard() {
           </div>
           <div className="space-y-3 p-4 md:hidden">
             {neighborhoodStats.length === 0 ? (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 {txt.noDataForFilters} {txt.adjustFiltersHint}
               </p>
             ) : (
               neighborhoodStats.map((r) => (
-                <article key={r.name ?? "__unknown_nb"} className="rounded-xl border border-slate-200 bg-surface p-3">
-                  <p className="text-sm font-semibold text-slate-800">{r.name ?? txt.unknown}</p>
+                <article key={r.name ?? "__unknown_nb"} className="rounded-xl border border-border-subtle bg-surface p-3">
+                  <p className="text-sm font-semibold text-foreground">{r.name ?? txt.unknown}</p>
                   <div className="mt-2 grid grid-cols-2 gap-2 text-sm">
                     <p>
                       <span className="text-muted">{txt.count}: </span>
@@ -732,20 +732,20 @@ export default function Dashboard() {
             {txt.pricingIntelligence}
           </div>
           <div className="grid gap-4 p-4 md:grid-cols-3">
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">{txt.cityBaselineMedian}</p>
+            <div className="rounded-lg border border-border-subtle p-4">
+              <p className="text-xs uppercase tracking-wide text-muted">{txt.cityBaselineMedian}</p>
               <p className="mt-1 text-xl font-semibold tabular-nums">{fmtCop(pricingIntelligence?.cityMedian, locale)}</p>
             </div>
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">{txt.expectedFairValue}</p>
+            <div className="rounded-lg border border-border-subtle p-4">
+              <p className="text-xs uppercase tracking-wide text-muted">{txt.expectedFairValue}</p>
               <p className="mt-1 text-xl font-semibold tabular-nums">{fmtCop(pricingIntelligence?.expectedPpm2, locale)}</p>
-              <p className="mt-1 text-xs text-slate-500">
+              <p className="mt-1 text-xs text-muted">
                 {txt.band}: {fmtCop(pricingIntelligence?.lowBand, locale)} - {fmtCop(pricingIntelligence?.highBand, locale)}
               </p>
             </div>
-            <div className="rounded-lg border border-slate-200 p-4">
-              <p className="text-xs uppercase tracking-wide text-slate-500">{txt.topModelDrivers}</p>
-              <ul className="mt-2 space-y-1 text-sm text-slate-700">
+            <div className="rounded-lg border border-border-subtle p-4">
+              <p className="text-xs uppercase tracking-wide text-muted">{txt.topModelDrivers}</p>
+              <ul className="mt-2 space-y-1 text-sm text-foreground">
                 {(pricingIntelligence?.drivers ?? []).map((d) => (
                   <li key={`${d.label}-${d.name ?? "?"}`}>
                     {d.label}: {d.name ?? txt.unknown} ({d.impactPct >= 0 ? "+" : ""}
@@ -757,11 +757,11 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card">
-          <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-slate-800">
+        <section className="mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
+          <div className="border-b border-border-subtle bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground">
             {txt.investmentReadiness}
           </div>
-          <div className="p-4 text-sm text-slate-700">
+          <div className="p-4 text-sm text-foreground">
             <p className="mb-3">
               {txt.status}: <span className="font-semibold">{investmentGate.ready ? txt.readyToEnable : txt.hold}</span>
             </p>
@@ -774,26 +774,26 @@ export default function Dashboard() {
         <CollapsibleSection title={txt.estratoTypeMatrix} className="mb-8">
         <section className="overflow-hidden surface-panel">
           <div className="overflow-x-auto">
-            <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
-              <thead className="sticky top-0 bg-slate-50/80">
+            <table className="data-table min-w-full divide-y divide-border-subtle text-left text-sm">
+              <thead className="sticky top-0 bg-surface/80">
                 <tr>
-                  <th className="px-4 py-3 font-medium text-slate-700">Estrato</th>
+                  <th className="px-4 py-3 font-medium text-foreground">Estrato</th>
                   {estratoTypeMatrix.types.map((t) => (
-                    <th key={t} className="px-4 py-3 font-medium text-slate-700">
+                    <th key={t} className="px-4 py-3 font-medium text-foreground">
                       {matrixTypeLabel(t, txt.unknown)}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border-subtle">
                 {estratoTypeMatrix.rows.length === 0 ? (
                   <tr>
-                    <td className="px-4 py-4 text-slate-500" colSpan={Math.max(1, estratoTypeMatrix.types.length + 1)}>
+                    <td className="px-4 py-4 text-muted" colSpan={Math.max(1, estratoTypeMatrix.types.length + 1)}>
                       {txt.noDataForFilters}
                     </td>
                   </tr>
                 ) : estratoTypeMatrix.rows.map((r) => (
-                  <tr key={r.estrato} className="odd:bg-slate-50/40">
+                  <tr key={r.estrato} className="odd:bg-surface/40">
                     <td className="px-4 py-3 tabular-nums">{r.estrato}</td>
                     {r.cells.map((c) => (
                       <td

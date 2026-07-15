@@ -1,20 +1,13 @@
 "use client";
 
-import dynamic from "next/dynamic";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import EmailSignupForm from "@/app/components/EmailSignupForm";
 import { localePath, opportunitiesPath, stripLocalePrefix } from "@/lib/locale";
 import { BRAND_COPY, BRAND_NAME } from "@/lib/brand";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
-
-const EmailSignupForm = dynamic(() => import("@/app/components/EmailSignupForm"), {
-  ssr: false,
-  loading: () => (
-    <div className="mt-10 h-24 animate-pulse rounded-2xl border border-border-subtle bg-surface/60" />
-  ),
-});
 
 export default function PageFooter() {
   const pathname = usePathname();

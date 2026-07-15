@@ -1,4 +1,5 @@
 import type { Prisma } from "@prisma/client"
+import { unstable_cache } from "next/cache"
 
 import { MIN_ANALYTICS_AREA_M2, percentile } from "@/lib/analytics"
 import {
@@ -15,14 +16,20 @@ import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
 export const DEFAULT_OPPORTUNITIES_CITY = "Pereira"
 export const DEFAULT_OPPORTUNITIES_PAGE_SIZE = 10
 
-const SCORE_POOL_SIZE = 200
-const VALUE_POOL_SIZE = 150
-const MID_TIER_POOL_SIZE = 300
-const MAX_CANDIDATES = 400
-const COMP_ANALYSIS_POOL_SIZE = 2500
+const SCORE_POOL_SIZE = 220
+const VALUE_POOL_SIZE = 120
+const MID_TIER_POOL_SIZE = 200
+const MAX_CANDIDATES = 350
+/** City-wide comps for analyzeDeal — cached; neighborhood/geo filter happens in-engine. */
+const COMP_ANALYSIS_POOL_SIZE = 1500
 const MAX_RESULTS = 120
-/** Cap full deal re-analysis to avoid scanning every merged candidate. */
-const ANALYZE_CAP = 200
+/**
+ * Cap live re-analysis. Candidates are pre-ranked by stored `dealScore`
+ * (refresh_derived_data); we only re-run analyzeDeal to enrich UI fields
+ * and apply discount/confidence filters.
+ */
+const ANALYZE_CAP = 140
+const COMP_POOL_REVALIDATE_SEC = 90
 /** Ignore stored scores driven by implausible COP/m² (bad scrapes). */
 const CANDIDATE_PPM2_FLOOR = 400_000
 const MID_TIER_DEAL_SCORE_MIN = 45
@@ -72,7 +79,69 @@ const listingSelect = {
   imageUrl: true,
 } satisfies Prisma.ListingSelect
 
+/** Leaner select for city-wide comparable pool (no title/url/image). */
+const compPoolSelect = {
+  id: true,
+  externalId: true,
+  city: true,
+  neighborhood: true,
+  zoneName: true,
+  propertyType: true,
+  constructionState: true,
+  estrato: true,
+  operationType: true,
+  areaM2: true,
+  areaBuiltM2: true,
+  areaPrivateM2: true,
+  areaTerrainM2: true,
+  areaTerraceM2: true,
+  priceCop: true,
+  pricePerM2: true,
+  pricePerM2Built: true,
+  pricePerM2Private: true,
+  pricePerM2Terrain: true,
+  priceAdminIncluded: true,
+  adminFeeCop: true,
+  bedrooms: true,
+  bathrooms: true,
+  latitude: true,
+  longitude: true,
+  sourceUpdatedAt: true,
+  firstSeenAt: true,
+  dataCompletenessScore: true,
+  acceptsBarter: true,
+  terraceHeavyFlag: true,
+  areaMismatchFlag: true,
+  isProject: true,
+  paidQuota: true,
+  highlight: true,
+  description: true,
+} satisfies Prisma.ListingSelect
+
 type ListingRow = Prisma.ListingGetPayload<{ select: typeof listingSelect }>
+
+const loadCityCompPool = async (city: string): Promise<DealListingInput[]> => {
+  const rows = await prisma.listing.findMany({
+    where: {
+      isActive: true,
+      city,
+      operationType: { contains: "venta", mode: "insensitive" },
+      pricePerM2: { not: null },
+      areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
+    },
+    take: COMP_ANALYSIS_POOL_SIZE,
+    orderBy: [{ dateScraped: "desc" }],
+    select: compPoolSelect,
+  })
+  return rows.map((r) => toDealListingInput(r))
+}
+
+const getCachedCityCompPool = (city: string): Promise<DealListingInput[]> =>
+  unstable_cache(
+    async () => loadCityCompPool(city),
+    ["opp-city-comp-pool", city],
+    { revalidate: COMP_POOL_REVALIDATE_SEC },
+  )()
 
 export type OpportunityQuery = {
   city?: string | null
@@ -437,7 +506,8 @@ export async function getTopOpportunities(
     ],
   }
 
-  const [scoreRows, valueRows, midTierRows, compPoolRows] = await Promise.all([
+  // Prefer stored dealScore pool first; mid/value pools only diversify coverage.
+  const [scoreRows, valueRows, midTierRows, compPool] = await Promise.all([
     prisma.listing.findMany({
       where: scoreWhere,
       orderBy: [{ dealScore: "desc" }, { dateScraped: "desc" }],
@@ -456,20 +526,10 @@ export async function getTopOpportunities(
       take: MID_TIER_POOL_SIZE,
       select: listingSelect,
     }),
-    prisma.listing.findMany({
-      where: {
-        isActive: true,
-        city,
-        operationType: { contains: "venta", mode: "insensitive" },
-        pricePerM2: { not: null },
-        areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
-      },
-      take: COMP_ANALYSIS_POOL_SIZE,
-      select: listingSelect,
-    }),
+    getCachedCityCompPool(city),
   ])
 
-  const mergedRows = mergeCandidateRows(midTierRows, valueRows, scoreRows)
+  const mergedRows = mergeCandidateRows(scoreRows, midTierRows, valueRows)
   const filteredRows = mergedRows
     .filter((r) =>
       neighborhoodPassesFilters(
@@ -483,13 +543,24 @@ export async function getTopOpportunities(
 
   if (filteredRows.length === 0) return empty()
 
-  const compPool = compPoolRows.map((r) => toDealListingInput(r))
   const houseFloor = minBuiltPpm2ForHouse(compPool)
 
-  const candidateIds = filteredRows.map((r) => r.id)
+  const sortedCandidates = [...filteredRows].sort((a, b) => {
+    const scoreA = a.dealScore ?? -Infinity
+    const scoreB = b.dealScore ?? -Infinity
+    if (scoreB !== scoreA) return scoreB - scoreA
+    const ppm2A = a.pricePerM2 ?? Infinity
+    const ppm2B = b.pricePerM2 ?? Infinity
+    return ppm2A - ppm2B
+  })
+
+  const analyzeLimit = Math.min(sortedCandidates.length, ANALYZE_CAP)
+  const analyzeSlice = sortedCandidates.slice(0, analyzeLimit)
+  const analyzeIds = analyzeSlice.map((r) => r.id)
+
   const priceEventsRaw = await prisma.listingPriceEvent.findMany({
     where: {
-      listingId: { in: candidateIds },
+      listingId: { in: analyzeIds },
       recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
     },
     orderBy: { recordedAt: "desc" },
@@ -504,21 +575,9 @@ export async function getTopOpportunities(
 
   const allResults: OpportunityRow[] = []
 
-  const sortedCandidates = [...filteredRows].sort((a, b) => {
-    const scoreA = a.dealScore ?? -Infinity
-    const scoreB = b.dealScore ?? -Infinity
-    if (scoreB !== scoreA) return scoreB - scoreA
-    const ppm2A = a.pricePerM2 ?? Infinity
-    const ppm2B = b.pricePerM2 ?? Infinity
-    return ppm2A - ppm2B
-  })
-
-  const analyzeLimit = Math.min(sortedCandidates.length, ANALYZE_CAP)
-
-  for (let i = 0; i < analyzeLimit; i++) {
+  for (const row of analyzeSlice) {
     if (allResults.length >= MAX_RESULTS) break
 
-    const row = sortedCandidates[i]
     const subject = toDealListingInput(row)
     const analysis = analyzeDeal(subject, compPool, {
       priceEvents: priceEventsByListing.get(row.id),

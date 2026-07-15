@@ -19,6 +19,8 @@ type Props = {
   onChange: (value: string) => void
   placeholder?: string
   noResultsLabel?: string
+  openListLabel?: string
+  closeListLabel?: string
   disabled?: boolean
   required?: boolean
   allowEmpty?: boolean
@@ -27,6 +29,16 @@ type Props = {
   className?: string
   "aria-label"?: string
   onQueryChange?: (query: string) => void
+}
+
+const defaultListToggleLabels = () => {
+  const lang =
+    typeof document !== "undefined" && document.documentElement.lang === "en"
+      ? "en"
+      : "es"
+  return lang === "en"
+    ? { open: "Open list", close: "Close list" }
+    : { open: "Abrir lista", close: "Cerrar lista" }
 }
 
 type DropdownPosition = {
@@ -69,6 +81,8 @@ export default function SearchableSelect({
   onChange,
   placeholder,
   noResultsLabel = "No matches",
+  openListLabel,
+  closeListLabel,
   disabled = false,
   required = false,
   allowEmpty = false,
@@ -78,6 +92,10 @@ export default function SearchableSelect({
   "aria-label": ariaLabel,
   onQueryChange,
 }: Props) {
+  const toggleLabels = defaultListToggleLabels()
+  const resolvedOpenListLabel = openListLabel ?? toggleLabels.open
+  const resolvedCloseListLabel = closeListLabel ?? toggleLabels.close
+
   const listboxId = useId()
   const rootRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -313,7 +331,7 @@ export default function SearchableSelect({
         <button
           type="button"
           tabIndex={-1}
-          aria-label={open ? "Close list" : "Open list"}
+          aria-label={open ? resolvedCloseListLabel : resolvedOpenListLabel}
           disabled={disabled}
           className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-muted hover:text-foreground disabled:opacity-50"
           onMouseDown={(e) => e.preventDefault()}

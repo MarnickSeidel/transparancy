@@ -7,7 +7,21 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/api/", "/dashboard", "/explore", "/opportunities", "/heatmap", "/estimate", "/analyze-url", "/price-drops", "/es/"],
+      disallow: [
+        "/api/",
+        "/dashboard",
+        "/explore",
+        "/opportunities",
+        "/heatmap",
+        "/estimate",
+        "/analyze-url",
+        "/price-drops",
+        "/anuncio/",
+        "/en/listing/",
+        "/email/",
+        "/r/",
+        "/es/",
+      ],
     },
     sitemap: absoluteUrl("/sitemap.xml"),
   };

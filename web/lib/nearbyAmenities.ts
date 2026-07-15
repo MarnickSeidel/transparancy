@@ -100,7 +100,7 @@ const OVERPASS_ENDPOINTS = [
 ]
 const OVERPASS_TIMEOUT_SEC = 55
 const FETCH_TIMEOUT_MS = 60000
-const OVERPASS_USER_AGENT = "Habidata/1.0 (colombia-real-estate; nearby-amenities)"
+const OVERPASS_USER_AGENT = "ClaraCasas/1.0 (colombia-real-estate; nearby-amenities)"
 
 const COLOMBIA_LAT_MIN = -4.5
 const COLOMBIA_LAT_MAX = 13.5

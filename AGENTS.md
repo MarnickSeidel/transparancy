@@ -1,4 +1,4 @@
-# Agent instructions — Habidata (`transparancy`)
+# Agent instructions — ClaraCasas (`transparancy`)
 
 This file helps Cursor and other AI agents work effectively in this repository.  
 **Front-end coding style** (Tailwind, semicolons, commit format) lives in [`.cursor/rules/front-end-cursor-rules.mdc`](.cursor/rules/front-end-cursor-rules.mdc) — read that for UI implementation details. This document covers **project context, architecture, and workflow**.
@@ -9,7 +9,7 @@ This file helps Cursor and other AI agents work effectively in this repository.
 
 ## What this project is
 
-**Habidata** brings transparency to Colombia’s residential **listing** market (Finca Raíz asking prices — not closed sales or official appraisals).
+**ClaraCasas** brings transparency to Colombia’s residential **listing** market (Finca Raíz asking prices — not closed sales or official appraisals).
 
 | Audience | Primary needs |
 |----------|----------------|
@@ -26,7 +26,7 @@ This file helps Cursor and other AI agents work effectively in this repository.
 | `web/data/neighborhoods/` | Barrio JSON catalogs (shared by web + scraper) |
 | `docker-compose.yml` | Postgres 16 (+ optional web image) |
 
-Product name in UI: **Habidata**. Folder name: `transparancy`.
+Product name in UI: **ClaraCasas** (`lib/brand.ts`). Folder name: `transparancy`.
 
 ---
 

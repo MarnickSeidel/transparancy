@@ -12,38 +12,38 @@ const COPY: Record<
 > = {
   methodology: {
     es: {
-      title: "Metodología de datos | Habidata",
+      title: "Metodología de datos | ClaraCasas",
       description:
-        "Cómo Habidata recopila, procesa y publica datos de anuncios Finca Raíz para análisis de precio/m² por barrio en Colombia.",
+        "Cómo ClaraCasas recopila, procesa y publica datos de anuncios Finca Raíz para análisis de precio/m² por barrio en Colombia.",
     },
     en: {
-      title: "Data methodology | Habidata",
+      title: "Data methodology | ClaraCasas",
       description:
-        "How Habidata collects, processes, and publishes Finca Raíz listing data for neighborhood price/m² analysis in Colombia.",
+        "How ClaraCasas collects, processes, and publishes Finca Raíz listing data for neighborhood price/m² analysis in Colombia.",
     },
   },
   privacy: {
     es: {
-      title: "Política de privacidad | Habidata",
+      title: "Política de privacidad | ClaraCasas",
       description:
-        "Información sobre cookies, almacenamiento local y tratamiento de datos en la plataforma Habidata.",
+        "Información sobre cookies, almacenamiento local y tratamiento de datos en la plataforma ClaraCasas.",
     },
     en: {
-      title: "Privacy policy | Habidata",
+      title: "Privacy policy | ClaraCasas",
       description:
-        "Information about cookies, local storage, and data handling on the Habidata platform.",
+        "Information about cookies, local storage, and data handling on the ClaraCasas platform.",
     },
   },
   about: {
     es: {
-      title: "Acerca de Habidata",
+      title: "Acerca de ClaraCasas",
       description:
-        "Habidata: inteligencia inmobiliaria con datos de publicaciones en Colombia. Transparencia de mercado para inversionistas.",
+        "ClaraCasas: inteligencia inmobiliaria con datos de publicaciones en Colombia. Transparencia de mercado para inversionistas.",
     },
     en: {
-      title: "About Habidata",
+      title: "About ClaraCasas",
       description:
-        "Habidata: real estate intelligence from Colombian listing data. Market transparency for local and US investors.",
+        "ClaraCasas: real estate intelligence from Colombian listing data. Market transparency for local and US investors.",
     },
   },
 };
@@ -64,7 +64,7 @@ export function trustPageMetadata(page: TrustPage, locale: Locale): Metadata {
       title,
       description,
       url: canonicalForLocale(path, locale),
-      siteName: "Habidata",
+      siteName: "ClaraCasas",
       locale: ogLocale(locale),
       type: "website",
     },
@@ -82,7 +82,7 @@ export function homeJsonLd(locale: Locale) {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "Habidata",
+      name: "ClaraCasas",
       url,
       description:
         locale === "en"
@@ -93,7 +93,7 @@ export function homeJsonLd(locale: Locale) {
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "Habidata",
+      name: "ClaraCasas",
       url,
       description:
         locale === "en"

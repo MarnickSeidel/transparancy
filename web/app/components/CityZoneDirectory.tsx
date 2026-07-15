@@ -94,6 +94,8 @@ export default function CityZoneDirectory({ zones, citySlug, locale }: Props) {
           filterMode="contains"
           placeholder={txt.zonesSearchPlaceholder}
           noResultsLabel={txt.zonesSearchNoResults}
+          openListLabel={txt.searchableSelectOpenList}
+          closeListLabel={txt.searchableSelectCloseList}
           aria-label={txt.zonesSearchPlaceholder}
           className="mt-1.5 max-w-xl"
         />

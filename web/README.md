@@ -1,6 +1,6 @@
-# Habidata Web App
+# ClaraCasas Web App
 
-Next.js 14 app for the Habidata platform. See the [root README](../README.md) for full stack setup.
+Next.js 14 app for the ClaraCasas platform. See the [root README](../README.md) for full stack setup.
 
 ## Quick start
 
@@ -29,8 +29,8 @@ Barrio JSON files live in `data/neighborhoods/`. The scraper reads the same path
 
 Place logo assets in `public/branding/`:
 
-- `habidata-logo-horizontal.svg` (or `.png`) — header + Open Graph
-- `habidata-mark.svg` (or `.png`) — favicon + PWA icon
+- `ClaraCasas-logo-horizontal.svg` (or `.png`) — header + Open Graph
+- `ClaraCasas-mark.svg` (or `.png`) — favicon + PWA icon
 
 Placeholder SVGs are included until final brand assets are added.
 

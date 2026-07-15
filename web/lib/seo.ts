@@ -70,7 +70,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
   if (locale === "en") {
     const title = "Undervalued property opportunities in Colombia";
     const description =
-      "Ranked Finca Raíz listings by relative discount vs neighborhood benchmarks — Habidata deal finder.";
+      "Ranked Finca Raíz listings by relative discount vs neighborhood benchmarks — ClaraCasas deal finder.";
     const url = absoluteUrl(opportunitiesPath("en"));
     const ogImage = opportunitiesOgImage();
     return {
@@ -92,7 +92,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
 
   const title = "Oportunidades inmobiliarias";
   const description =
-    "Ranking de publicaciones con mejor descuento relativo frente al mercado del barrio — herramienta Habidata.";
+    "Ranking de publicaciones con mejor descuento relativo frente al mercado del barrio — herramienta ClaraCasas.";
   const url = absoluteUrl(opportunitiesPath("es"));
   const ogImage = opportunitiesOgImage();
   return {

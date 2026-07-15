@@ -5,6 +5,7 @@ import { GeoJSON, MapContainer, TileLayer, useMap } from "react-leaflet";
 import type { FeatureCollection } from "geojson";
 import type { Layer } from "leaflet";
 import L from "leaflet";
+import "leaflet/dist/leaflet.css";
 
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { isValidColombiaCoordinate } from "@/lib/nearbyAmenities";
