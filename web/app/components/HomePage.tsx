@@ -354,7 +354,7 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                 id="home-analyze-url"
                 type="url"
                 className={`${inputClassName} mt-0 flex-1`}
-                placeholder="https://www.fincaraiz.com.co/..."
+                placeholder={txt.analyzeUrlPlaceholder}
                 value={inlineUrl}
                 onChange={(e) => setInlineUrl(e.target.value)}
               />

@@ -127,7 +127,7 @@ export default function AppHeader({
       return `shrink-0 rounded-lg bg-accent ${padding} text-xs font-semibold text-accent-fg shadow-sm`
     }
     if (isPending) {
-      return `shrink-0 rounded-lg bg-surface ${padding} text-xs font-medium text-foreground/60 ring-1 ring-accent/30`
+      return `shrink-0 rounded-lg bg-accent/15 ${padding} text-xs font-semibold text-accent ring-2 ring-accent/50 animate-pulse`
     }
     return `shrink-0 rounded-lg ${padding} text-xs font-medium text-foreground/80 transition hover:bg-surface hover:text-foreground`
   }

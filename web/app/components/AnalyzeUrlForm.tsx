@@ -272,7 +272,10 @@ export default function AnalyzeUrlForm() {
     }
     try {
       const parsed = new URL(url.trim())
-      if (!parsed.hostname.includes("fincaraiz.com.co")) {
+      const host = parsed.hostname.toLowerCase()
+      const allowed =
+        host.includes("fincaraiz.com.co") || host.includes("metrocuadrado.com")
+      if (!allowed) {
         setError(txt.analyzeUrlInvalid)
         return
       }
@@ -334,7 +337,7 @@ export default function AnalyzeUrlForm() {
               type="url"
               required
               className={inputClassName}
-              placeholder="https://www.fincaraiz.com.co/..."
+              placeholder={txt.analyzeUrlPlaceholder}
               value={url}
               onChange={(e) => setUrl(e.target.value)}
             />

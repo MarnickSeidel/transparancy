@@ -18,7 +18,7 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | UI | 8.0 | Tool pages on design tokens (Dashboard/Estimate/Analyze) |
 | UX | 8.0 | 3-item nav + More dropdown; intent-first labels (ES/EN) |
 | SEO | 9.0 | Dynamic `lang`, PNG OG, sitemap hreflang, brand-consistent metadata |
-| Performance | 7.5 | Opportunities comp-pool cache + stored-score ranking; heatmap still full-city |
+| Performance | 8.0 | Nav progress + locale skeletons; BigInt cache fix; tool code-split; heatmap still full-city |
 | Accessibility | 7.5 | Skip link, live regions, reduced-motion, select ARIA i18n |
 | Code quality | 7.5 | Playwright smoke tests added; no unit tests yet |
 | Security | 7.0 | Rate limits on more heavy routes; still in-memory only |
@@ -62,6 +62,13 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 ### Perf + tokens batch (July 2026)
 - Opportunities: prefer stored `dealScore` pool; cached city comp pool (90s); leaner comp select; price events only for analyze slice; lower analyze/comp caps
 - Design tokens: Dashboard, Estimate, AnalyzeUrl, EmailSignupForm — `slate-*` → semantic tokens
+- Analyze-url: Metrocuadrado listing URLs (`mc:` external ids) alongside Finca Raíz
+
+### Nav perceived-latency batch (July 2026)
+- Profiled soft nav: click→busy ~12ms; frozen UI caused by RSC wait (2–7s cold) + subtle pending styles + missing `[locale]`/`anuncio` `loading.tsx`
+- Fixed opportunities `unstable_cache` BigInt crash + slimmed comp pool (dropped descriptions) so cache fits under Next 2MB cap
+- Global `NavigationProgress` top bar + `#main-content` dim on pointerdown
+- Stronger pending nav styles; `loadToolPage` code-split for opportunities/analyze/dashboard/heatmap/estimate/price-drops
 
 ---
 

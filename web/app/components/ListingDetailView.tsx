@@ -225,7 +225,17 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
           ) : null}
         </div>
 
-        <Card className="mb-6 overflow-hidden border-slate-200/90 p-0 shadow-card">
+        {!data.listing.isActive ? (
+          <div
+            className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card"
+            role="status"
+          >
+            <p className="font-semibold">{txt.listingDetailInactive}</p>
+            <p className="mt-1 text-amber-900/90">{txt.listingDetailInactiveBody}</p>
+          </div>
+        ) : null}
+
+        <Card className="mb-6 overflow-hidden border-border-subtle p-0 shadow-card">
           <div className="flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:p-5">
             <div className="relative h-36 w-full shrink-0 overflow-hidden rounded-xl bg-surface sm:h-28 sm:w-40">
               {data.listing.imageUrl ? (

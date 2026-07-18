@@ -262,6 +262,8 @@ After any session, agents **should feel free** to leave the codebase easier for 
 | Deal scoring change | `dealEngine.ts` + scraper mirror + sanity script |
 | Email digest | `lib/email/sendDigests.ts`, `templates.ts` |
 | Zone dossier data | `lib/getZoneDossier.ts`, publish threshold in zones libs |
+| Analyze-url portal | `lib/analyzeListingUrl.ts` + `fincaraizSingleListing.ts` / `metrocuadradoSingleListing.ts` |
+| Perceived nav latency | `NavigationProgress` in root layout; `loading.tsx` under tools + `[locale]` + `anuncio`; code-split via `loadToolPage`; never put BigInt in `unstable_cache` without serializing |
 
 ---
 

@@ -1,139 +1,66 @@
-import { NextResponse } from "next/server";
+import { NextResponse } from "next/server"
 
-import { buildListingDetailResponse } from "@/lib/getListingDetail";
-import { prisma } from "@/lib/prisma";
+import { fetchAndParseAnalyzeListing, validateAnalyzeListingUrl } from "@/lib/analyzeListingUrl"
+import { buildListingDetailResponse } from "@/lib/getListingDetail"
 import {
-  fetchHtmlWithTimeout,
-  parseSingleListingFromHtml,
-  validateFincaraizUrl,
-} from "@/lib/fincaraizSingleListing";
-import { enforceRateLimit } from "@/lib/rateLimit";
+  persistAnalyzedDealScore,
+  upsertAnalyzedListing,
+} from "@/lib/upsertAnalyzedListing"
+import { enforceRateLimit } from "@/lib/rateLimit"
 
-export const dynamic = "force-dynamic";
+export const dynamic = "force-dynamic"
 
-type Body = { url?: unknown };
-
-function toPpm2(price: number, area: number | null): number | null {
-  if (area == null || area <= 0) return null;
-  return price / area;
-}
+type Body = { url?: unknown }
 
 export async function POST(req: Request) {
   const limited = enforceRateLimit(req, "analyze-url", 10, 15 * 60_000)
   if (limited) return limited
 
   try {
-    const body = (await req.json()) as Body;
-    const raw = typeof body.url === "string" ? body.url : "";
+    const body = (await req.json()) as Body
+    const raw = typeof body.url === "string" ? body.url : ""
     if (!raw.trim()) {
-      return NextResponse.json({ error: "url_required" }, { status: 400 });
+      return NextResponse.json({ error: "url_required" }, { status: 400 })
     }
 
-    let canonical: string;
     try {
-      canonical = validateFincaraizUrl(raw);
+      validateAnalyzeListingUrl(raw)
     } catch (e) {
-      const code = e instanceof Error ? e.message : "url_invalid";
-      return NextResponse.json({ error: code }, { status: 400 });
+      const code = e instanceof Error ? e.message : "url_invalid"
+      return NextResponse.json({ error: code }, { status: 400 })
     }
 
-    const existing = await prisma.listing.findFirst({
-      where: { url: canonical },
-      orderBy: { lastSeenAt: "desc" },
-    });
-    if (existing) {
-      return NextResponse.json(await buildListingDetailResponse(existing));
-    }
+    // Always re-fetch the portal listing so analyze-url keeps the DB fresh.
+    const parsed = await fetchAndParseAnalyzeListing(raw)
+    const { listing, created, priceChanged } = await upsertAnalyzedListing(parsed)
+    const detail = await buildListingDetailResponse(listing)
 
-    const html = await fetchHtmlWithTimeout(canonical, 15000);
-    const parsed = parseSingleListingFromHtml(canonical, html);
+    await persistAnalyzedDealScore(listing.id, detail.analysis)
 
-    const pricePerM2 = toPpm2(parsed.priceCop, parsed.areaM2);
-    const pricePerM2Built = toPpm2(parsed.priceCop, parsed.areaBuiltM2);
-    const pricePerM2Terrain = toPpm2(parsed.priceCop, parsed.areaTerrainM2);
-
-    const now = new Date();
-    const upserted = await prisma.listing.upsert({
-      where: { externalId: parsed.externalId },
-      create: {
-        externalId: parsed.externalId,
-        title: parsed.title,
-        url: parsed.url,
-        priceCop: BigInt(parsed.priceCop),
-        areaM2: parsed.areaM2,
-        estrato: parsed.estrato ?? undefined,
-        neighborhood: parsed.neighborhood ?? undefined,
-        city: parsed.city,
-        department: parsed.department,
-        propertyType: parsed.propertyType ?? undefined,
-        operationType: parsed.operationType ?? undefined,
-        areaBuiltM2: parsed.areaBuiltM2 ?? undefined,
-        areaTerrainM2: parsed.areaTerrainM2 ?? undefined,
-        bedrooms: parsed.bedrooms ?? undefined,
-        bathrooms: parsed.bathrooms ?? undefined,
-        latitude: parsed.latitude ?? undefined,
-        longitude: parsed.longitude ?? undefined,
-        pricePerM2: pricePerM2 ?? undefined,
-        pricePerM2Built: pricePerM2Built ?? undefined,
-        pricePerM2Terrain: pricePerM2Terrain ?? undefined,
-        imageUrl: parsed.imageUrl ?? undefined,
-        address: parsed.address ?? undefined,
-        technicalSheet: parsed.technicalSheet ?? undefined,
-        locationPath: parsed.locationPath,
-        sourceFingerprint: parsed.sourceFingerprint,
-        sourceUpdatedAt: now,
-        sourceCreatedAt: now,
-        dateScraped: now,
-        firstSeenAt: now,
-        lastSeenAt: now,
-        isActive: true,
+    return NextResponse.json({
+      ...detail,
+      meta: {
+        created,
+        priceChanged,
+        refreshed: true,
       },
-      update: {
-        title: parsed.title,
-        url: parsed.url,
-        priceCop: BigInt(parsed.priceCop),
-        areaM2: parsed.areaM2,
-        estrato: parsed.estrato ?? null,
-        neighborhood: parsed.neighborhood ?? null,
-        city: parsed.city,
-        department: parsed.department,
-        propertyType: parsed.propertyType ?? null,
-        operationType: parsed.operationType ?? null,
-        areaBuiltM2: parsed.areaBuiltM2 ?? null,
-        areaTerrainM2: parsed.areaTerrainM2 ?? null,
-        bedrooms: parsed.bedrooms ?? null,
-        bathrooms: parsed.bathrooms ?? null,
-        latitude: parsed.latitude ?? null,
-        longitude: parsed.longitude ?? null,
-        pricePerM2: pricePerM2,
-        pricePerM2Built: pricePerM2Built,
-        pricePerM2Terrain: pricePerM2Terrain,
-        imageUrl: parsed.imageUrl ?? null,
-        address: parsed.address ?? null,
-        technicalSheet: parsed.technicalSheet ?? undefined,
-        locationPath: parsed.locationPath,
-        sourceFingerprint: parsed.sourceFingerprint,
-        sourceUpdatedAt: now,
-        dateScraped: now,
-        lastSeenAt: now,
-        isActive: true,
-        timesSeen: { increment: 1 },
-      },
-    });
-
-    return NextResponse.json(await buildListingDetailResponse(upserted));
+    })
   } catch (e) {
-    console.error(e);
-    const msg = e instanceof Error ? e.message : "server_error";
+    console.error(e)
+    const msg = e instanceof Error ? e.message : "server_error"
     if (
       msg === "fetch_failed" ||
       msg === "next_data_missing" ||
       msg === "listing_payload_missing" ||
       msg === "price_missing" ||
-      msg === "area_missing"
+      msg === "area_missing" ||
+      msg === "url_not_allowed" ||
+      msg === "url_path_invalid"
     ) {
-      return NextResponse.json({ error: msg }, { status: 422 });
+      const status =
+        msg === "url_not_allowed" || msg === "url_path_invalid" ? 400 : 422
+      return NextResponse.json({ error: msg }, { status })
     }
-    return NextResponse.json({ error: "server_error" }, { status: 500 });
+    return NextResponse.json({ error: "server_error" }, { status: 500 })
   }
 }

@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 
-import H3Heatmap from "@/app/components/H3Heatmap"
+import { loadToolPage } from "@/lib/loadToolPage"
 import { noIndexMetadata } from "@/lib/seo"
+
+const H3Heatmap = loadToolPage(() => import("@/app/components/H3Heatmap"))
 
 export const metadata: Metadata = noIndexMetadata(
   "Mapa de calor H3",

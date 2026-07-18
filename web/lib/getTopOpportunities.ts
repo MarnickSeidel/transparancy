@@ -79,10 +79,13 @@ const listingSelect = {
   imageUrl: true,
 } satisfies Prisma.ListingSelect
 
-/** Leaner select for city-wide comparable pool (no title/url/image). */
+/**
+ * Lean select for city-wide comparable pool.
+ * Omit description (multi-KB text) so unstable_cache stays under Next's 2MB limit.
+ * Terrain/promo flags on comps are unused; only the subject needs description/paidQuota.
+ */
 const compPoolSelect = {
   id: true,
-  externalId: true,
   city: true,
   neighborhood: true,
   zoneName: true,
@@ -113,12 +116,41 @@ const compPoolSelect = {
   terraceHeavyFlag: true,
   areaMismatchFlag: true,
   isProject: true,
-  paidQuota: true,
-  highlight: true,
-  description: true,
 } satisfies Prisma.ListingSelect
 
 type ListingRow = Prisma.ListingGetPayload<{ select: typeof listingSelect }>
+
+/** JSON-safe shape for unstable_cache (BigInt / Date are not JSON-serializable). */
+type CacheableDealListing = Omit<
+  DealListingInput,
+  "priceCop" | "priceAdminIncluded" | "adminFeeCop" | "sourceUpdatedAt" | "firstSeenAt"
+> & {
+  priceCop: number
+  priceAdminIncluded: number | null
+  adminFeeCop: number | null
+  sourceUpdatedAt: string | null
+  firstSeenAt: string | null
+}
+
+const toCacheableDealListing = (listing: DealListingInput): CacheableDealListing => ({
+  ...listing,
+  externalId: undefined,
+  description: null,
+  paidQuota: null,
+  highlight: null,
+  priceCop: Number(listing.priceCop),
+  priceAdminIncluded:
+    listing.priceAdminIncluded == null ? null : Number(listing.priceAdminIncluded),
+  adminFeeCop: listing.adminFeeCop == null ? null : Number(listing.adminFeeCop),
+  sourceUpdatedAt: listing.sourceUpdatedAt?.toISOString() ?? null,
+  firstSeenAt: listing.firstSeenAt?.toISOString() ?? null,
+})
+
+const fromCacheableDealListing = (listing: CacheableDealListing): DealListingInput => ({
+  ...listing,
+  sourceUpdatedAt: listing.sourceUpdatedAt ? new Date(listing.sourceUpdatedAt) : null,
+  firstSeenAt: listing.firstSeenAt ? new Date(listing.firstSeenAt) : null,
+})
 
 const loadCityCompPool = async (city: string): Promise<DealListingInput[]> => {
   const rows = await prisma.listing.findMany({
@@ -138,10 +170,14 @@ const loadCityCompPool = async (city: string): Promise<DealListingInput[]> => {
 
 const getCachedCityCompPool = (city: string): Promise<DealListingInput[]> =>
   unstable_cache(
-    async () => loadCityCompPool(city),
-    ["opp-city-comp-pool", city],
+    async () => {
+      const rows = await loadCityCompPool(city)
+      return rows.map(toCacheableDealListing)
+    },
+    // v3: BigInt-safe + no description (v2 exceeded Next 2MB cache cap)
+    ["opp-city-comp-pool-v3", city],
     { revalidate: COMP_POOL_REVALIDATE_SEC },
-  )()
+  )().then((rows) => rows.map(fromCacheableDealListing))
 
 export type OpportunityQuery = {
   city?: string | null

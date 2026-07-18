@@ -1,7 +1,11 @@
 import type { Metadata } from "next"
 
-import PriceDropsFeed from "@/app/components/PriceDropsFeed"
+import { loadToolPage } from "@/lib/loadToolPage"
 import { noIndexMetadata } from "@/lib/seo"
+
+const PriceDropsFeed = loadToolPage(
+  () => import("@/app/components/PriceDropsFeed"),
+)
 
 export const metadata: Metadata = noIndexMetadata(
   "Bajadas de precio",

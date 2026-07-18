@@ -363,6 +363,9 @@ export const uiText = {
     listingDetailPurpose: "Analisis ClaraCasas de esta publicacion frente al mercado del barrio.",
     listingDetailCtaFr: "Ver en Finca Raiz",
     listingDetailUpdated: "Datos actualizados",
+    listingDetailInactive: "Anuncio ya no activo",
+    listingDetailInactiveBody:
+      "Esta publicacion ya no aparece como activa en el inventario. El analisis usa el ultimo precio que teniamos; confirma en el anuncio original.",
     listingDetailNotFound: "Anuncio no encontrado",
     listingDetailNotFoundBody:
       "Este anuncio ya no esta disponible o el enlace no es valido.",
@@ -372,12 +375,15 @@ export const uiText = {
     analyzeUrlPurpose:
       "Evalúa un anuncio concreto y descubre si está por encima o por debajo del mercado.",
     analyzeUrlInputLabel: "URL del anuncio",
-    analyzeUrlExample: "Ejemplo: https://www.fincaraiz.com.co/.../inmueble",
-    analyzeUrlHint: "Solo se permite fincaraiz.com.co en esta version.",
+    analyzeUrlPlaceholder: "https://www.fincaraiz.com.co/... o metrocuadrado.com/...",
+    analyzeUrlExample:
+      "Ejemplo: Finca Raíz o Metrocuadrado (…/inmueble/…/MC1234567)",
+    analyzeUrlHint: "Se admiten fincaraiz.com.co y metrocuadrado.com.",
     analyzeUrlSubmit: "Analizar anuncio",
     analyzeUrlLoading: "Analizando…",
     analyzeUrlRequired: "Ingresa una URL.",
-    analyzeUrlInvalid: "La URL no es valida o no pertenece a Fincaraiz.",
+    analyzeUrlInvalid:
+      "La URL no es valida o no es de Finca Raíz / Metrocuadrado.",
     analyzeFetchFailed: "No se pudo leer la pagina del anuncio.",
     analyzeParseIncomplete: "No se pudo extraer precio/area suficientes para analizar.",
     analyzeServerError: "Error al analizar la URL. Intenta de nuevo.",
@@ -950,6 +956,9 @@ export const uiText = {
     listingDetailPurpose: "ClaraCasas analysis of this listing vs neighborhood benchmarks.",
     listingDetailCtaFr: "View on Finca Raiz",
     listingDetailUpdated: "Data updated",
+    listingDetailInactive: "Listing no longer active",
+    listingDetailInactiveBody:
+      "This listing is no longer marked active in our inventory. Analysis uses the last price we have — confirm on the original ad.",
     listingDetailNotFound: "Listing not found",
     listingDetailNotFoundBody:
       "This listing is no longer available or the link is invalid.",
@@ -959,12 +968,14 @@ export const uiText = {
     analyzeUrlPurpose:
       "Evaluate a specific listing and see if it is above or below market.",
     analyzeUrlInputLabel: "Listing URL",
-    analyzeUrlExample: "Example: https://www.fincaraiz.com.co/.../property",
-    analyzeUrlHint: "Only fincaraiz.com.co is supported in this version.",
+    analyzeUrlPlaceholder: "https://www.fincaraiz.com.co/... or metrocuadrado.com/...",
+    analyzeUrlExample:
+      "Example: Finca Raíz or Metrocuadrado (…/inmueble/…/MC1234567)",
+    analyzeUrlHint: "Supports fincaraiz.com.co and metrocuadrado.com.",
     analyzeUrlSubmit: "Analyze listing",
     analyzeUrlLoading: "Analyzing…",
     analyzeUrlRequired: "Enter a URL.",
-    analyzeUrlInvalid: "URL is invalid or not from Fincaraiz.",
+    analyzeUrlInvalid: "URL is invalid or not from Finca Raíz / Metrocuadrado.",
     analyzeFetchFailed: "Could not fetch listing page.",
     analyzeParseIncomplete: "Could not extract enough price/area to analyze.",
     analyzeServerError: "Could not analyze URL. Try again.",

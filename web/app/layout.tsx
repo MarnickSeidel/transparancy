@@ -3,6 +3,7 @@ import localFont from "next/font/local";
 import { headers } from "next/headers";
 import type { Viewport } from "next";
 
+import NavigationProgressRoot from "@/app/components/NavigationProgressRoot";
 import { rootMetadata, siteViewport } from "@/lib/seo";
 import "./globals.css";
 
@@ -51,6 +52,7 @@ export default function RootLayout({
         <a href="#main-content" className="skip-link">
           {lang === "en" ? "Skip to content" : "Saltar al contenido"}
         </a>
+        <NavigationProgressRoot />
         {children}
       </body>
     </html>

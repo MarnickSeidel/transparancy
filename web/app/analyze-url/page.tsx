@@ -1,7 +1,11 @@
 import type { Metadata } from "next"
 
-import AnalyzeUrlForm from "@/app/components/AnalyzeUrlForm"
+import { loadToolPage } from "@/lib/loadToolPage"
 import { noIndexMetadata } from "@/lib/seo"
+
+const AnalyzeUrlForm = loadToolPage(
+  () => import("@/app/components/AnalyzeUrlForm"),
+)
 
 export const metadata: Metadata = noIndexMetadata(
   "Analizar anuncio por URL",

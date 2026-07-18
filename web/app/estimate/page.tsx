@@ -1,7 +1,9 @@
 import type { Metadata } from "next"
 
-import EstimateForm from "@/app/components/EstimateForm"
+import { loadToolPage } from "@/lib/loadToolPage"
 import { noIndexMetadata } from "@/lib/seo"
+
+const EstimateForm = loadToolPage(() => import("@/app/components/EstimateForm"))
 
 export const metadata: Metadata = noIndexMetadata(
   "Estimador de precio",

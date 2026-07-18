@@ -42,12 +42,14 @@ export type ListingDetailResponse = {
     technicalSheet: unknown
     imageUrl: string | null
     sourceUpdatedAt: string | null
+    isActive: boolean
   }
   analysis: {
     dealScore: number | null
     verdict: ListingDetailVerdict
     confidence: "high" | "medium" | "low"
     warnings: string[]
+    excluded: boolean
     discountVsRefPct: number | null
     referencePpm2: number | null
     referencePpm2Nearby: number | null
@@ -183,6 +185,7 @@ export async function buildListingDetailResponse(
       technicalSheet: listing.technicalSheet,
       imageUrl: listing.imageUrl,
       sourceUpdatedAt: listing.sourceUpdatedAt?.toISOString() ?? null,
+      isActive: listing.isActive,
     },
     analysis: {
       dealScore: analysis.dealScore,
@@ -191,6 +194,7 @@ export async function buildListingDetailResponse(
       warnings: analysis.excluded
         ? analysis.exclusionReasons
         : analysis.confidenceReasons,
+      excluded: analysis.excluded,
       discountVsRefPct: analysis.discountVsRefPct,
       referencePpm2: analysis.refPpm2,
       referencePpm2Nearby: analysis.refPpm2,
@@ -241,8 +245,9 @@ export async function buildListingDetailResponse(
 export async function getListingDetail(
   id: string,
 ): Promise<ListingDetailResponse | null> {
-  const listing = await prisma.listing.findFirst({
-    where: { id, isActive: true },
+  // Include inactive rows so opportunity / shared links still open with a clear notice.
+  const listing = await prisma.listing.findUnique({
+    where: { id },
   })
   if (!listing) return null
   return buildListingDetailResponse(listing)
