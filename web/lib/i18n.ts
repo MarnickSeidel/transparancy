@@ -47,7 +47,7 @@ export const uiText = {
     momMedianM2: "MoM mediana / m²",
     trend3m: "Tendencia 3 meses",
     currentMonthSample: "Muestra del mes actual",
-    monthlyMonitoring: "Monitoreo mensual (ultimos 6 meses)",
+    monthlyMonitoring: "Monitoreo mensual (últimos 6 meses)",
     month: "Mes",
     sample: "Muestra",
     quality: "Calidad",
@@ -55,7 +55,7 @@ export const uiText = {
     type: "Tipo",
     count: "Cantidad",
     median: "Mediana",
-    medianArea: "Area mediana",
+    medianArea: "Área mediana",
     neighborhoodTransparency: "Transparencia por barrio (top por cantidad)",
     sampleCheck: "Control de muestra",
     deltaVsCity: "Delta vs ciudad",
@@ -110,14 +110,14 @@ export const uiText = {
     estimateFilterNotUsed: "No aplicado",
     opportunitiesMaxPricePlaceholder: "350.000.000",
     estimateTitle: "Estimador de precio (mercado de publicaciones)",
-    estimateArea: "Area (m²)",
-    estimateAreaHint: "Area construida o total segun tu caso.",
-    operationType: "Operacion",
+    estimateArea: "Área (m²)",
+    estimateAreaHint: "Área construida o total según tu caso.",
+    operationType: "Operación",
     operationAny: "Cualquiera",
     estimateSubmit: "Calcular rango",
     estimateCalculating: "Calculando…",
     estimateDisclaimer:
-      "Estimacion basada en precios de publicacion (no escrituras). Solo orientativo.",
+      "Estimación basada en precios de publicación (no escrituras). Solo orientativo.",
     estimateRangeTitle: "Rango estimado (COP)",
     estimatePpm2Band: "Banda precio/m² (P25–mediana–P75)",
     estimateSample: "Publicaciones comparables",
@@ -127,18 +127,18 @@ export const uiText = {
       "Se ampliaron los criterios por pocos datos en tu barrio/tipo:",
     estimateBackHome: "Volver al tablero",
     estimateCityRequired: "Selecciona una ciudad.",
-    estimateAreaInvalid: "Indica un area valida en m².",
+    estimateAreaInvalid: "Indica un área válida en m².",
     estimateNoData:
-      "No hay suficientes publicaciones comparables. Prueba otra ciudad o deja el barrio vacio.",
+      "No hay suficientes publicaciones comparables. Prueba otra ciudad o deja el barrio vacío.",
     estimateServerError: "Error al calcular. Intenta de nuevo.",
-    estimateMapUse: "Usar ubicacion en el mapa (comparables cerca del pin)",
+    estimateMapUse: "Usar ubicación en el mapa (comparables cerca del pin)",
     estimateMapHint:
       "Haz clic en el mapa para colocar el pin. Solo entran publicaciones con coordenadas dentro del radio.",
     estimateMapNeighborhoodOff:
-      "Con el mapa activo no se usa barrio: el pin y el radio definen la zona (mas preciso que el nombre del barrio).",
+      "Con el mapa activo no se usa barrio: el pin y el radio definen la zona (más preciso que el nombre del barrio).",
     estimateMapRadius: "Radio inicial (metros)",
     estimateMapPickRequired:
-      "Activa el mapa y coloca un pin, o desactiva la ubicacion en mapa.",
+      "Activa el mapa y coloca un pin, o desactiva la ubicación en mapa.",
     estimateGeoUsed:
       "Comparables con coordenadas dentro de ~{n} m del pin.",
     estimateGeoDropped:
@@ -249,7 +249,7 @@ export const uiText = {
     subscribeSending: "Enviando…",
     subscribeSuccess: "Revisa tu correo para confirmar la suscripción.",
     subscribeSuccessDev: "Modo desarrollo: usa el enlace de confirmación en la consola del servidor.",
-    subscribeInvalidEmail: "Ingresa un correo valido.",
+    subscribeInvalidEmail: "Ingresa un correo válido.",
     subscribeError: "No se pudo guardar tu correo. Intenta de nuevo.",
     subscribePickOne: "Selecciona al menos un tipo de correo.",
     emailPrefDealsCity: "Oportunidades en la ciudad",
@@ -260,7 +260,7 @@ export const uiText = {
     emailPrivacyNote: "Puedes cancelar en cualquier momento. Ver política de privacidad.",
     opportunitiesTitle: "Top oportunidades inmobiliarias",
     opportunitiesSubtitle:
-      "Top 10 publicaciones con mejor puntaje de oportunidad segun comparables locales.",
+      "Top 10 publicaciones con mejor puntaje de oportunidad según comparables locales.",
     opportunitiesPurpose:
       "Encuentra anuncios con potencial descuento frente a referencias comparables.",
     opportunitiesTop10: "Oportunidades",
@@ -279,7 +279,7 @@ export const uiText = {
       "Escribe el nombre (coincidencia con sugerencias) y Enter o Agregar. Puedes usar texto libre si coincide con el barrio en datos.",
     opportunitiesExcludePlaceholder: "Ej. Cerritos",
     opportunitiesExcludeAdd: "Agregar",
-    opportunitiesMaxPrice: "Precio maximo (COP)",
+    opportunitiesMaxPrice: "Precio máximo (COP)",
     opportunitiesMaxPriceHint:
       "Opcional. Solo anuncios con precio menor o igual. Puedes usar puntos o espacios.",
     opportunitiesExcludeUnknown: "Excluir Desconocidos",
@@ -360,15 +360,15 @@ export const uiText = {
     opportunitiesSortByPrice: "Precio",
     opportunitiesSortByConfidence: "Confianza",
     listingDetailBack: "Volver a oportunidades",
-    listingDetailPurpose: "Analisis ClaraCasas de esta publicacion frente al mercado del barrio.",
-    listingDetailCtaFr: "Ver en Finca Raiz",
+    listingDetailPurpose: "Análisis ClaraCasas de esta publicación frente al mercado del barrio.",
+    listingDetailCtaFr: "Ver en Finca Raíz",
     listingDetailUpdated: "Datos actualizados",
     listingDetailInactive: "Anuncio ya no activo",
     listingDetailInactiveBody:
-      "Esta publicacion ya no aparece como activa en el inventario. El analisis usa el ultimo precio que teniamos; confirma en el anuncio original.",
+      "Esta publicación ya no aparece como activa en el inventario. El análisis usa el último precio que teníamos; confirma en el anuncio original.",
     listingDetailNotFound: "Anuncio no encontrado",
     listingDetailNotFoundBody:
-      "Este anuncio ya no esta disponible o el enlace no es valido.",
+      "Este anuncio ya no está disponible o el enlace no es válido.",
     analyzeUrlTitle: "¿Es buen precio?",
     analyzeUrlSubtitle:
       "Pega el enlace de Finca Raíz: comparamos el precio/m² con anuncios similares en el barrio.",
@@ -488,7 +488,7 @@ export const uiText = {
     exploreSubtitle:
       "Busca y filtra anuncios activos. El color indica precio/m² vs la mediana del barrio (o ciudad).",
     explorePurpose:
-      "Navega el mercado con señales de precio por publicacion y enlace directo al anuncio.",
+      "Navega el mercado con señales de precio por publicación y enlace directo al anuncio.",
     exploreSimilarBannerTitle: "Filtros de tu estimación",
     exploreSimilarBannerBody:
       "Mostramos publicaciones con área, precio y ubicación parecidos a lo que calculaste. Quita este filtro para ver más anuncios.",
@@ -519,7 +519,7 @@ export const uiText = {
     heatmapResCity: "Ciudad / barrio",
     heatmapResFine: "Fina (cuadra)",
     heatmapNotEnoughData: "No hay suficientes publicaciones con geo para esta ciudad y filtro.",
-    heatmapSummary: "{listings} publicaciones → {cells} hexagonos en {city}",
+    heatmapSummary: "{listings} publicaciones → {cells} hexágonos en {city}",
     heatmapListingsShort: "anuncios",
     heatmapSelectedCell: "Hexagono seleccionado",
     heatmapOpenExplorer: "Ver publicaciones en esta zona →",
