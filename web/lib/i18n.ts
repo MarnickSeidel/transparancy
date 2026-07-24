@@ -12,7 +12,7 @@ export const uiText = {
   es: {
     title: "ClaraCasas — transparencia del mercado",
     subtitle:
-      "Publicaciones de Fincaraiz. Precio/m² vs promedio del barrio: verde por debajo, amarillo cerca, rojo por encima.",
+      "Publicaciones de Finca Raíz. Precio/m² vs promedio del barrio: verde por debajo, amarillo cerca, rojo por encima.",
     city: "Ciudad",
     estrato: "Estrato",
     neighborhood: "Barrio",
@@ -76,7 +76,7 @@ export const uiText = {
     bathrooms: "Baños",
     rooms: "Ambientes",
     updated: "Actualizado",
-    noRowsYet: "Aun no hay datos para este filtro. Prueba otra ciudad o ajusta los filtros.",
+    noRowsYet: "Aún no hay datos para este filtro. Prueba otra ciudad o ajusta los filtros.",
     loadingData: "Cargando datos...",
     noDataForFilters: "No hay datos para los filtros actuales.",
     adjustFiltersHint: "Prueba otra ciudad, barrio o tipo de propiedad.",
@@ -151,34 +151,34 @@ export const uiText = {
     dashboardHeroNarrativeStable:
       "La mediana del precio por m² se mantuvo casi estable respecto al mes anterior (este filtro).",
     dashboardHeroNarrativeUp:
-      "La mediana del precio por m² subio un {pct}% respecto al mes anterior (este filtro).",
+      "La mediana del precio por m² subió un {pct}% respecto al mes anterior (este filtro).",
     dashboardHeroNarrativeDown:
-      "La mediana del precio por m² bajo un {pct}% respecto al mes anterior (este filtro).",
+      "La mediana del precio por m² bajó un {pct}% respecto al mes anterior (este filtro).",
     dashboardHeroNarrativeNoData:
-      "Comparativa de publicaciones segun ciudad, barrio y estrato. Los datos reflejan precios de anuncio.",
+      "Comparativa de publicaciones según ciudad, barrio y estrato. Los datos reflejan precios de anuncio.",
     monthlyMedianChart: "Tendencia: mediana / m²",
     monthlyMedianTooltipLabel: "mediana / m²",
-    dashboardLastUpdated: "Ultima actualizacion",
-    dashboardDataSource: "Fuente: publicaciones activas de Fincaraiz (precios de anuncio).",
+    dashboardLastUpdated: "Última actualización",
+    dashboardDataSource: "Fuente: publicaciones activas de Finca Raíz (precios de anuncio).",
     dashboardNextActions: "Siguientes pasos",
     dashboardSeeOpportunities: "Ver oportunidades",
     dashboardOpenEstimator: "Abrir estimador",
-    monthlyChartNoData: "Aun no hay puntos para graficar.",
+    monthlyChartNoData: "Aún no hay puntos para graficar.",
     estimateLiveInConjunto: "Vivo en un conjunto / condominio cerrado",
     estimateLiveInConjuntoHint:
-      "Si lo marcas, comparamos solo publicaciones de ese conjunto (mas preciso). Con mapa, sugerimos conjuntos cerca del pin.",
+      "Si lo marcas, comparamos solo publicaciones de ese conjunto (más preciso). Con mapa, sugerimos conjuntos cerca del pin.",
     estimateConjuntoSelect: "Conjunto",
     estimateConjuntoSearchPlaceholder: "Escribe cualquier palabra del nombre…",
     estimateConjuntoSearchHint:
       "Busca por cualquier parte del nombre (ej. nogal, club residencial). No hace falta escribirlo completo.",
     estimateConjuntoNearbyEmpty:
-      "No hay conjuntos con coordenadas cerca del pin. Elige de la lista de la ciudad o amplia el radio.",
-    estimateConjuntoRequired: "Selecciona tu conjunto o desmarca la opcion.",
+      "No hay conjuntos con coordenadas cerca del pin. Elige de la lista de la ciudad o amplía el radio.",
+    estimateConjuntoRequired: "Selecciona tu conjunto o desmarca la opción.",
     estimateConjuntoLoading: "Buscando conjuntos cerca del pin…",
     estimateConjuntoApplied: "Filtro por conjunto: {name}",
     estimateConjuntoVariants: "({n} variantes del nombre en anuncios)",
     estimateTagline:
-      "Indica area y filtros: obtienes un rango bajo–medio–alto basado en publicaciones similares.",
+      "Indica área y filtros: obtienes un rango bajo–medio–alto basado en publicaciones similares.",
     estimatePurpose:
       "Calcula un rango de precio orientativo usando comparables del mercado de publicaciones.",
     requiredFieldLegend: "* Campo obligatorio",
@@ -186,11 +186,11 @@ export const uiText = {
     searchableSelectNoMatch: "Sin coincidencias",
     searchableSelectOpenList: "Abrir lista",
     searchableSelectCloseList: "Cerrar lista",
-    estimateSectionLocation: "1) Ubicacion",
+    estimateSectionLocation: "1) Ubicación",
     estimateSectionProperty: "2) Datos del inmueble",
     estimateSectionAdvanced: "3) Ajustes avanzados (opcional)",
     estimateSectionResult: "4) Resultado estimado",
-    estimateDriversTitle: "Factores usados en el calculo",
+    estimateDriversTitle: "Factores usados en el cálculo",
     estimateRangeExplain:
       "El rango muestra escenarios conservador (P25), central (mediana) y alto (P75).",
     estimateLoadingMap: "Cargando mapa...",
@@ -606,7 +606,7 @@ export const uiText = {
   en: {
     title: "ClaraCasas — market transparency",
     subtitle:
-      "Fincaraiz listings. Price/m² vs neighborhood average: green below, yellow near, red above.",
+      "Finca Raíz listings. Price/m² vs neighborhood average: green below, yellow near, red above.",
     city: "City",
     estrato: "Estrato",
     neighborhood: "Neighborhood",
@@ -752,7 +752,7 @@ export const uiText = {
     monthlyMedianChart: "Trend: median / m²",
     monthlyMedianTooltipLabel: "median / m²",
     dashboardLastUpdated: "Last updated",
-    dashboardDataSource: "Source: active Fincaraiz listings (asking prices).",
+    dashboardDataSource: "Source: active Finca Raíz listings (asking prices).",
     dashboardNextActions: "Next actions",
     dashboardSeeOpportunities: "See opportunities",
     dashboardOpenEstimator: "Open estimator",
@@ -954,7 +954,7 @@ export const uiText = {
     opportunitiesSortByConfidence: "Confidence",
     listingDetailBack: "Back to opportunities",
     listingDetailPurpose: "ClaraCasas analysis of this listing vs neighborhood benchmarks.",
-    listingDetailCtaFr: "View on Finca Raiz",
+    listingDetailCtaFr: "View on Finca Raíz",
     listingDetailUpdated: "Data updated",
     listingDetailInactive: "Listing no longer active",
     listingDetailInactiveBody:
