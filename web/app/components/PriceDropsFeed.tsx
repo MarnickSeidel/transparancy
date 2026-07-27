@@ -171,7 +171,7 @@ export default function PriceDropsFeed({
                       <a
                         href={row.url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="mt-2 block text-base font-semibold text-accent hover:underline"
                       >
                         {row.title}

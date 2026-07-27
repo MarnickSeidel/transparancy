@@ -202,7 +202,7 @@ export default function SharedReportView({
                       <a
                         href={c.url}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="font-medium text-accent hover:underline"
                       >
                         {c.title}

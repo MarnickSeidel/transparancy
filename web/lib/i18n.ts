@@ -143,7 +143,7 @@ export const uiText = {
       "Comparables con coordenadas dentro de ~{n} m del pin.",
     estimateGeoDropped:
       "No hubo suficientes datos cerca del pin; se uso toda la ciudad (sin filtro de distancia).",
-    estimateCoordsInvalid: "Coordenadas invalidas.",
+    estimateCoordsInvalid: "Coordenadas inválidas.",
     estimateMapCityFirst: "Elige una ciudad para centrar el mapa.",
     dashboardSnapshot: "Resumen del mercado",
     dashboardPurpose:

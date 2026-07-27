@@ -481,7 +481,7 @@ export default function AnalyzeUrlForm() {
               <a
                 href={data.listing.url}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
                 className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
               >
                 {txt.analyzeOpenSource}
@@ -549,7 +549,7 @@ export default function AnalyzeUrlForm() {
                             <a
                               href={c.url}
                               target="_blank"
-                              rel="noreferrer"
+                              rel="noopener noreferrer"
                               className="font-medium text-accent hover:underline"
                             >
                               {c.title}

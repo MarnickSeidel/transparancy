@@ -99,7 +99,7 @@ export default function ShareReportActions({ payload, lang }: Props) {
           href={sharePath}
           className="text-sm font-semibold text-accent hover:underline"
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
         >
           {txt.shareReportOpen}
         </a>

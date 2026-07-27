@@ -276,7 +276,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
                 <a
                   href={data.listing.url}
                   target="_blank"
-                  rel="noreferrer"
+                  rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-lg bg-accent px-4 py-2.5 text-sm font-semibold text-accent-fg shadow-sm transition hover:bg-accent-hover"
                 >
                   {txt.listingDetailCtaFr}
@@ -387,7 +387,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
             <a
               href={data.listing.url}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer"
               className="mt-3 inline-block text-sm font-semibold text-accent hover:underline"
             >
               {txt.analyzeOpenSource}
