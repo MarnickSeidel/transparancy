@@ -19,7 +19,7 @@ type Props = ButtonProps | LinkProps;
 
 function styles(variant: Variant, className?: string) {
   const base =
-    "inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50";
+    "inline-flex items-center justify-center rounded-lg px-4 py-2.5 text-sm font-semibold transition duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:cursor-not-allowed disabled:opacity-60";
   const byVariant: Record<Variant, string> = {
     primary:
       "bg-accent text-accent-fg shadow-sm hover:bg-accent-hover",
