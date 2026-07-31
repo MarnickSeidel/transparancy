@@ -104,7 +104,7 @@ export default function NearbyAmenitiesCard({
 
   if (!hasCoordinates) {
     return (
-      <Card className="border-slate-200/90 shadow-card">
+      <Card className="border-border-subtle shadow-card">
         {hideTitle ? null : <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>}
         <p className={`text-sm text-muted ${hideTitle ? "" : "mt-2"}`}>{txt.nearbyAmenitiesNoGeo}</p>
       </Card>
@@ -113,7 +113,7 @@ export default function NearbyAmenitiesCard({
 
   if (loading) {
     return (
-      <Card className="border-slate-200/90 shadow-card">
+      <Card className="border-border-subtle shadow-card">
         {hideTitle ? null : <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>}
         <p className={`text-xs text-muted ${hideTitle ? "" : "mt-1"}`}>
           {txt.nearbyAmenitiesSubtitle.replace("{radius}", radiusKm)}
@@ -132,7 +132,7 @@ export default function NearbyAmenitiesCard({
   const hasAnyPlaces = data.categories.some((category) => category.count > 0)
 
   return (
-    <Card className="border-slate-200/90 shadow-card">
+    <Card className="border-border-subtle shadow-card">
       {hideTitle ? null : <h2 className={titleClass}>{txt.nearbyAmenitiesTitle}</h2>}
       <p className={`text-xs text-muted ${hideTitle ? "" : "mt-1"}`}>
         {txt.nearbyAmenitiesSubtitle.replace("{radius}", radiusKm)}
@@ -154,7 +154,7 @@ export default function NearbyAmenitiesCard({
           return (
             <li
               key={category.id}
-              className="rounded-xl border border-slate-200/80 bg-surface/60 dark:border-slate-700/70"
+              className="rounded-xl border border-border-subtle bg-surface/60"
             >
               <button
                 type="button"
@@ -181,7 +181,7 @@ export default function NearbyAmenitiesCard({
                 ) : null}
               </button>
               {isExpanded ? (
-                <ul className="border-t border-slate-200/80 px-3 py-2 dark:border-slate-700/70">
+                <ul className="border-t border-border-subtle px-3 py-2">
                   {category.places.map((place, index) => (
                     <li
                       key={`${category.id}-${place.lat}-${place.lng}-${index}`}
