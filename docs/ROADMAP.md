@@ -1,6 +1,6 @@
 # ClaraCasas — Website Audit Roadmap
 
-Last updated: July 2026  
+Last updated: August 2026  
 Status: **in progress** — brand/perf/token batches applied; scale work remains
 
 **Agent context:** [`AGENTS.md`](../AGENTS.md) · **Cursor rules:** [`.cursor/rules/`](../.cursor/rules/)
@@ -70,6 +70,10 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Global `NavigationProgress` top bar + `#main-content` dim on pointerdown
 - Stronger pending nav styles; `loadToolPage` code-split for opportunities/analyze/dashboard/heatmap/estimate/price-drops
 
+### Docs ops batch (August 2026)
+- Developer runbooks: analyze-url portals, deal list-vs-detail comps, amenities/cache, email cron (`docs/EMAIL_OPERATIONS.md`)
+- Corrected locale routing docs (EN tools rewrite, not redirect) and analyze-url allowlist (Finca + Metrocuadrado)
+
 ---
 
 ## Remaining work
@@ -78,6 +82,7 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | Task | Why |
 |------|-----|
 | Redis/Upstash rate limits | Multi-instance production |
+| Unify opportunities + listing-detail comp pools (house floor) | List vs detail median disagreement |
 | Extract Pagination component | Opportunities vs Explore duplication |
 | Wire Playwright into CI | After `npx playwright install` + test DB |
 
