@@ -113,7 +113,7 @@ export default function WhyDealPanel({ whyDeal, title, lang, locale }: Props) {
   const drivers = scoreDrivers(whyDeal.scoreBreakdown, txt);
 
   return (
-    <div className="rounded-xl border border-slate-200/90 bg-slate-50/60 px-4 py-3 dark:border-slate-700/80 dark:bg-slate-900/40">
+    <div className="rounded-xl border border-border-subtle bg-surface/60 px-4 py-3">
       {title ? (
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
           {title}
@@ -183,16 +183,14 @@ export default function WhyDealPanel({ whyDeal, title, lang, locale }: Props) {
       </div>
 
       {drivers.length > 0 ? (
-        <div className="mt-4 border-t border-slate-200/80 pt-3 dark:border-slate-700/80">
+        <div className="mt-4 border-t border-border-subtle pt-3">
           <p className="text-xs font-medium text-muted">{txt.opportunitiesWhyScoreDrivers}</p>
           <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
             {drivers.map((d) => (
               <span
                 key={d.label}
                 className={`text-xs tabular-nums ${
-                  d.value >= 0
-                    ? "text-emerald-800 dark:text-emerald-300"
-                    : "text-rose-800 dark:text-rose-300"
+                  d.value >= 0 ? "text-deal-good" : "text-deal-bad"
                 }`}
               >
                 {d.value >= 0 ? "+" : ""}
