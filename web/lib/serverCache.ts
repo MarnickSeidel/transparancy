@@ -5,6 +5,7 @@ import { getDashboardFilters } from "@/lib/dashboardFilters"
 import { getDashboardSummary } from "@/lib/dashboardSummary"
 import { getFiltersData } from "@/lib/getFiltersData"
 import { getHeatmapH3, type HeatmapH3Query } from "@/lib/getHeatmapH3"
+import { GOOD_DEAL_DISCOUNT_PCT } from "@/lib/dealCompPool"
 import {
   getTopOpportunities,
   type OpportunityQuery,
@@ -28,7 +29,8 @@ const PRICE_DROPS_REVALIDATE = 120
 const FRESHNESS_REVALIDATE = 300
 
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
-  "top-opportunities",
+  // v2: type-aware pools + default min discount aligned to good-deal verdict
+  "top-opportunities-v2",
   query.city ?? "all",
   query.propertyType ?? "all",
   query.neighborhood ?? "all",
@@ -37,7 +39,7 @@ const opportunityCacheKey = (query: OpportunityQuery): string[] => [
   query.hideLowConfidence === false ? "0" : "1",
   query.excludeBarter ? "1" : "0",
   query.excludeProjects ? "1" : "0",
-  String(query.minDiscountPct ?? 0),
+  String(query.minDiscountPct ?? GOOD_DEAL_DISCOUNT_PCT),
   query.maxPriceCop?.toString() ?? "none",
   query.minPriceCop?.toString() ?? "none",
   String(query.minAreaM2 ?? ""),

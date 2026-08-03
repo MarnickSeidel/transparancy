@@ -282,6 +282,11 @@ export const uiText = {
     opportunitiesMaxPrice: "Precio máximo (COP)",
     opportunitiesMaxPriceHint:
       "Opcional. Solo anuncios con precio menor o igual. Puedes usar puntos o espacios.",
+    opportunitiesMinArea: "Área mínima (m²)",
+    opportunitiesMaxArea: "Área máxima (m²)",
+    opportunitiesAreaHint: "Opcional. Filtra por área del anuncio (m²).",
+    opportunitiesAreaPlaceholderMin: "80",
+    opportunitiesAreaPlaceholderMax: "200",
     opportunitiesExcludeUnknown: "Excluir Desconocidos",
     opportunitiesConfidence: "Confianza",
     confidenceHigh: "Alta",
@@ -350,7 +355,8 @@ export const uiText = {
     opportunitiesExcludeBarter: "Excluir permuta",
     opportunitiesExcludeProjects: "Excluir proyectos",
     opportunitiesMinDiscount: "Descuento mínimo (%)",
-    opportunitiesMinDiscountHint: "Opcional. Solo anuncios con ahorro vs. mercado ≥ este valor.",
+    opportunitiesMinDiscountHint:
+      "Por defecto 12% (misma barra que «Buena oportunidad»). Solo anuncios con ahorro vs. mercado ≥ este valor.",
     opportunitiesHideLowConfidence: "Ocultar baja confianza",
     opportunitiesPrimaryFilters: "Filtros principales",
     opportunitiesAdvancedFilters: "Filtros avanzados",
@@ -875,6 +881,11 @@ export const uiText = {
     opportunitiesMaxPrice: "Max price (COP)",
     opportunitiesMaxPriceHint:
       "Optional. Only listings with asking price at or below this. Dots/spaces are OK.",
+    opportunitiesMinArea: "Min area (m²)",
+    opportunitiesMaxArea: "Max area (m²)",
+    opportunitiesAreaHint: "Optional. Filter by listing area (m²).",
+    opportunitiesAreaPlaceholderMin: "80",
+    opportunitiesAreaPlaceholderMax: "200",
     opportunitiesExcludeUnknown: "Exclude Unknown",
     opportunitiesConfidence: "Confidence",
     confidenceHigh: "High",
@@ -943,7 +954,8 @@ export const uiText = {
     opportunitiesExcludeBarter: "Exclude barter",
     opportunitiesExcludeProjects: "Exclude projects",
     opportunitiesMinDiscount: "Min discount (%)",
-    opportunitiesMinDiscountHint: "Optional. Only listings with savings vs. market ≥ this value.",
+    opportunitiesMinDiscountHint:
+      "Defaults to 12% (same bar as “Good deal”). Only listings with savings vs. market ≥ this value.",
     opportunitiesHideLowConfidence: "Hide low confidence",
     opportunitiesPrimaryFilters: "Primary filters",
     opportunitiesAdvancedFilters: "Advanced filters",

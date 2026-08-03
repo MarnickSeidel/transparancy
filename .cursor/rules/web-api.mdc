@@ -37,4 +37,4 @@ Wire new expensive endpoints the same way.
 
 ## Deal data
 
-Scoring logic lives in `lib/dealEngine.ts` — change it only with scraper parity in mind. Opportunities hot path: `lib/getTopOpportunities.ts`.
+Scoring logic lives in `lib/dealEngine.ts` — change it only with scraper parity in mind. Live analysis entry (shared pool + house floor): `lib/dealCompPool.ts` → `analyzeListingDeal`. Opportunities hot path: `lib/getTopOpportunities.ts`. Listing detail / analyze-url: `lib/getListingDetail.ts`.

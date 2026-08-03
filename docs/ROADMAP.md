@@ -1,7 +1,7 @@
 # ClaraCasas — Website Audit Roadmap
 
-Last updated: July 2026  
-Status: **in progress** — brand/perf/token batches applied; scale work remains
+Last updated: August 2026  
+Status: **in progress** — brand/perf/token batches applied; deal consistency shipped; scale work remains
 
 **Agent context:** [`AGENTS.md`](../AGENTS.md) · **Cursor rules:** [`.cursor/rules/`](../.cursor/rules/)
 
@@ -69,6 +69,12 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Fixed opportunities `unstable_cache` BigInt crash + slimmed comp pool (dropped descriptions) so cache fits under Next 2MB cap
 - Global `NavigationProgress` top bar + `#main-content` dim on pointerdown
 - Stronger pending nav styles; `loadToolPage` code-split for opportunities/analyze/dashboard/heatmap/estimate/price-drops
+
+### Deal analysis consistency (July 2026)
+- Unified opportunities + `/anuncio` via `lib/dealCompPool.ts` (`analyzeListingDeal`)
+- Property-type-aware cached city pools (fixes opp −35% vs detail +8% median flips)
+- Listing detail uses same house-floor calibration as opportunities
+- Default opportunities min discount = 12% (`GOOD_DEAL_DISCOUNT_PCT`) so list cards match “Buena oportunidad”; busted opportunities cache key to v2
 
 ---
 

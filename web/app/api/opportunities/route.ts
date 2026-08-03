@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 
 import {
+  DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT,
   DEFAULT_OPPORTUNITIES_CITY,
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
   type OpportunitySortBy,
@@ -62,7 +63,7 @@ export async function GET(req: Request) {
   const minDiscountPct =
     minDiscountRaw != null && minDiscountRaw.trim() !== ""
       ? Number.parseFloat(minDiscountRaw)
-      : 0
+      : DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT
 
   const maxPriceRaw = searchParams.get("maxPriceCop")
   let maxPriceCop: bigint | null = null

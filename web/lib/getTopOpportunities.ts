@@ -1,9 +1,14 @@
 import type { Prisma } from "@prisma/client"
-import { unstable_cache } from "next/cache"
 
-import { MIN_ANALYTICS_AREA_M2, percentile } from "@/lib/analytics"
+import { MIN_ANALYTICS_AREA_M2 } from "@/lib/analytics"
 import {
-  analyzeDeal,
+  analyzeListingDeal,
+  getCityHouseFloor,
+  getDealCompPool,
+  GOOD_DEAL_DISCOUNT_PCT,
+  poolCacheKeyForPropertyType,
+} from "@/lib/dealCompPool"
+import {
   buildWhyDeal,
   toDealListingInput,
   type DealListingInput,
@@ -15,13 +20,13 @@ import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
 
 export const DEFAULT_OPPORTUNITIES_CITY = "Pereira"
 export const DEFAULT_OPPORTUNITIES_PAGE_SIZE = 10
+/** Default floor = good-deal verdict threshold so list cards match detail. */
+export const DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT = GOOD_DEAL_DISCOUNT_PCT
 
 const SCORE_POOL_SIZE = 220
 const VALUE_POOL_SIZE = 120
 const MID_TIER_POOL_SIZE = 200
 const MAX_CANDIDATES = 350
-/** City-wide comps for analyzeDeal — cached; neighborhood/geo filter happens in-engine. */
-const COMP_ANALYSIS_POOL_SIZE = 1500
 const MAX_RESULTS = 120
 /**
  * Cap live re-analysis. Candidates are pre-ranked by stored `dealScore`
@@ -29,7 +34,6 @@ const MAX_RESULTS = 120
  * and apply discount/confidence filters.
  */
 const ANALYZE_CAP = 140
-const COMP_POOL_REVALIDATE_SEC = 90
 /** Ignore stored scores driven by implausible COP/m² (bad scrapes). */
 const CANDIDATE_PPM2_FLOOR = 400_000
 const MID_TIER_DEAL_SCORE_MIN = 45
@@ -79,105 +83,7 @@ const listingSelect = {
   imageUrl: true,
 } satisfies Prisma.ListingSelect
 
-/**
- * Lean select for city-wide comparable pool.
- * Omit description (multi-KB text) so unstable_cache stays under Next's 2MB limit.
- * Terrain/promo flags on comps are unused; only the subject needs description/paidQuota.
- */
-const compPoolSelect = {
-  id: true,
-  city: true,
-  neighborhood: true,
-  zoneName: true,
-  propertyType: true,
-  constructionState: true,
-  estrato: true,
-  operationType: true,
-  areaM2: true,
-  areaBuiltM2: true,
-  areaPrivateM2: true,
-  areaTerrainM2: true,
-  areaTerraceM2: true,
-  priceCop: true,
-  pricePerM2: true,
-  pricePerM2Built: true,
-  pricePerM2Private: true,
-  pricePerM2Terrain: true,
-  priceAdminIncluded: true,
-  adminFeeCop: true,
-  bedrooms: true,
-  bathrooms: true,
-  latitude: true,
-  longitude: true,
-  sourceUpdatedAt: true,
-  firstSeenAt: true,
-  dataCompletenessScore: true,
-  acceptsBarter: true,
-  terraceHeavyFlag: true,
-  areaMismatchFlag: true,
-  isProject: true,
-} satisfies Prisma.ListingSelect
-
 type ListingRow = Prisma.ListingGetPayload<{ select: typeof listingSelect }>
-
-/** JSON-safe shape for unstable_cache (BigInt / Date are not JSON-serializable). */
-type CacheableDealListing = Omit<
-  DealListingInput,
-  "priceCop" | "priceAdminIncluded" | "adminFeeCop" | "sourceUpdatedAt" | "firstSeenAt"
-> & {
-  priceCop: number
-  priceAdminIncluded: number | null
-  adminFeeCop: number | null
-  sourceUpdatedAt: string | null
-  firstSeenAt: string | null
-}
-
-const toCacheableDealListing = (listing: DealListingInput): CacheableDealListing => ({
-  ...listing,
-  externalId: undefined,
-  description: null,
-  paidQuota: null,
-  highlight: null,
-  priceCop: Number(listing.priceCop),
-  priceAdminIncluded:
-    listing.priceAdminIncluded == null ? null : Number(listing.priceAdminIncluded),
-  adminFeeCop: listing.adminFeeCop == null ? null : Number(listing.adminFeeCop),
-  sourceUpdatedAt: listing.sourceUpdatedAt?.toISOString() ?? null,
-  firstSeenAt: listing.firstSeenAt?.toISOString() ?? null,
-})
-
-const fromCacheableDealListing = (listing: CacheableDealListing): DealListingInput => ({
-  ...listing,
-  sourceUpdatedAt: listing.sourceUpdatedAt ? new Date(listing.sourceUpdatedAt) : null,
-  firstSeenAt: listing.firstSeenAt ? new Date(listing.firstSeenAt) : null,
-})
-
-const loadCityCompPool = async (city: string): Promise<DealListingInput[]> => {
-  const rows = await prisma.listing.findMany({
-    where: {
-      isActive: true,
-      city,
-      operationType: { contains: "venta", mode: "insensitive" },
-      pricePerM2: { not: null },
-      areaM2: { gte: MIN_ANALYTICS_AREA_M2 },
-    },
-    take: COMP_ANALYSIS_POOL_SIZE,
-    orderBy: [{ dateScraped: "desc" }],
-    select: compPoolSelect,
-  })
-  return rows.map((r) => toDealListingInput(r))
-}
-
-const getCachedCityCompPool = (city: string): Promise<DealListingInput[]> =>
-  unstable_cache(
-    async () => {
-      const rows = await loadCityCompPool(city)
-      return rows.map(toCacheableDealListing)
-    },
-    // v3: BigInt-safe + no description (v2 exceeded Next 2MB cache cap)
-    ["opp-city-comp-pool-v3", city],
-    { revalidate: COMP_POOL_REVALIDATE_SEC },
-  )().then((rows) => rows.map(fromCacheableDealListing))
 
 export type OpportunityQuery = {
   city?: string | null
@@ -275,15 +181,6 @@ function neighborhoodPassesFilters(
     if (key === "desconocido" || key === "unknown") return false
   }
   return true
-}
-
-function minBuiltPpm2ForHouse(pool: DealListingInput[]): number {
-  const builtHousePpm2 = pool
-    .filter((l) => (l.propertyType ?? "").toLowerCase().includes("casa"))
-    .map((l) => l.pricePerM2Built)
-    .filter((v): v is number => v != null && Number.isFinite(v) && v > 0)
-  const p15 = percentile(builtHousePpm2, 0.15)
-  return p15 != null ? Math.max(900_000, p15 * 0.75) : 900_000
 }
 
 function applyGeoBBoxFilter(
@@ -429,7 +326,7 @@ function buildBaseFilters(query: OpportunityQuery): {
 
 function rowToOpportunity(
   row: ListingRow,
-  analysis: ReturnType<typeof analyzeDeal>,
+  analysis: Awaited<ReturnType<typeof analyzeListingDeal>>,
   priceEvents: { priceCop: bigint; recordedAt: Date }[] | undefined,
 ): OpportunityRow {
   const whyDeal = buildWhyDeal(analysis, toDealListingInput(row))
@@ -491,7 +388,7 @@ export async function getTopOpportunities(
     city,
     excludeUnknownNeighborhoods = false,
     hideLowConfidence = true,
-    minDiscountPct = 0,
+    minDiscountPct = DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT,
     conjunto = null,
     page = 1,
     sortBy = "dealScore",
@@ -543,7 +440,7 @@ export async function getTopOpportunities(
   }
 
   // Prefer stored dealScore pool first; mid/value pools only diversify coverage.
-  const [scoreRows, valueRows, midTierRows, compPool] = await Promise.all([
+  const [scoreRows, valueRows, midTierRows, houseFloor] = await Promise.all([
     prisma.listing.findMany({
       where: scoreWhere,
       orderBy: [{ dealScore: "desc" }, { dateScraped: "desc" }],
@@ -562,7 +459,7 @@ export async function getTopOpportunities(
       take: MID_TIER_POOL_SIZE,
       select: listingSelect,
     }),
-    getCachedCityCompPool(city),
+    getCityHouseFloor(city),
   ])
 
   const mergedRows = mergeCandidateRows(scoreRows, midTierRows, valueRows)
@@ -579,8 +476,6 @@ export async function getTopOpportunities(
 
   if (filteredRows.length === 0) return empty()
 
-  const houseFloor = minBuiltPpm2ForHouse(compPool)
-
   const sortedCandidates = [...filteredRows].sort((a, b) => {
     const scoreA = a.dealScore ?? -Infinity
     const scoreB = b.dealScore ?? -Infinity
@@ -594,12 +489,30 @@ export async function getTopOpportunities(
   const analyzeSlice = sortedCandidates.slice(0, analyzeLimit)
   const analyzeIds = analyzeSlice.map((r) => r.id)
 
-  const priceEventsRaw = await prisma.listingPriceEvent.findMany({
-    where: {
-      listingId: { in: analyzeIds },
-      recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
-    },
-    orderBy: { recordedAt: "desc" },
+  const typeKeys = Array.from(
+    new Set(
+      analyzeSlice.map((r) => poolCacheKeyForPropertyType(r.propertyType)),
+    ),
+  )
+  const [priceEventsRaw, ...typePools] = await Promise.all([
+    prisma.listingPriceEvent.findMany({
+      where: {
+        listingId: { in: analyzeIds },
+        recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
+      },
+      orderBy: { recordedAt: "desc" },
+    }),
+    ...typeKeys.map((key) => {
+      const sample = analyzeSlice.find(
+        (r) => poolCacheKeyForPropertyType(r.propertyType) === key,
+      )
+      return getDealCompPool(city, sample?.propertyType ?? null)
+    }),
+  ])
+
+  const poolByType = new Map<string, DealListingInput[]>()
+  typeKeys.forEach((key, i) => {
+    poolByType.set(key, typePools[i] ?? [])
   })
 
   const priceEventsByListing = new Map<string, { priceCop: bigint; recordedAt: Date }[]>()
@@ -615,10 +528,13 @@ export async function getTopOpportunities(
     if (allResults.length >= MAX_RESULTS) break
 
     const subject = toDealListingInput(row)
-    const analysis = analyzeDeal(subject, compPool, {
+    const typeKey = poolCacheKeyForPropertyType(row.propertyType)
+    const pool = poolByType.get(typeKey) ?? []
+    const analysis = await analyzeListingDeal(subject, {
       priceEvents: priceEventsByListing.get(row.id),
-      minBuiltPpm2ForHouse: houseFloor,
       requirePositiveDiscount: true,
+      pool,
+      houseFloor,
     })
     if (analysis.excluded) continue
     if (

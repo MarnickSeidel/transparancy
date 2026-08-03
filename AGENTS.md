@@ -90,8 +90,10 @@ web/
 
 ### Deal engine
 
-- **`lib/dealEngine.ts`** — shared by API, UI, and Python scraper mirror
-- Stored `dealScore` on `Listing` used for candidate selection; opportunities API may still re-run `analyzeDeal` (performance hotspot — see roadmap)
+- **`lib/dealEngine.ts`** — shared by API, UI, and Python scraper mirror (`analyzeDeal`)
+- **`lib/dealCompPool.ts`** — live analysis entry (`analyzeListingDeal`): type-aware cached city pools + city house floor; shared by opportunities, `/anuncio`, and analyze-url
+- Verdict / list floor: `GOOD_DEAL_DISCOUNT_PCT = 12` (and `OVERPRICED_DISCOUNT_PCT = -12`) — opportunities default `minDiscountPct` matches “Buena oportunidad”
+- Stored `dealScore` on `Listing` selects candidates; opportunities still re-runs live analysis for UI/filters (performance hotspot — see roadmap)
 - Zone publish threshold: ≥20 valid price/m² points (`DEFAULT_MIN_ZONE_DATA_POINTS`)
 
 ### Caching
@@ -248,6 +250,7 @@ After any session, agents **should feel free** to leave the codebase easier for 
 | File | Why |
 |------|-----|
 | `lib/dealEngine.ts` | Scoring logic affects scraper + all deal UIs |
+| `lib/dealCompPool.ts` | Shared type-aware comp pools for opportunities + listing detail |
 | `lib/getTopOpportunities.ts` | Hot API path |
 | `middleware.ts` | Breaks all routing if wrong |
 | `lib/i18n.ts` | Large; easy to miss EN/ES parity |
@@ -259,7 +262,7 @@ After any session, agents **should feel free** to leave the codebase easier for 
 |---------|----------------|
 | New SEO page | `app/[locale]/`, `lib/seo.ts`, `sitemap.ts` |
 | New tool page | `app/<tool>/page.tsx`, `noIndexMetadata`, `navConfig.ts` |
-| Deal scoring change | `dealEngine.ts` + scraper mirror + sanity script |
+| Deal scoring change | `dealEngine.ts` + `dealCompPool.ts` + scraper mirror + sanity script |
 | Email digest | `lib/email/sendDigests.ts`, `templates.ts` |
 | Zone dossier data | `lib/getZoneDossier.ts`, publish threshold in zones libs |
 | Analyze-url portal | `lib/analyzeListingUrl.ts` + `fincaraizSingleListing.ts` / `metrocuadradoSingleListing.ts` |

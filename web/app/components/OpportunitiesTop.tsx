@@ -171,6 +171,14 @@ export default function OpportunitiesTop({
     if (typeof window === "undefined") return ""
     return new URLSearchParams(window.location.search).get("maxPriceCop")?.trim() ?? ""
   })
+  const [minAreaM2, setMinAreaM2] = useState(() => {
+    if (typeof window === "undefined") return ""
+    return new URLSearchParams(window.location.search).get("minAreaM2")?.trim() ?? ""
+  })
+  const [maxAreaM2, setMaxAreaM2] = useState(() => {
+    if (typeof window === "undefined") return ""
+    return new URLSearchParams(window.location.search).get("maxAreaM2")?.trim() ?? ""
+  })
   const [similarFilters, setSimilarFilters] = useState<SimilarFilters | null>(
     () => initialSimilarFilters(),
   )
@@ -219,10 +227,24 @@ export default function OpportunitiesTop({
     if (Number.isFinite(maxParsed) && maxParsed >= 1) {
       p.set("maxPriceCop", String(maxParsed))
     }
+    const minAreaDigits = minAreaM2.replace(/\D/g, "")
+    const minAreaParsed = minAreaDigits ? Number.parseInt(minAreaDigits, 10) : Number.NaN
+    if (Number.isFinite(minAreaParsed) && minAreaParsed >= 1) {
+      p.set("minAreaM2", String(minAreaParsed))
+    }
+    const maxAreaDigits = maxAreaM2.replace(/\D/g, "")
+    const maxAreaParsed = maxAreaDigits ? Number.parseInt(maxAreaDigits, 10) : Number.NaN
+    if (Number.isFinite(maxAreaParsed) && maxAreaParsed >= 1) {
+      p.set("maxAreaM2", String(maxAreaParsed))
+    }
     if (similarFilters) {
       p.set("similar", "1")
-      if (similarFilters.minAreaM2) p.set("minAreaM2", similarFilters.minAreaM2)
-      if (similarFilters.maxAreaM2) p.set("maxAreaM2", similarFilters.maxAreaM2)
+      if (similarFilters.minAreaM2 && !minAreaM2.trim()) {
+        p.set("minAreaM2", similarFilters.minAreaM2)
+      }
+      if (similarFilters.maxAreaM2 && !maxAreaM2.trim()) {
+        p.set("maxAreaM2", similarFilters.maxAreaM2)
+      }
       if (similarFilters.minPriceCop) p.set("minPriceCop", similarFilters.minPriceCop)
       if (similarFilters.maxPriceCop && !maxPriceCop.trim()) {
         p.set("maxPriceCop", similarFilters.maxPriceCop)
@@ -255,7 +277,9 @@ export default function OpportunitiesTop({
     excludeUnknownNeighborhoods,
     excludedNeighborhoods,
     hideLowConfidence,
+    maxAreaM2,
     maxPriceCop,
+    minAreaM2,
     minDiscountPct,
     neighborhood,
     page,
@@ -296,6 +320,8 @@ export default function OpportunitiesTop({
   const clearSimilarFilters = () => {
     setSimilarFilters(null)
     setMaxPriceCop("")
+    setMinAreaM2("")
+    setMaxAreaM2("")
     setPage(1)
   }
 
@@ -513,6 +539,50 @@ export default function OpportunitiesTop({
                 </div>
 
                 <div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-muted" htmlFor="opp-min-area">
+                        {txt.opportunitiesMinArea}
+                      </label>
+                      <input
+                        id="opp-min-area"
+                        type="text"
+                        inputMode="numeric"
+                        className={`mt-1 w-full ${inputClassName}`}
+                        value={minAreaM2}
+                        onChange={(e) => {
+                          setMinAreaM2(e.target.value)
+                          handleFilterChange()
+                        }}
+                        placeholder={txt.opportunitiesAreaPlaceholderMin}
+                        aria-describedby="opp-area-hint"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-muted" htmlFor="opp-max-area">
+                        {txt.opportunitiesMaxArea}
+                      </label>
+                      <input
+                        id="opp-max-area"
+                        type="text"
+                        inputMode="numeric"
+                        className={`mt-1 w-full ${inputClassName}`}
+                        value={maxAreaM2}
+                        onChange={(e) => {
+                          setMaxAreaM2(e.target.value)
+                          handleFilterChange()
+                        }}
+                        placeholder={txt.opportunitiesAreaPlaceholderMax}
+                        aria-describedby="opp-area-hint"
+                      />
+                    </div>
+                  </div>
+                  <p id="opp-area-hint" className="mt-1 text-xs text-muted">
+                    {txt.opportunitiesAreaHint}
+                  </p>
+                </div>
+
+                <div>
                   <label className="block text-xs font-medium text-muted" htmlFor="opp-min-discount">
                     {txt.opportunitiesMinDiscount}
                   </label>
@@ -526,9 +596,12 @@ export default function OpportunitiesTop({
                       setMinDiscountPct(e.target.value)
                       handleFilterChange()
                     }}
-                    placeholder="5"
+                    placeholder="12"
+                    aria-describedby="opp-min-discount-hint"
                   />
-                  <p className="mt-1 text-xs text-muted">{txt.opportunitiesMinDiscountHint}</p>
+                  <p id="opp-min-discount-hint" className="mt-1 text-xs text-muted">
+                    {txt.opportunitiesMinDiscountHint}
+                  </p>
                 </div>
 
                 <CollapsibleSection title={txt.toggleAdvancedFilters} className="pt-1">
