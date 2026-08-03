@@ -22,7 +22,9 @@ import type { WhyDeal } from "@/lib/dealEngine"
 import {
   DEFAULT_OPPORTUNITIES_CITY,
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
+  MAX_OPPORTUNITIES_RESULTS,
 } from "@/lib/getTopOpportunities"
+import { mapCenterForCity } from "@/lib/cityCenters"
 import { listingPath } from "@/lib/locale"
 import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { uiText } from "@/lib/i18n"
@@ -33,6 +35,13 @@ const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineC
   ssr: false,
   loading: () => <div className="h-24 animate-pulse rounded-lg bg-surface" />,
 })
+
+const OpportunitiesMap = dynamic(() => import("@/app/components/OpportunitiesMap"), {
+  ssr: false,
+  loading: () => <div className="h-[28rem] animate-pulse bg-surface" />,
+})
+
+type ResultsView = "list" | "map"
 
 type OpportunityRow = {
   id: string
@@ -189,8 +198,10 @@ export default function OpportunitiesTop({
     useState(false)
   const [hideLowConfidence, setHideLowConfidence] = useState(true)
   const [sortBy, setSortBy] = useState<SortBy>("dealScore")
+  const [resultsView, setResultsView] = useState<ResultsView>("list")
   const [page, setPage] = useState(1)
   const [rows, setRows] = useState<OpportunityRow[]>([])
+  const [mapRows, setMapRows] = useState<OpportunityRow[]>([])
   const [pagination, setPagination] = useState<PaginationMeta>({
     page: 1,
     pageSize: DEFAULT_OPPORTUNITIES_PAGE_SIZE,
@@ -199,6 +210,7 @@ export default function OpportunitiesTop({
   })
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mapLoading, setMapLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const excludeSuggestions = useMemo(() => {
@@ -209,7 +221,7 @@ export default function OpportunitiesTop({
       .slice(0, 40)
   }, [neighborhoods, excludeDraft])
 
-  const opportunitiesQs = useMemo(() => {
+  const opportunitiesFilterParams = useMemo(() => {
     const p = new URLSearchParams()
     p.set("city", city)
     if (propertyType !== "all" && propertyType.trim()) {
@@ -266,10 +278,8 @@ export default function OpportunitiesTop({
     if (excludeProjects) p.set("excludeProjects", "1")
     if (excludeUnknownNeighborhoods) p.set("excludeUnknownNeighborhoods", "1")
     if (!hideLowConfidence) p.set("hideLowConfidence", "0")
-    p.set("page", String(page))
-    p.set("pageSize", String(DEFAULT_OPPORTUNITIES_PAGE_SIZE))
     p.set("sortBy", sortBy)
-    return `?${p.toString()}`
+    return p
   }, [
     city,
     excludeBarter,
@@ -282,11 +292,24 @@ export default function OpportunitiesTop({
     minAreaM2,
     minDiscountPct,
     neighborhood,
-    page,
     propertyType,
     similarFilters,
     sortBy,
   ])
+
+  const opportunitiesQs = useMemo(() => {
+    const p = new URLSearchParams(opportunitiesFilterParams)
+    p.set("page", String(page))
+    p.set("pageSize", String(DEFAULT_OPPORTUNITIES_PAGE_SIZE))
+    return `?${p.toString()}`
+  }, [opportunitiesFilterParams, page])
+
+  const opportunitiesMapQs = useMemo(() => {
+    const p = new URLSearchParams(opportunitiesFilterParams)
+    p.set("page", "1")
+    p.set("pageSize", String(MAX_OPPORTUNITIES_RESULTS))
+    return `?${p.toString()}`
+  }, [opportunitiesFilterParams])
 
   const nextSteps = useMemo(() => {
     const links = buildListingContextLinks({
@@ -385,11 +408,34 @@ export default function OpportunitiesTop({
     }
   }, [city, opportunitiesQs, lang, page])
 
+  const loadMap = useCallback(async (signal?: AbortSignal) => {
+    setMapLoading(true)
+    try {
+      const oJson = await fetchJsonCached<{
+        opportunities?: OpportunityRow[]
+      }>(`/api/opportunities${opportunitiesMapQs}`)
+      if (signal?.aborted) return
+      setMapRows((oJson.opportunities ?? []) as OpportunityRow[])
+    } catch (err) {
+      if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return
+      setError(uiText[lang].couldNotLoad)
+    } finally {
+      if (!signal?.aborted) setMapLoading(false)
+    }
+  }, [opportunitiesMapQs, lang])
+
   useEffect(() => {
     const ac = new AbortController()
     void load(ac.signal)
     return () => ac.abort()
   }, [load])
+
+  useEffect(() => {
+    if (resultsView !== "map") return
+    const ac = new AbortController()
+    void loadMap(ac.signal)
+    return () => ac.abort()
+  }, [loadMap, resultsView])
 
   const handleCityChange = (nextCity: string) => {
     setCity(nextCity)
@@ -403,6 +449,10 @@ export default function OpportunitiesTop({
   const resultFrom =
     pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1
   const resultTo = Math.min(pagination.page * pagination.pageSize, pagination.total)
+  const totalPages = Math.max(1, Math.ceil(pagination.total / pagination.pageSize))
+  const pageLabel = txt.opportunitiesPage
+    .replace("{page}", String(pagination.page))
+    .replace("{pages}", String(totalPages))
 
   const resultsSummary = txt.opportunitiesResultsCount
     .replace("{from}", String(resultFrom))
@@ -727,19 +777,47 @@ export default function OpportunitiesTop({
 
           <div className="min-w-0 flex-1">
             <Card className="overflow-hidden border-border-subtle p-0 shadow-card">
-              <div className="flex flex-col gap-3 border-b border-slate-200/80 bg-surface/80 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex flex-col gap-3 border-b border-border-subtle bg-surface px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <p className="text-sm font-semibold text-foreground">
-                    {txt.opportunitiesTop10} · {city}
+                    {txt.opportunitiesTitle} · {city}
                   </p>
                   <p className="mt-0.5 text-xs text-muted">
                     {loading ? "…" : resultsSummary}
-                    {!loading && pagination.total > 0
-                      ? ` · ${txt.opportunitiesPage.replace("{page}", String(pagination.page))}`
-                      : ""}
+                    {!loading && pagination.total > 0 ? ` · ${pageLabel}` : ""}
                   </p>
                 </div>
-                <div className="w-full sm:w-auto">
+                <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
+                  <div
+                    className="inline-flex rounded-lg border border-border-subtle bg-elevated p-0.5"
+                    role="group"
+                    aria-label={txt.opportunitiesViewModeLabel}
+                  >
+                    <button
+                      type="button"
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                        resultsView === "list"
+                          ? "bg-accent text-accent-fg"
+                          : "text-muted hover:text-foreground"
+                      }`}
+                      aria-pressed={resultsView === "list"}
+                      onClick={() => setResultsView("list")}
+                    >
+                      {txt.opportunitiesViewList}
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-md px-3 py-1.5 text-xs font-semibold transition ${
+                        resultsView === "map"
+                          ? "bg-accent text-accent-fg"
+                          : "text-muted hover:text-foreground"
+                      }`}
+                      aria-pressed={resultsView === "map"}
+                      onClick={() => setResultsView("map")}
+                    >
+                      {txt.opportunitiesViewMap}
+                    </button>
+                  </div>
                   <label className="sr-only" htmlFor="opp-sortby">
                     {txt.opportunitiesSortedBy}
                   </label>
@@ -760,7 +838,32 @@ export default function OpportunitiesTop({
                 </div>
               </div>
 
-              <div className="hidden overflow-x-auto md:block">
+              {resultsView === "map" ? (
+                <div>
+                  <OpportunitiesMap
+                    items={mapRows}
+                    lang={lang}
+                    locale={locale}
+                    mapKey={city}
+                    cityCenter={mapCenterForCity(city)}
+                    loading={mapLoading}
+                    emptyLabel={`${txt.opportunitiesEmpty} ${txt.adjustFiltersHint}`}
+                    noCoordsLabel={txt.opportunitiesMapNoCoords}
+                    discountLabel={txt.opportunityDiscount}
+                    dealScoreLabel={txt.dealScore}
+                    openListingLabel={txt.opportunitiesMapOpenListing}
+                  />
+                  {!mapLoading && mapRows.length > 0 ? (
+                    <p className="border-t border-border-subtle px-4 py-2 text-xs text-muted">
+                      {txt.opportunitiesMapShowingAll
+                        .replace("{count}", String(mapRows.length))
+                        .replace("{max}", String(MAX_OPPORTUNITIES_RESULTS))}
+                    </p>
+                  ) : null}
+                </div>
+              ) : null}
+
+              <div className={`overflow-x-auto ${resultsView === "list" ? "hidden md:block" : "hidden"}`}>
                 <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">
                   <thead className="bg-surface">
                     <tr>
@@ -923,7 +1026,7 @@ export default function OpportunitiesTop({
                 </table>
               </div>
 
-              <div className="space-y-3 p-4 md:hidden">
+              <div className={`space-y-3 p-4 md:hidden ${resultsView === "map" ? "hidden" : ""}`}>
                 {loading ? (
                   Array.from({ length: 3 }).map((_, i) => (
                     <Skeleton key={`mob-skel-${i}`} className="h-36 w-full" />
@@ -1007,7 +1110,7 @@ export default function OpportunitiesTop({
                     </button>
 
                     <p className="rounded-full border border-slate-200 bg-white px-4 py-1.5 text-center text-sm font-semibold text-muted shadow-sm dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200">
-                      {txt.opportunitiesPage.replace("{page}", String(pagination.page))}
+                      {pageLabel}
                     </p>
 
                     <button

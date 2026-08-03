@@ -50,7 +50,7 @@ const content: Record<"es" | "en", Content> = {
     heading: "Precio por m² con contexto de barrio, no solo anuncios.",
     blurb:
       "Compara cada publicación contra la mediana de su zona, estrato y tipo. Barrios en Pereira, Medellín, Bogotá y más — inventario actualizado periódicamente desde Finca Raíz.",
-    ctaPrimary: "¿Buen precio?",
+    ctaPrimary: "¿Qué vale mi casa?",
     ctaSecondary: "Explorar barrios",
     dealsLabel: "Oportunidades recientes",
     statsLoading: "Cargando datos…",
@@ -90,7 +90,7 @@ const content: Record<"es" | "en", Content> = {
         title: "Analizar un anuncio",
         description: "Pega una URL de Finca Raíz y recibe veredicto con comparables.",
         href: "/analyze-url",
-        cta: "¿Buen precio?",
+        cta: "¿Qué vale mi casa?",
       },
       {
         title: "Encontrar oportunidades",
@@ -105,7 +105,7 @@ const content: Record<"es" | "en", Content> = {
     heading: "Price per m² with neighborhood context — not just listings.",
     blurb:
       "Compare every listing against its zone median, estrato, and property type. Neighborhoods across Pereira, Medellín, Bogotá, and more — inventory refreshed periodically from Finca Raíz.",
-    ctaPrimary: "Good deal?",
+    ctaPrimary: "What's my home worth?",
     ctaSecondary: "Browse neighborhoods",
     dealsLabel: "Recent opportunities",
     statsLoading: "Loading live data…",
@@ -145,7 +145,7 @@ const content: Record<"es" | "en", Content> = {
         title: "Analyze a listing",
         description: "Paste a Finca Raíz URL for a verdict with comparables.",
         href: "/analyze-url",
-        cta: "Good deal?",
+        cta: "What's my home worth?",
       },
       {
         title: "Find opportunities",

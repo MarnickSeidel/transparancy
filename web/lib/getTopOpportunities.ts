@@ -20,6 +20,8 @@ import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
 
 export const DEFAULT_OPPORTUNITIES_CITY = "Pereira"
 export const DEFAULT_OPPORTUNITIES_PAGE_SIZE = 10
+/** Cap for live opportunities list / map payloads (markers stay cheap at this size). */
+export const MAX_OPPORTUNITIES_RESULTS = 120
 /** Default floor = good-deal verdict threshold so list cards match detail. */
 export const DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT = GOOD_DEAL_DISCOUNT_PCT
 
@@ -27,7 +29,7 @@ const SCORE_POOL_SIZE = 220
 const VALUE_POOL_SIZE = 120
 const MID_TIER_POOL_SIZE = 200
 const MAX_CANDIDATES = 350
-const MAX_RESULTS = 120
+const MAX_RESULTS = MAX_OPPORTUNITIES_RESULTS
 /**
  * Cap live re-analysis. Candidates are pre-ranked by stored `dealScore`
  * (refresh_derived_data); we only re-run analyzeDeal to enrich UI fields
@@ -395,7 +397,7 @@ export async function getTopOpportunities(
   } = query
 
   const pageSize = Math.min(
-    50,
+    MAX_OPPORTUNITIES_RESULTS,
     Math.max(1, query.pageSize ?? query.limit ?? DEFAULT_OPPORTUNITIES_PAGE_SIZE),
   )
   const safePage = Math.max(1, page)
