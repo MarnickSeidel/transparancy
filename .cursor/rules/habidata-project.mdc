@@ -1,33 +1,30 @@
 ---
-description: Habidata project context, docs, and agent workflow
+description: ClaraCasas hard rules and when to open deeper docs
 alwaysApply: true
 ---
 
-# ClaraCasas — project rules
-
-Read **[AGENTS.md](../../AGENTS.md)** for architecture, locale routing, deal engine, and workflow.  
-Backlog: **[docs/ROADMAP.md](../../docs/ROADMAP.md)**.
-
-## Hard rules
+# ClaraCasas — hard rules
 
 - **Do not commit, push, or install packages** unless the user explicitly asks.
 - **Primary workspace:** `web/` (Next.js 14, Prisma, Tailwind). Scraper is `scraper/`.
-- **Locale:** Spanish = unprefixed URLs; English = `/en`. Use `localePath()` / `opportunitiesPath()` — never hardcode tool paths in footers or nav.
-- **SEO:** Zone dossiers and opportunities are indexable; dashboard, explore, estimate, heatmap, analyze-url, price-drops are **noindex**.
-- **Data:** Listing asking prices only (Finca Raíz scrape + on-demand Metrocuadrado analyze-url) — not appraisals or closed sales. Keep disclaimers.
-- **Ops docs:** Email cron → [`docs/EMAIL_OPERATIONS.md`](../../docs/EMAIL_OPERATIONS.md); web developer guide → [`web/README.md`](../../web/README.md).
+- **Locale:** Spanish = unprefixed URLs; English = `/en`. Use `localePath()` / `opportunitiesPath()` / `listingPath()` / `localeToolPath()` — never hardcode tool paths in footers or nav.
+- **SEO:** Zone dossiers and opportunities are indexable; dashboard, explore, estimate, heatmap, analyze-url, price-drops, listing detail are **noindex**.
+- **Data:** Listing asking prices only — not appraisals or closed sales. Keep disclaimers.
 - **Minimize diff** — match existing patterns; no drive-by refactors.
 
-## After each session
+## Docs (open only when needed)
 
-Agents **should** improve docs when they learn something reusable:
+Do **not** load these by default. Open when the task touches that area:
 
-- `.cursor/rules/*.mdc` — recurring mistakes or conventions
-- `AGENTS.md` — architecture or workflow changes
-- `docs/ROADMAP.md` — completed or reprioritized work
+| Doc | When |
+|-----|------|
+| [`AGENTS.md`](../../AGENTS.md) | Routing/middleware, deal engine, caching, SEO strategy, env vars |
+| [`docs/ROADMAP.md`](../../docs/ROADMAP.md) | Prioritization / marking work done |
+| [`docs/EMAIL_OPERATIONS.md`](../../docs/EMAIL_OPERATIONS.md) | Email cron / digests |
+| [`web/README.md`](../../web/README.md) | Deal analysis details, analyze-url, amenities |
 
-Keep edits small and focused. Do not commit unless the user asks.
+Session doc updates (rules / AGENTS / roadmap) only when you learned something reusable — keep them short. Do not commit docs unless asked.
 
-## Before finishing
+## Before finishing (TypeScript changes)
 
-Run `npm run lint` and `npx tsc --noEmit` from `web/` when you changed TypeScript. Tell the user what to test (locale, opportunities, analyze-url, email).
+From `web/`: `npm run lint` and `npx tsc --noEmit`. Tell the user what to test (locale, opportunities, analyze-url, email).

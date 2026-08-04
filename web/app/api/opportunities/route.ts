@@ -27,6 +27,17 @@ function parseExcludeNeighborhoods(searchParams: URLSearchParams): string[] {
   return Array.from(set)
 }
 
+function parseEstratos(searchParams: URLSearchParams): number[] {
+  const set = new Set<number>()
+  for (const raw of searchParams.getAll("estrato")) {
+    for (const part of raw.split(",")) {
+      const n = Number.parseInt(part.trim(), 10)
+      if (Number.isFinite(n) && n >= 1 && n <= 6) set.add(n)
+    }
+  }
+  return Array.from(set).sort((a, b) => a - b)
+}
+
 function parseOptionalInt(raw: string | null): number | null {
   if (!raw?.trim()) return null
   const n = Number.parseInt(raw.replace(/\D/g, ""), 10)
@@ -86,12 +97,7 @@ export async function GET(req: Request) {
 
   const minAreaM2 = parseOptionalInt(searchParams.get("minAreaM2"))
   const maxAreaM2 = parseOptionalInt(searchParams.get("maxAreaM2"))
-  const estratoRaw = searchParams.get("estrato")
-  const estrato =
-    estratoRaw != null && estratoRaw.trim() !== "" && estratoRaw !== "all"
-      ? Number.parseInt(estratoRaw, 10)
-      : Number.NaN
-  const estratoFilter = Number.isFinite(estrato) ? estrato : null
+  const estratos = parseEstratos(searchParams)
   const conjunto = searchParams.get("conjunto")
   const latitude = parseOptionalFloat(searchParams.get("latitude"))
   const longitude = parseOptionalFloat(searchParams.get("longitude"))
@@ -129,7 +135,7 @@ export async function GET(req: Request) {
       minPriceCop,
       minAreaM2,
       maxAreaM2,
-      estrato: estratoFilter,
+      estratos,
       conjunto,
       latitude,
       longitude,

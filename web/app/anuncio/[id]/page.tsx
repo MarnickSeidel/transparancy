@@ -13,7 +13,7 @@ type Props = {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const detail = await getListingDetail(params.id)
-  if (!detail) {
+  if (!detail || !detail.listing.isActive) {
     return noIndexMetadata("Anuncio no encontrado", "Este anuncio no esta disponible.")
   }
 
@@ -28,7 +28,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function ListingDetailPage({ params }: Props) {
   const detail = await getListingDetail(params.id)
-  if (!detail) notFound()
+  // Inactive listings must not appear as opportunities — treat as gone.
+  if (!detail || !detail.listing.isActive) notFound()
 
   const locale = (headers().get("x-locale") as Locale | null) ?? "es"
 

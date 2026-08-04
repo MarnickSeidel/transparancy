@@ -120,6 +120,19 @@ function initialOppParam(name: string, fallback: string): string {
   return v && v.length > 0 && v !== "all" ? v : fallback
 }
 
+function initialSelectedEstratos(): number[] {
+  if (typeof window === "undefined") return []
+  const p = new URLSearchParams(window.location.search)
+  const set = new Set<number>()
+  for (const raw of p.getAll("estrato")) {
+    for (const part of raw.split(",")) {
+      const n = Number.parseInt(part.trim(), 10)
+      if (Number.isFinite(n) && n >= 1 && n <= 6) set.add(n)
+    }
+  }
+  return Array.from(set).sort((a, b) => a - b)
+}
+
 type SimilarFilters = {
   minAreaM2: string
   maxAreaM2: string
@@ -165,6 +178,7 @@ export default function OpportunitiesTop({
   const [propertyTypes, setPropertyTypes] = useState<string[]>(
     initialFilters?.propertyTypes ?? [],
   )
+  const [estratos, setEstratos] = useState<number[]>(initialFilters?.estratos ?? [])
   const [city, setCity] = useState(() =>
     initialOppParam("city", DEFAULT_OPPORTUNITIES_CITY),
   )
@@ -173,6 +187,9 @@ export default function OpportunitiesTop({
   )
   const [propertyType, setPropertyType] = useState(() =>
     initialOppParam("propertyType", "all"),
+  )
+  const [selectedEstratos, setSelectedEstratos] = useState<number[]>(() =>
+    initialSelectedEstratos(),
   )
   const [excludedNeighborhoods, setExcludedNeighborhoods] = useState<string[]>([])
   const [excludeDraft, setExcludeDraft] = useState("")
@@ -230,6 +247,11 @@ export default function OpportunitiesTop({
     if (neighborhood !== "all" && neighborhood.trim()) {
       p.set("neighborhood", neighborhood.trim())
     }
+    if (selectedEstratos.length > 0) {
+      for (const e of selectedEstratos) p.append("estrato", String(e))
+    } else if (similarFilters?.estrato) {
+      p.append("estrato", similarFilters.estrato)
+    }
     for (const ex of excludedNeighborhoods) {
       const t = ex.trim()
       if (t) p.append("excludeNeighborhood", t)
@@ -264,7 +286,6 @@ export default function OpportunitiesTop({
       if (similarFilters.latitude) p.set("latitude", similarFilters.latitude)
       if (similarFilters.longitude) p.set("longitude", similarFilters.longitude)
       if (similarFilters.radiusMeters) p.set("radiusMeters", similarFilters.radiusMeters)
-      if (similarFilters.estrato) p.set("estrato", similarFilters.estrato)
       if (similarFilters.conjunto) p.set("conjunto", similarFilters.conjunto)
     }
     const minDisc = minDiscountPct.trim()
@@ -282,6 +303,7 @@ export default function OpportunitiesTop({
     return p
   }, [
     city,
+    selectedEstratos,
     excludeBarter,
     excludeProjects,
     excludeUnknownNeighborhoods,
@@ -380,6 +402,7 @@ export default function OpportunitiesTop({
           cities?: string[]
           neighborhoods?: string[]
           propertyTypes?: string[]
+          estratos?: number[]
         }>(filtersUrl),
         fetchJsonCached<{
           opportunities?: OpportunityRow[]
@@ -390,6 +413,7 @@ export default function OpportunitiesTop({
       if (fJson.cities?.length) setCities(fJson.cities)
       setNeighborhoods(fJson.neighborhoods ?? [])
       setPropertyTypes(fJson.propertyTypes ?? [])
+      setEstratos(fJson.estratos ?? [])
       setRows((oJson.opportunities ?? []) as OpportunityRow[])
       setPagination(
         oJson.pagination ?? {
@@ -440,8 +464,17 @@ export default function OpportunitiesTop({
   const handleCityChange = (nextCity: string) => {
     setCity(nextCity)
     setNeighborhood("all")
+    setSelectedEstratos([])
     setExcludedNeighborhoods([])
     setPage(1)
+  }
+
+  const handleToggleEstrato = (value: number) => {
+    setSelectedEstratos((prev) => {
+      if (prev.includes(value)) return prev.filter((e) => e !== value)
+      return [...prev, value].sort((a, b) => a - b)
+    })
+    handleFilterChange()
   }
 
   const handleFilterChange = () => setPage(1)
@@ -568,6 +601,42 @@ export default function OpportunitiesTop({
                     ))}
                   </select>
                 </div>
+
+                <fieldset>
+                  <legend className="text-xs font-medium text-muted">{txt.estrato}</legend>
+                  <div
+                    className="mt-2 flex flex-wrap gap-2"
+                    role="group"
+                    aria-label={txt.estrato}
+                  >
+                    {estratos.length === 0 ? (
+                      <p className="text-xs text-muted">{txt.all}</p>
+                    ) : (
+                      estratos.map((e) => {
+                        const checked = selectedEstratos.includes(e)
+                        return (
+                          <label
+                            key={e}
+                            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                              checked
+                                ? "border-accent bg-accent/10 text-foreground"
+                                : "border-border-subtle bg-elevated text-muted hover:text-foreground"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 accent-[var(--accent)]"
+                              checked={checked}
+                              onChange={() => handleToggleEstrato(e)}
+                            />
+                            {e}
+                          </label>
+                        )
+                      })
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted">{txt.opportunitiesEstratoHint}</p>
+                </fieldset>
 
                 <div>
                   <label className="block text-xs font-medium text-muted" htmlFor="opp-max-price">

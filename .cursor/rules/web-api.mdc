@@ -6,7 +6,7 @@ alwaysApply: false
 
 # API routes (`web/app/api/**)
 
-See [AGENTS.md](../../AGENTS.md) for caching and deal-engine context.
+Open [AGENTS.md](../../AGENTS.md) only when changing caching strategy or deal-engine wiring.
 
 ## Expensive or abuse-prone routes
 

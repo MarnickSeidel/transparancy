@@ -29,8 +29,8 @@ const PRICE_DROPS_REVALIDATE = 120
 const FRESHNESS_REVALIDATE = 300
 
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
-  // v2: type-aware pools + default min discount aligned to good-deal verdict
-  "top-opportunities-v2",
+  // v3: never surface inactive listings as opportunities
+  "top-opportunities-v3",
   query.city ?? "all",
   query.propertyType ?? "all",
   query.neighborhood ?? "all",
@@ -44,7 +44,9 @@ const opportunityCacheKey = (query: OpportunityQuery): string[] => [
   query.minPriceCop?.toString() ?? "none",
   String(query.minAreaM2 ?? ""),
   String(query.maxAreaM2 ?? ""),
-  String(query.estrato ?? ""),
+  query.estratos?.length
+    ? [...query.estratos].sort((a, b) => a - b).join("|")
+    : String(query.estrato ?? ""),
   query.conjunto ?? "",
   String(query.latitude ?? ""),
   String(query.longitude ?? ""),

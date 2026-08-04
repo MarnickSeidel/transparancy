@@ -1,0 +1,26 @@
+﻿# Build / deps — keep out of Agent context and @-search
+web/node_modules/
+web/.next/
+web/out/
+web/.turbo/
+
+# Env / secrets
+web/.env
+web/.env.*
+scraper/.env
+**/.env.local
+
+# Scraper noise
+scraper/.venv/
+scraper/__pycache__/
+scraper/**/__pycache__/
+scraper/*.log
+scraper/CV/
+scraper/debug_listing.png
+scraper/_nb_snapshot*.json
+
+# Misc
+**/*.pack.gz
+**/coverage/
+**/.DS_Store
+Thumbs.db

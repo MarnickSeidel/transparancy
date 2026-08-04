@@ -267,7 +267,7 @@ export async function buildListingDetailResponse(
 export async function getListingDetail(
   id: string,
 ): Promise<ListingDetailResponse | null> {
-  // Include inactive rows so opportunity / shared links still open with a clear notice.
+  // Still load inactive rows for callers that need a soft check; /anuncio 404s them.
   const listing = await prisma.listing.findUnique({
     where: { id },
   })

@@ -83,6 +83,7 @@ const listingSelect = {
   dealScore: true,
   url: true,
   imageUrl: true,
+  isActive: true,
 } satisfies Prisma.ListingSelect
 
 type ListingRow = Prisma.ListingGetPayload<{ select: typeof listingSelect }>
@@ -101,6 +102,9 @@ export type OpportunityQuery = {
   minPriceCop?: bigint | null
   minAreaM2?: number | null
   maxAreaM2?: number | null
+  /** One or more estratos; empty / omit = any. */
+  estratos?: number[]
+  /** @deprecated use estratos */
   estrato?: number | null
   conjunto?: string | null
   latitude?: number | null
@@ -266,6 +270,7 @@ function buildBaseFilters(query: OpportunityQuery): {
     minPriceCop = null,
     minAreaM2 = null,
     maxAreaM2 = null,
+    estratos = [],
     estrato = null,
     latitude = null,
     longitude = null,
@@ -286,6 +291,15 @@ function buildBaseFilters(query: OpportunityQuery): {
       : null
   const excludedNeighborhoodKeys = parseExcludeNeighborhoods(excludeNeighborhoods)
 
+  const estratoFilter = Array.from(
+    new Set(
+      [
+        ...estratos,
+        ...(estrato != null && Number.isFinite(estrato) ? [estrato] : []),
+      ].filter((n) => Number.isFinite(n) && n >= 1 && n <= 6),
+    ),
+  ).sort((a, b) => a - b)
+
   const andFilters: Prisma.ListingWhereInput[] = [
     {
       isActive: true,
@@ -301,7 +315,11 @@ function buildBaseFilters(query: OpportunityQuery): {
   if (propertyType && propertyType.trim()) {
     andFilters.push({ propertyType: propertyType.trim() })
   }
-  if (estrato != null) andFilters.push({ estrato })
+  if (estratoFilter.length === 1) {
+    andFilters.push({ estrato: estratoFilter[0] })
+  } else if (estratoFilter.length > 1) {
+    andFilters.push({ estrato: { in: estratoFilter } })
+  }
   if (minAreaM2 != null || maxAreaM2 != null) {
     andFilters.push({
       areaM2: {
@@ -466,6 +484,7 @@ export async function getTopOpportunities(
 
   const mergedRows = mergeCandidateRows(scoreRows, midTierRows, valueRows)
   const filteredRows = mergedRows
+    .filter((r) => r.isActive)
     .filter((r) =>
       neighborhoodPassesFilters(
         r.neighborhood,

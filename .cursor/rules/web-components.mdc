@@ -6,7 +6,7 @@ alwaysApply: false
 
 # Web components (`web/**/*.tsx`)
 
-Style details: [front-end-cursor-rules.mdc](./front-end-cursor-rules.mdc). Architecture: [AGENTS.md](../../AGENTS.md).
+Style: [front-end-cursor-rules.mdc](./front-end-cursor-rules.mdc). Open [AGENTS.md](../../AGENTS.md) only for routing/SEO/deal context.
 
 ## Design tokens (prefer over raw Tailwind)
 
@@ -27,7 +27,7 @@ Typography: `text-display`, `text-data-hero`, `text-section-label`, `text-meta`.
 
 ## i18n & a11y
 
-- User-visible strings → `lib/i18n.ts` (`es` + `en` keys). Footer/nav → `localePath(lang, path)`.
+- User-visible strings → `lib/i18n/` domain modules (`es` + `en` keys); import via `@/lib/i18n`. Footer/nav → `localePath(lang, path)`.
 - Forms: visible labels or `sr-only` + `htmlFor`. Tables: `scope="col"` on `<th>`.
 - Listing images: meaningful `alt` from title (or decorative `alt=""` only if title is adjacent).
 - Interactive elements: `focus-visible:ring-2 focus-visible:ring-accent/50` or `.link-focus`.

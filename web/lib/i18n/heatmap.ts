@@ -1,0 +1,31 @@
+/** UI copy — heatmap (es + en). Import merged pack from `@/lib/i18n`. */
+export const heatmap = {
+  es: {
+    heatmapNav: "Mapa de precios",
+    heatmapTitle: "Mapa de precio / m² (H3)",
+    heatmapPurpose: "Hexágonos H3 con mediana de precio por m². Colores vs la escala de la ciudad — sin el blur de Leaflet.heat.",
+    heatmapResolution: "Resolución H3",
+    heatmapResCoarse: "Gruesa (ciudad)",
+    heatmapResCity: "Ciudad / barrio",
+    heatmapResFine: "Fina (cuadra)",
+    heatmapNotEnoughData: "No hay suficientes publicaciones con geo para esta ciudad y filtro.",
+    heatmapSummary: "{listings} publicaciones → {cells} hexágonos en {city}",
+    heatmapListingsShort: "anuncios",
+    heatmapSelectedCell: "Hexágono seleccionado",
+    heatmapOpenExplorer: "Ver publicaciones en esta zona →",
+  },
+  en: {
+    heatmapNav: "Price map",
+    heatmapTitle: "Price / m² map (H3)",
+    heatmapPurpose: "H3 hexagons with median price per m². Colors use the city-wide scale — no Leaflet.heat blur.",
+    heatmapResolution: "H3 resolution",
+    heatmapResCoarse: "Coarse (metro)",
+    heatmapResCity: "City / barrio",
+    heatmapResFine: "Fine (block)",
+    heatmapNotEnoughData: "Not enough geo-tagged listings for this city and filter.",
+    heatmapSummary: "{listings} listings → {cells} hexagons in {city}",
+    heatmapListingsShort: "listings",
+    heatmapSelectedCell: "Selected hexagon",
+    heatmapOpenExplorer: "Browse listings in this area →",
+  },
+}

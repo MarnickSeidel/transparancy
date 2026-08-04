@@ -80,6 +80,11 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Developer runbooks: analyze-url portals, deal analysis, amenities/cache, email cron (`docs/EMAIL_OPERATIONS.md`)
 - Corrected locale routing docs (EN tools rewrite, not redirect) and analyze-url allowlist (Finca + Metrocuadrado)
 
+### Agent token-cost batch (August 2026)
+- Added `.cursorignore` (exclude `.next`, `node_modules`, scraper junk)
+- Slimmed always-on rules; front-end style is glob-scoped; agents open `AGENTS.md` only when needed
+- Shortened `AGENTS.md`; split `lib/i18n.ts` → `lib/i18n/*.ts` domain modules (`@/lib/i18n` unchanged)
+
 ---
 
 ## Remaining work
@@ -96,7 +101,6 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 |------|-----|
 | SQL-aggregate heatmap | Bogotá/Medellín scale |
 | Zod on POST APIs | Input validation |
-| Split `i18n.ts` | Maintainability |
 | Privacy-respecting analytics + Sentry | Measure usage / catch errors |
 | CSP (+ HSTS at edge) | Hardening |
 | Saved listings | Retention |

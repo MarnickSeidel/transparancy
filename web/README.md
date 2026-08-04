@@ -24,6 +24,10 @@ npm run dev
 | `npm run prisma:migrate` | Apply migrations (dev) |
 | `npm run prisma:deploy` | Apply migrations (production) |
 
+## i18n
+
+UI strings live under `lib/i18n/` (domain modules: `common`, `opportunities`, `listing`, …). Import the merged pack from `@/lib/i18n` (`uiText`, `Lang`, `priorityCities`). When adding copy, edit the matching domain file and keep `es` + `en` in sync — avoid loading every domain for a one-key change.
+
 ## Neighborhood catalogs
 
 Barrio JSON files live in `data/neighborhoods/`. The scraper reads the same path via `../web/data/neighborhoods`.
