@@ -12,26 +12,31 @@ const facilityLabel = (item: unknown): string | null => {
   return null
 }
 
-/** Human-readable facilities list for listing detail / analyze-url enrichment. */
-export const formatFacilities = (raw: unknown): string | null => {
-  if (!raw) return null
+/** Ordered facility labels for narrative / enrichment. */
+export const listFacilities = (raw: unknown, max = 4): string[] => {
+  if (!raw) return []
 
   if (Array.isArray(raw) && raw.length > 0) {
-    const labels = raw
+    return raw
       .map(facilityLabel)
       .filter((label): label is string => Boolean(label))
-    return labels.length > 0 ? labels.join(", ") : null
+      .slice(0, max)
   }
 
   if (typeof raw === "object") {
-    const entries = Object.entries(raw as Record<string, unknown>).filter(
-      ([, value]) => value === true || (typeof value === "string" && value.trim()),
-    )
-    if (entries.length === 0) return null
-    return entries
+    return Object.entries(raw as Record<string, unknown>)
+      .filter(
+        ([, value]) => value === true || (typeof value === "string" && value.trim()),
+      )
       .map(([key, value]) => (value === true ? key : `${key}: ${value}`))
-      .join(", ")
+      .slice(0, max)
   }
 
-  return null
+  return []
+}
+
+/** Human-readable facilities list for listing detail / analyze-url enrichment. */
+export const formatFacilities = (raw: unknown): string | null => {
+  const labels = listFacilities(raw, 50)
+  return labels.length > 0 ? labels.join(", ") : null
 }

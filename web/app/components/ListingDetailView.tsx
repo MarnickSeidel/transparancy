@@ -5,6 +5,7 @@ import Link from "next/link"
 import { useMemo } from "react"
 
 import DomBadge from "@/app/components/DomBadge"
+import ListingNarrativeCard from "@/app/components/ListingNarrativeCard"
 import ListingThumbnail from "@/app/components/ListingThumbnail"
 import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection"
 import PageFooter from "@/app/components/PageFooter"
@@ -26,6 +27,7 @@ import { listingPath, opportunitiesPath, type Locale } from "@/lib/locale"
 import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import type { SharedAnalyzePayload } from "@/lib/shareReport"
+import { useNearbyAmenities } from "@/lib/useNearbyAmenities"
 import { useUiLang } from "@/lib/useUiLang"
 
 const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
@@ -47,6 +49,8 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
   const { lang, toggleLang } = useUiLang(pageLocale)
   const txt = uiText[lang]
   const locale = lang === "es" ? "es-CO" : "en-US"
+
+  const nearby = useNearbyAmenities(data.listing.latitude, data.listing.longitude)
 
   const sharePayload = useMemo((): SharedAnalyzePayload => ({
     listing: {
@@ -276,6 +280,30 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
         </Card>
 
         <div className="space-y-6">
+          <ListingNarrativeCard
+            listingId={data.listing.id}
+            lang={lang}
+            locale={locale}
+            city={data.listing.city}
+            neighborhood={data.listing.neighborhood}
+            propertyType={data.listing.propertyType}
+            areaM2={data.listing.areaM2}
+            estrato={data.listing.estrato}
+            bedrooms={data.listing.bedrooms}
+            bathrooms={data.listing.bathrooms}
+            facilities={data.listing.facilities}
+            verdict={data.analysis.verdict}
+            confidence={data.analysis.confidence}
+            discountVsRefPct={data.analysis.discountVsRefPct}
+            sampleSize={data.analysis.sampleSize}
+            referencePpm2={data.analysis.referencePpm2}
+            compMethod={data.analysis.compMethod}
+            priceDropPct={data.analysis.priceDropPct}
+            domDays={data.analysis.domDays}
+            nearby={nearby.data}
+            nearbyLoading={nearby.loading}
+          />
+
           <VerdictBanner
             verdict={data.analysis.verdict}
             confidence={data.analysis.confidence}
@@ -398,6 +426,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
             longitude={data.listing.longitude}
             lang={lang}
             locale={locale}
+            prefetched={nearby}
           />
 
           {priceTimelinePoints.length >= 2 ? (

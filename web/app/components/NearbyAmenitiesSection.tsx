@@ -2,6 +2,7 @@
 
 import NearbyAmenitiesCard from "@/app/components/NearbyAmenitiesCard"
 import type { Lang } from "@/lib/i18n"
+import type { NearbyAmenitiesResult } from "@/lib/nearbyAmenities"
 import { useNearbyAmenities } from "@/lib/useNearbyAmenities"
 
 type Props = {
@@ -14,6 +15,12 @@ type Props = {
   compact?: boolean
   className?: string
   hideTitle?: boolean
+  /** When set, skips the internal fetch (shared with listing narrative). */
+  prefetched?: {
+    data: NearbyAmenitiesResult | null
+    loading: boolean
+    hasCoordinates: boolean
+  }
 }
 
 export default function NearbyAmenitiesSection({
@@ -26,11 +33,16 @@ export default function NearbyAmenitiesSection({
   compact = false,
   className = "",
   hideTitle = false,
+  prefetched,
 }: Props) {
-  const { data, loading, hasCoordinates } = useNearbyAmenities(latitude, longitude, {
-    enabled,
+  const fetched = useNearbyAmenities(latitude, longitude, {
+    enabled: enabled && !prefetched,
     radiusM,
   })
+
+  const data = prefetched?.data ?? fetched.data
+  const loading = prefetched?.loading ?? fetched.loading
+  const hasCoordinates = prefetched?.hasCoordinates ?? fetched.hasCoordinates
 
   if (!enabled) return null
 
