@@ -18,6 +18,7 @@ import WhyDealPanel from "@/app/components/WhyDealPanel"
 import type { WhyDeal } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
+import { formatFacilities } from "@/lib/formatFacilities"
 import { opportunitiesPath } from "@/lib/locale"
 import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { uiText } from "@/lib/i18n"
@@ -89,21 +90,6 @@ type AnalyzeResponse = {
 function fmtCop(v: number | null | undefined, locale: string) {
   if (v == null || Number.isNaN(v)) return "—"
   return `$ ${Math.round(v).toLocaleString(locale)}`
-}
-
-function formatFacilities(raw: unknown): string | null {
-  if (!raw) return null
-  if (Array.isArray(raw) && raw.length > 0) {
-    return raw.map(String).join(", ")
-  }
-  if (typeof raw === "object" && raw !== null) {
-    const entries = Object.entries(raw as Record<string, unknown>).filter(
-      ([, v]) => v === true || (typeof v === "string" && v.trim()),
-    )
-    if (entries.length === 0) return null
-    return entries.map(([k, v]) => (v === true ? k : `${k}: ${v}`)).join(", ")
-  }
-  return null
 }
 
 function initialUrlParam(): string {

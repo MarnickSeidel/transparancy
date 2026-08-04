@@ -39,16 +39,16 @@ Place logo assets in `public/branding/`:
 
 **Intent:** Score asking prices vs neighborhood/city comps. This is **not** an appraisal or closed-sale index.
 
-| Path | Comp pool | House floor calibration |
-|------|-----------|-------------------------|
-| Opportunities (`lib/getTopOpportunities.ts`) | Cached **city-wide** pool; engine filters by geo/neighborhood | Yes — `minBuiltPpm2ForHouse` from city pool |
-| Listing detail / analyze-url (`lib/getListingDetail.ts`) | `lib/fetchAnalyzeCompPool.ts` — tiered neighborhood → estrato → type → city (up to 400) | No |
+| Path | Entry | Comp pool + house floor |
+|------|-------|-------------------------|
+| Opportunities | `getTopOpportunities.ts` → `analyzeListingDeal` | Type-aware cached city pool + city house floor (`lib/dealCompPool.ts`) |
+| Listing detail / analyze-url | `getListingDetail.ts` → `analyzeListingDeal` | Same shared pool + house floor |
 
-Core scoring: `lib/dealEngine.ts` → `analyzeDeal()`. UI verdict bands on detail/analyze (**≥ +12%** discount → good deal, **≤ −12%** → overpriced) live in `getListingDetail.ts`. Opportunities default `minDiscountPct` is **0** unless the API/UI passes a filter — cards can show weaker discounts than “Buena oportunidad” on detail.
+Core scoring: `lib/dealEngine.ts` → `analyzeDeal()` via `analyzeListingDeal()`. Verdict bands: **≥ +12%** discount → good deal, **≤ −12%** → overpriced (`GOOD_DEAL_DISCOUNT_PCT` / `OVERPRICED_DISCOUNT_PCT`). Opportunities default `minDiscountPct` is **12%** so list cards match “Buena oportunidad”.
 
 **Constraints:**
 
-- Stored `dealScore` on `Listing` selects candidates; live `analyzeDeal` still runs for UI fields.
+- Stored `dealScore` on `Listing` selects candidates; live analysis still runs for UI fields.
 - Cache payloads must be JSON-safe — serialize `BigInt` / `Date` before `unstable_cache` (Next ~2MB cache limit).
 - After scraper loads, run `python refresh_derived_data.py` so stored scores stay useful.
 

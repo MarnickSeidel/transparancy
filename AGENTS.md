@@ -94,10 +94,9 @@ web/
 ### Deal engine
 
 - **`lib/dealEngine.ts`** — shared by API, UI, and Python scraper mirror (`analyzeDeal`)
-- **Opportunities** (`getTopOpportunities.ts`): cached city-wide comps + house-floor calibration; re-runs `analyzeDeal` for UI/filters
-- **Listing detail / analyze-url** (`getListingDetail.ts` + `fetchAnalyzeCompPool.ts`): tiered type-aware pool; **no** house-floor today — list vs detail reference medians can disagree (known gap)
-- Detail/analyze verdict bands: ≥12% below ref → `good_deal`, ≤−12% above → `overpriced`
-- Stored `dealScore` on `Listing` used for candidate selection
+- **`lib/dealCompPool.ts`** — live analysis entry (`analyzeListingDeal`): type-aware cached city pools + city house floor; shared by opportunities, `/anuncio`, and analyze-url
+- Verdict / list floor: `GOOD_DEAL_DISCOUNT_PCT = 12` (and `OVERPRICED_DISCOUNT_PCT = -12`) — opportunities default `minDiscountPct` matches “Buena oportunidad”
+- Stored `dealScore` on `Listing` selects candidates; opportunities still re-runs live analysis for UI/filters (performance hotspot — see roadmap)
 - Zone publish threshold: ≥20 valid price/m² points (`DEFAULT_MIN_ZONE_DATA_POINTS`)
 - Developer detail: [`web/README.md`](web/README.md) § Deal analysis
 
@@ -253,8 +252,8 @@ After any session, agents **should feel free** to leave the codebase easier for 
 | File | Why |
 |------|-----|
 | `lib/dealEngine.ts` | Scoring logic affects scraper + all deal UIs |
+| `lib/dealCompPool.ts` | Shared type-aware comp pools for opportunities + listing detail |
 | `lib/getTopOpportunities.ts` | Hot API path |
-| `lib/fetchAnalyzeCompPool.ts` | Comp selection for listing detail / analyze-url |
 | `lib/analyzeListingUrl.ts` | Portal allowlist + fetch/parse entry |
 | `middleware.ts` | Breaks all routing if wrong |
 | `lib/i18n.ts` | Large; easy to miss EN/ES parity |
@@ -266,7 +265,7 @@ After any session, agents **should feel free** to leave the codebase easier for 
 |---------|----------------|
 | New SEO page | `app/[locale]/`, `lib/seo.ts`, `sitemap.ts` |
 | New tool page | `app/<tool>/page.tsx`, `noIndexMetadata`, `navConfig.ts` |
-| Deal scoring change | `dealEngine.ts` + scraper mirror + sanity script |
+| Deal scoring change | `dealEngine.ts` + `dealCompPool.ts` + scraper mirror + sanity script |
 | Email digest | `lib/email/sendDigests.ts`, `templates.ts` |
 | Zone dossier data | `lib/getZoneDossier.ts`, publish threshold in zones libs |
 | Analyze-url portal | `lib/analyzeListingUrl.ts` + `fincaraizSingleListing.ts` / `metrocuadradoSingleListing.ts` |

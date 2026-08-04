@@ -1,7 +1,7 @@
 # ClaraCasas — Website Audit Roadmap
 
 Last updated: August 2026  
-Status: **in progress** — brand/perf/token batches applied; scale work remains
+Status: **in progress** — brand/perf/token batches applied; deal consistency shipped; scale work remains
 
 **Agent context:** [`AGENTS.md`](../AGENTS.md) · **Cursor rules:** [`.cursor/rules/`](../.cursor/rules/)
 
@@ -70,8 +70,14 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Global `NavigationProgress` top bar + `#main-content` dim on pointerdown
 - Stronger pending nav styles; `loadToolPage` code-split for opportunities/analyze/dashboard/heatmap/estimate/price-drops
 
+### Deal analysis consistency (July 2026)
+- Unified opportunities + `/anuncio` via `lib/dealCompPool.ts` (`analyzeListingDeal`)
+- Property-type-aware cached city pools (fixes opp −35% vs detail +8% median flips)
+- Listing detail uses same house-floor calibration as opportunities
+- Default opportunities min discount = 12% (`GOOD_DEAL_DISCOUNT_PCT`) so list cards match “Buena oportunidad”; busted opportunities cache key to v2
+
 ### Docs ops batch (August 2026)
-- Developer runbooks: analyze-url portals, deal list-vs-detail comps, amenities/cache, email cron (`docs/EMAIL_OPERATIONS.md`)
+- Developer runbooks: analyze-url portals, deal analysis, amenities/cache, email cron (`docs/EMAIL_OPERATIONS.md`)
 - Corrected locale routing docs (EN tools rewrite, not redirect) and analyze-url allowlist (Finca + Metrocuadrado)
 
 ---
@@ -82,7 +88,6 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | Task | Why |
 |------|-----|
 | Redis/Upstash rate limits | Multi-instance production |
-| Unify opportunities + listing-detail comp pools (house floor) | List vs detail median disagreement |
 | Extract Pagination component | Opportunities vs Explore duplication |
 | Wire Playwright into CI | After `npx playwright install` + test DB |
 

@@ -113,7 +113,7 @@ export default function WhyDealPanel({ whyDeal, title, lang, locale }: Props) {
   const drivers = scoreDrivers(whyDeal.scoreBreakdown, txt);
 
   return (
-    <div className="rounded-xl border border-border-subtle bg-surface/60 px-4 py-3">
+    <div className="surface-panel px-4 py-3 shadow-card">
       {title ? (
         <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted">
           {title}

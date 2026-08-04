@@ -735,6 +735,7 @@ def refresh_deals_after_scrape(
     ]
     col_sql = ", ".join(listing_cols)
 
+    query_params: list[Any] = ["%venta%", *city_params]
     cur.execute(
         f"""
         SELECT {col_sql}
@@ -742,9 +743,9 @@ def refresh_deals_after_scrape(
         WHERE is_active = true
           AND price_per_m2 IS NOT NULL
           AND area_m2 >= 5
-          AND operation_type ILIKE '%venta%'{city_clause}
+          AND operation_type ILIKE %s{city_clause}
         """,
-        city_params,
+        query_params,
     )
     rows = cur.fetchall()
     if not rows:

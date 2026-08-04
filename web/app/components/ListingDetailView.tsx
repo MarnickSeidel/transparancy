@@ -18,6 +18,7 @@ import Card from "@/app/components/ui/Card"
 import Skeleton from "@/app/components/ui/Skeleton"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
+import { formatFacilities } from "@/lib/formatFacilities"
 import { formatFreshnessDate } from "@/lib/getDataFreshness"
 import type { ListingDetailResponse } from "@/lib/getListingDetail"
 import { uiText } from "@/lib/i18n"
@@ -40,21 +41,6 @@ type Props = {
 function fmtCop(v: number | null | undefined, locale: string) {
   if (v == null || Number.isNaN(v)) return "—"
   return `$ ${Math.round(v).toLocaleString(locale)}`
-}
-
-function formatFacilities(raw: unknown): string | null {
-  if (!raw) return null
-  if (Array.isArray(raw) && raw.length > 0) {
-    return raw.map(String).join(", ")
-  }
-  if (typeof raw === "object" && raw !== null) {
-    const entries = Object.entries(raw as Record<string, unknown>).filter(
-      ([, v]) => v === true || (typeof v === "string" && v.trim()),
-    )
-    if (entries.length === 0) return null
-    return entries.map(([k, v]) => (v === true ? k : `${k}: ${v}`)).join(", ")
-  }
-  return null
 }
 
 export default function ListingDetailView({ data, pageLocale = "es" }: Props) {

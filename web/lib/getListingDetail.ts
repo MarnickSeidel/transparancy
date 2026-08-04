@@ -1,11 +1,14 @@
 import type { Listing } from "@prisma/client"
 
 import {
-  analyzeDeal,
+  analyzeListingDeal,
+  GOOD_DEAL_DISCOUNT_PCT,
+  OVERPRICED_DISCOUNT_PCT,
+} from "@/lib/dealCompPool"
+import {
   buildWhyDeal,
   toDealListingInput,
 } from "@/lib/dealEngine"
-import { fetchAnalyzeCompPool } from "@/lib/fetchAnalyzeCompPool"
 import { haversineMeters } from "@/lib/geoHaversine"
 import { prisma } from "@/lib/prisma"
 
@@ -78,8 +81,8 @@ export type ListingDetailResponse = {
 
 function verdictFromDiscount(discountPct: number | null): ListingDetailVerdict {
   if (discountPct == null) return "fair"
-  if (discountPct >= 12) return "good_deal"
-  if (discountPct <= -12) return "overpriced"
+  if (discountPct >= GOOD_DEAL_DISCOUNT_PCT) return "good_deal"
+  if (discountPct <= OVERPRICED_DISCOUNT_PCT) return "overpriced"
   return "fair"
 }
 
@@ -113,10 +116,7 @@ function confidenceForResponse(analysis: {
 export async function buildListingDetailResponse(
   listing: Listing,
 ): Promise<ListingDetailResponse> {
-  const poolRows = await fetchAnalyzeCompPool(listing)
-  const pool = poolRows.map((r) => toDealListingInput(r))
   const subject = toDealListingInput(listing)
-  const rowById = new Map(poolRows.map((r) => [r.id, r]))
 
   const priceEvents = await prisma.listingPriceEvent.findMany({
     where: {
@@ -126,7 +126,8 @@ export async function buildListingDetailResponse(
     orderBy: { recordedAt: "desc" },
   })
 
-  const analysis = analyzeDeal(subject, pool, {
+  // Same pool + house floor as opportunities (no requirePositiveDiscount here).
+  const analysis = await analyzeListingDeal(subject, {
     priceEvents: priceEvents.map((e) => ({
       priceCop: e.priceCop,
       recordedAt: e.recordedAt,
@@ -153,6 +154,27 @@ export async function buildListingDetailResponse(
       priceCop: currentPriceStr,
     })
   }
+
+  const selectedCompIds = analysis.selectedComps.slice(0, 8).map((c) => c.id)
+  const compRows =
+    selectedCompIds.length > 0
+      ? await prisma.listing.findMany({
+          where: { id: { in: selectedCompIds } },
+          select: {
+            id: true,
+            title: true,
+            city: true,
+            neighborhood: true,
+            priceCop: true,
+            areaM2: true,
+            pricePerM2: true,
+            latitude: true,
+            longitude: true,
+            url: true,
+          },
+        })
+      : []
+  const rowById = new Map(compRows.map((r) => [r.id, r]))
 
   return {
     listing: {
@@ -208,8 +230,8 @@ export async function buildListingDetailResponse(
       whyDeal,
     },
     priceTimeline,
-    comps: analysis.selectedComps.slice(0, 8).flatMap((comp) => {
-      const c = rowById.get(comp.id)
+    comps: selectedCompIds.flatMap((id) => {
+      const c = rowById.get(id)
       if (!c) return []
       let distanceMeters: number | null = null
       if (

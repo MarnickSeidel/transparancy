@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server"
 
 import {
+  DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT,
   DEFAULT_OPPORTUNITIES_CITY,
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
+  MAX_OPPORTUNITIES_RESULTS,
   type OpportunitySortBy,
 } from "@/lib/getTopOpportunities"
 import { enforceRateLimit } from "@/lib/rateLimit"
@@ -62,7 +64,7 @@ export async function GET(req: Request) {
   const minDiscountPct =
     minDiscountRaw != null && minDiscountRaw.trim() !== ""
       ? Number.parseFloat(minDiscountRaw)
-      : 0
+      : DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT
 
   const maxPriceRaw = searchParams.get("maxPriceCop")
   let maxPriceCop: bigint | null = null
@@ -104,7 +106,10 @@ export async function GET(req: Request) {
   const pageSizeRaw = searchParams.get("pageSize") ?? searchParams.get("limit")
   const pageSize =
     pageSizeRaw != null && pageSizeRaw.trim() !== ""
-      ? Math.min(50, Math.max(1, Number.parseInt(pageSizeRaw, 10) || DEFAULT_OPPORTUNITIES_PAGE_SIZE))
+      ? Math.min(
+          MAX_OPPORTUNITIES_RESULTS,
+          Math.max(1, Number.parseInt(pageSizeRaw, 10) || DEFAULT_OPPORTUNITIES_PAGE_SIZE),
+        )
       : DEFAULT_OPPORTUNITIES_PAGE_SIZE
 
   const sortBy = parseSortBy(searchParams.get("sortBy"))
