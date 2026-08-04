@@ -82,11 +82,14 @@ web/
 ### Locale routing
 
 - **Spanish:** unprefixed public URLs (`/`, `/zones`, `/oportunidades`)
-- **English:** `/en` prefix (`/en`, `/en/zones`, `/en/opportunities`)
+- **English SEO:** `/en` prefix (`/en`, `/en/zones`, `/en/opportunities`)
 - Middleware rewrites Spanish indexable paths to internal `/es/*`; `/es/*` redirects to unprefixed
-- Tool URLs are **never** prefixed with `/en` (redirect to unprefixed)
-- Copy: `uiText` in `lib/i18n.ts`; paths: `localePath()`, `opportunitiesPath()` in `lib/locale.ts`
-- Document language: middleware sets `x-document-lang`; root `layout.tsx` reads it for `<html lang>`
+- **Opportunities:** public `/oportunidades` and `/en/opportunities` rewrite to app route `/opportunities`; bare `/opportunities` **301** → `/oportunidades`
+- **Listing detail:** `/anuncio/<id>` (ES) and `/en/listing/<id>` → rewrite to `/anuncio/<id>`; `/es/anuncio/*` redirects to unprefixed
+- **Tools** (`dashboard`, `explore`, `heatmap`, `estimate`, `analyze-url`, `price-drops`): English links use `/en/<tool>` via `localeToolPath()`; middleware **rewrites** to unprefixed implementation and sets `x-locale: en` (not a redirect)
+- Headers: `x-locale` = UI copy; `x-document-lang` = `<html lang>` (from URL prefix)
+- Helpers: `localePath()`, `opportunitiesPath()`, `listingPath()`, `localeToolPath()` in `lib/locale.ts` / `lib/toolPaths.ts`
+- Listing pages are **noindex** (`noIndexMetadata` + `robots.txt`) even though `isIndexablePath()` treats them as locale-routable
 
 ### Deal engine
 
@@ -95,11 +98,13 @@ web/
 - Verdict / list floor: `GOOD_DEAL_DISCOUNT_PCT = 12` (and `OVERPRICED_DISCOUNT_PCT = -12`) — opportunities default `minDiscountPct` matches “Buena oportunidad”
 - Stored `dealScore` on `Listing` selects candidates; opportunities still re-runs live analysis for UI/filters (performance hotspot — see roadmap)
 - Zone publish threshold: ≥20 valid price/m² points (`DEFAULT_MIN_ZONE_DATA_POINTS`)
+- Developer detail: [`web/README.md`](web/README.md) § Deal analysis
 
 ### Caching
 
 - **`lib/serverCache.ts`** — `unstable_cache` + CDN `Cache-Control` on hot reads
-- Opportunities, heatmap, price-drops, dashboard aggregates are cached (60–300s TTL)
+- Opportunities, heatmap, price-drops, dashboard aggregates are cached (60–300s TTL); nearby amenities 1 day
+- Values must be JSON-serializable (no bare `BigInt`)
 
 ### Scraper relationship
 
@@ -136,7 +141,8 @@ web/
 
 - Pattern: parse query/body manually (no Zod yet), bound numeric inputs, `try/catch` → JSON error
 - Expensive routes: use `serverCache` + rate limiting via `lib/rateLimit.ts` (see `.cursor/rules/web-api.mdc`)
-- SSRF: analyze-url only allows `fincaraiz.com.co` hosts
+- SSRF: analyze-url allowlist = Finca Raíz + Metrocuadrado hosts only (`lib/analyzeListingUrl.ts`)
+- Rate limits are **in-memory per instance** — not multi-node safe
 
 ### Database
 
@@ -171,13 +177,9 @@ CI (`.github/workflows/ci.yml`): lint, tsc, build for `web/`; Python syntax chec
 
 ## Testing
 
-**There are no automated tests yet** (no Jest, Vitest, or Playwright in `package.json`).
-
-When adding tests, prefer:
-
-- Playwright smoke tests: home, zone dossier, opportunities, analyze-url
-- axe-core for accessibility regressions
-- Script-based sanity checks already exist: `web/scripts/dealEngineSanity.ts`, etc.
+- **E2E:** Playwright smoke tests in `web/tests/e2e/smoke.spec.ts` — run `npx playwright install` then `npm run test:e2e` from `web/` (not wired into CI yet — see roadmap)
+- **No unit-test runner** yet (no Jest/Vitest)
+- Script-based sanity checks: `web/scripts/dealEngineSanity.ts`, etc.
 
 Always run **`npm run lint`** and **`npx tsc --noEmit`** before considering work done.
 
@@ -211,7 +213,7 @@ Always run **`npm run lint`** and **`npx tsc --noEmit`** before considering work
 | `EMAIL_FROM` | Prod email | Sender address |
 | `CRON_SECRET` | Prod cron | Digest endpoint auth |
 
-See `web/.env.example`.
+See `web/.env.example`. Email ops: [`docs/EMAIL_OPERATIONS.md`](docs/EMAIL_OPERATIONS.md).
 
 ---
 
@@ -252,6 +254,7 @@ After any session, agents **should feel free** to leave the codebase easier for 
 | `lib/dealEngine.ts` | Scoring logic affects scraper + all deal UIs |
 | `lib/dealCompPool.ts` | Shared type-aware comp pools for opportunities + listing detail |
 | `lib/getTopOpportunities.ts` | Hot API path |
+| `lib/analyzeListingUrl.ts` | Portal allowlist + fetch/parse entry |
 | `middleware.ts` | Breaks all routing if wrong |
 | `lib/i18n.ts` | Large; easy to miss EN/ES parity |
 | `prisma/schema.prisma` | Requires migration |
@@ -273,7 +276,8 @@ After any session, agents **should feel free** to leave the codebase easier for 
 ## Related docs
 
 - [Root README](README.md) — setup, Docker, scraper
-- [Web README](web/README.md) — scripts, branding, derived data
+- [Web README](web/README.md) — scripts, deal analysis, analyze-url, amenities, pitfalls
+- [Email operations](docs/EMAIL_OPERATIONS.md) — subscribe, cron digests, force-send hazards
 - [Improvement roadmap](docs/ROADMAP.md) — audit scores, done vs todo
 - [Cursor rules](.cursor/rules/) — always-applied and scoped agent rules:
   - [`habidata-project.mdc`](.cursor/rules/habidata-project.mdc) — project context, workflow, session improvements

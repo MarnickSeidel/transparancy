@@ -21,18 +21,21 @@ Use `lib/rateLimit.ts` (`checkRateLimit`, `clientIp`, `rateLimitResponse`):
 
 Wire new expensive endpoints the same way.
 
+`lib/rateLimit.ts` is **process-local memory**. Limits do not share across instances and reset on restart — fine for single-node; use Redis/Upstash before multi-instance prod (see roadmap).
+
 ## Read paths
 
 - Hot reads: wrap with `lib/serverCache.ts` + `Cache-Control: s-maxage`.
 - Parse inputs manually; bound numerics (prices, coords, page sizes). No Zod yet — validate explicitly.
 - Errors: `try/catch` → `NextResponse.json({ error: "..." }, { status })` + `console.error`.
+- Nearby amenities: Overpass failures return `{ unavailable: true }` (200); do not cache unavailable payloads.
 
 ## Security
 
 - SQL: Prisma or `Prisma.sql` with parameters only.
-- External fetch: host allowlists (analyze-url → `fincaraiz.com.co` only).
+- External fetch: host allowlists only. Analyze-url → `fincaraiz.com.co` **and** `metrocuadrado.com` (`lib/analyzeListingUrl.ts`).
 - Email HTML: escape user/scraped strings via `lib/htmlEscape.ts`.
-- Cron: `CRON_SECRET` Bearer; deny in prod if unset.
+- Cron: `CRON_SECRET` Bearer (or `?secret=`); deny in prod if unset. Ops: `docs/EMAIL_OPERATIONS.md`.
 - Do not log secrets or full tokens.
 
 ## Deal data

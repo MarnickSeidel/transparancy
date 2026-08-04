@@ -76,6 +76,10 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Listing detail uses same house-floor calibration as opportunities
 - Default opportunities min discount = 12% (`GOOD_DEAL_DISCOUNT_PCT`) so list cards match “Buena oportunidad”; busted opportunities cache key to v2
 
+### Docs ops batch (August 2026)
+- Developer runbooks: analyze-url portals, deal analysis, amenities/cache, email cron (`docs/EMAIL_OPERATIONS.md`)
+- Corrected locale routing docs (EN tools rewrite, not redirect) and analyze-url allowlist (Finca + Metrocuadrado)
+
 ---
 
 ## Remaining work

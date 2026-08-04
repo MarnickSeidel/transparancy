@@ -14,7 +14,8 @@ Backlog: **[docs/ROADMAP.md](../../docs/ROADMAP.md)**.
 - **Primary workspace:** `web/` (Next.js 14, Prisma, Tailwind). Scraper is `scraper/`.
 - **Locale:** Spanish = unprefixed URLs; English = `/en`. Use `localePath()` / `opportunitiesPath()` — never hardcode tool paths in footers or nav.
 - **SEO:** Zone dossiers and opportunities are indexable; dashboard, explore, estimate, heatmap, analyze-url, price-drops are **noindex**.
-- **Data:** Finca Raíz asking prices only — not appraisals or closed sales. Keep disclaimers.
+- **Data:** Listing asking prices only (Finca Raíz scrape + on-demand Metrocuadrado analyze-url) — not appraisals or closed sales. Keep disclaimers.
+- **Ops docs:** Email cron → [`docs/EMAIL_OPERATIONS.md`](../../docs/EMAIL_OPERATIONS.md); web developer guide → [`web/README.md`](../../web/README.md).
 - **Minimize diff** — match existing patterns; no drive-by refactors.
 
 ## After each session
