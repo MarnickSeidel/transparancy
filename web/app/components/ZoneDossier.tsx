@@ -208,7 +208,7 @@ export default function ZoneDossier({
 
       <main id="main-content" className="mx-auto w-full max-w-7xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         {breadcrumbItems.length > 0 ? (
-          <Breadcrumbs items={breadcrumbItems} />
+          <Breadcrumbs items={breadcrumbItems} lang={lang} />
         ) : (
           <p className="mb-6">
             <Link href={lp("/zones")} className="text-sm font-medium text-accent hover:underline">

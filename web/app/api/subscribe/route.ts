@@ -8,6 +8,7 @@ import {
   parsePreferences,
 } from "@/lib/email/validate"
 import { enforceRateLimit } from "@/lib/rateLimit"
+import { enforceSameOrigin } from "@/lib/requestOrigin"
 
 export const dynamic = "force-dynamic"
 
@@ -19,6 +20,8 @@ type Body = {
   neighborhood?: unknown
   lists?: unknown
   preferences?: unknown
+  /** Honeypot — must stay empty. */
+  company?: unknown
 }
 
 function legacyListsFromBody(body: Body) {
@@ -40,11 +43,19 @@ function legacyListsFromBody(body: Body) {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = enforceSameOrigin(req)
+  if (originBlocked) return originBlocked
+
   const limited = enforceRateLimit(req, "subscribe", 5, 60 * 60_000)
   if (limited) return limited
 
   try {
     const body = (await req.json()) as Body
+    // Silent success for bots that fill the honeypot.
+    if (typeof body.company === "string" && body.company.trim()) {
+      return NextResponse.json({ ok: true, needsConfirmation: true })
+    }
+
     const email = normalizeEmail(body.email)
     if (!email) {
       return NextResponse.json({ error: "invalid_email" }, { status: 400 })

@@ -4,7 +4,8 @@ import Image from "next/image"
 
 type Props = {
   src: string
-  alt?: string
+  /** Required for accessibility — pass listing/zone title even when adjacent text repeats it. */
+  alt: string
   width: number
   height: number
   className?: string
@@ -13,7 +14,7 @@ type Props = {
 
 export default function ListingThumbnail({
   src,
-  alt = "",
+  alt,
   width,
   height,
   className = "h-full w-full object-cover",

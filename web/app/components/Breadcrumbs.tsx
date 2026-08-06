@@ -1,14 +1,17 @@
 import Link from "next/link";
 
+import type { Lang } from "@/lib/i18n";
+
 type Props = {
   items: Array<{ label: string; href: string }>;
+  lang?: Lang;
 };
 
-export default function Breadcrumbs({ items }: Props) {
+export default function Breadcrumbs({ items, lang = "es" }: Props) {
   if (items.length === 0) return null;
 
   return (
-    <nav aria-label="Breadcrumb" className="mb-6">
+    <nav aria-label={lang === "en" ? "Breadcrumb" : "Migas de pan"} className="mb-6">
       <ol className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
         {items.map((item, i) => {
           const isLast = i === items.length - 1;

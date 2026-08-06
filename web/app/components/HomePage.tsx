@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from "react"
 import AppHeader from "@/app/components/AppHeader"
 import CartographicPreview from "@/app/components/CartographicPreview"
 import DealComparisonBar from "@/app/components/DealComparisonBar"
+import ListingThumbnail from "@/app/components/ListingThumbnail"
 import PageFooter from "@/app/components/PageFooter"
 import Badge from "@/app/components/ui/Badge"
 import Button from "@/app/components/ui/Button"
@@ -442,12 +443,13 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
                   >
                     <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-surface">
                       {card.imageUrl ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
+                        <ListingThumbnail
                           src={card.imageUrl}
                           alt={card.zone}
+                          width={80}
+                          height={64}
+                          sizes="80px"
                           className="h-full w-full object-cover"
-                          loading="lazy"
                         />
                       ) : (
                         <div className="flex h-full items-center justify-center text-[10px] text-muted">—</div>

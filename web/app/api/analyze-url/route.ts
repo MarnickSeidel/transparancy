@@ -7,12 +7,16 @@ import {
   upsertAnalyzedListing,
 } from "@/lib/upsertAnalyzedListing"
 import { enforceRateLimit } from "@/lib/rateLimit"
+import { enforceSameOrigin } from "@/lib/requestOrigin"
 
 export const dynamic = "force-dynamic"
 
 type Body = { url?: unknown }
 
 export async function POST(req: Request) {
+  const originBlocked = enforceSameOrigin(req)
+  if (originBlocked) return originBlocked
+
   const limited = enforceRateLimit(req, "analyze-url", 10, 15 * 60_000)
   if (limited) return limited
 

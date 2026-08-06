@@ -200,7 +200,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
         onToggleLang={toggleLang}
       />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+      <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <Link
             href={opportunitiesPath(lang)}
@@ -242,7 +242,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
               )}
             </div>
             <div className="min-w-0 flex-1">
-              <h2 className="text-xl font-semibold text-foreground">{data.listing.title}</h2>
+              <p className="text-xl font-semibold text-foreground">{data.listing.title}</p>
               <p className="mt-1 text-sm text-muted">
                 {data.listing.city}
                 {data.listing.neighborhood ? ` · ${data.listing.neighborhood}` : ""}

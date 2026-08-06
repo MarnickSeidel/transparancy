@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 
 import { prisma } from "@/lib/prisma"
 import { isEmailList, normalizeOptional } from "@/lib/email/validate"
+import { enforceRateLimit } from "@/lib/rateLimit"
+import { enforceSameOrigin } from "@/lib/requestOrigin"
 
 export const dynamic = "force-dynamic"
 
@@ -18,6 +20,9 @@ function pickToken(req: Request): string | null {
 }
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "email-preferences-get", 30, 15 * 60_000)
+  if (limited) return limited
+
   try {
     const token = pickToken(req)
     if (!token) return NextResponse.json({ error: "token_required" }, { status: 400 })
@@ -54,6 +59,12 @@ type UpdatePref = {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = enforceSameOrigin(req)
+  if (originBlocked) return originBlocked
+
+  const limited = enforceRateLimit(req, "email-preferences-post", 20, 15 * 60_000)
+  if (limited) return limited
+
   try {
     const token = pickToken(req)
     if (!token) return NextResponse.json({ error: "token_required" }, { status: 400 })

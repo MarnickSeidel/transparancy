@@ -2,6 +2,19 @@
 const nextConfig = {
   transpilePackages: ["leaflet", "react-leaflet"],
   async headers() {
+    const contentSecurityPolicy = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob: https://*.fincaraiz.com.co https://*.metrocuadrado.com https://*.cloudinary.com https://images.unsplash.com https://*.infocasas.com.uy https://*.tile.openstreetmap.org",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "worker-src 'self' blob:",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "form-action 'self'",
+    ].join("; ");
+
     return [
       {
         source: "/(.*)",
@@ -13,6 +26,7 @@ const nextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(self)",
           },
+          { key: "Content-Security-Policy", value: contentSecurityPolicy },
         ],
       },
     ];
@@ -22,6 +36,10 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "**.fincaraiz.com.co",
+      },
+      {
+        protocol: "https",
+        hostname: "**.metrocuadrado.com",
       },
       {
         protocol: "https",

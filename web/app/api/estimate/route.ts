@@ -6,6 +6,7 @@ import { haversineWithinMetersSql } from "@/lib/geoHaversine";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
 import { enforceRateLimit } from "@/lib/rateLimit";
+import { enforceSameOrigin } from "@/lib/requestOrigin";
 import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants";
 
 export const dynamic = "force-dynamic";
@@ -200,6 +201,9 @@ function parseCoord(v: unknown): number | null {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = enforceSameOrigin(req);
+  if (originBlocked) return originBlocked;
+
   const limited = enforceRateLimit(req, "estimate", 20, 15 * 60_000);
   if (limited) return limited;
 

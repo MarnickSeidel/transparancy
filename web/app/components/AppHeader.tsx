@@ -122,24 +122,27 @@ export default function AppHeader({
   const navLinkClass = (key: NavKey, href: string, compact = false) => {
     const isActive = key === active
     const isPending = pendingHref === href
-    const padding = compact ? "px-2.5 py-1.5" : "px-3 py-1.5"
+    const padding = compact ? "min-h-10 px-2.5 py-2" : "min-h-10 px-3 py-2"
+    const base = `inline-flex shrink-0 items-center touch-manipulation rounded-lg ${padding} text-xs`
     if (isActive) {
-      return `shrink-0 rounded-lg bg-accent ${padding} text-xs font-semibold text-accent-fg shadow-sm`
+      return `${base} bg-accent font-semibold text-accent-fg shadow-sm`
     }
     if (isPending) {
-      return `shrink-0 rounded-lg bg-accent/15 ${padding} text-xs font-semibold text-accent ring-2 ring-accent/50 animate-pulse`
+      return `${base} bg-accent/15 font-semibold text-accent ring-2 ring-accent/50 animate-pulse`
     }
-    return `shrink-0 rounded-lg ${padding} text-xs font-medium text-foreground/80 transition hover:bg-surface hover:text-foreground`
+    return `${base} font-medium text-foreground/80 transition hover:bg-surface hover:text-foreground`
   }
 
   const moreTriggerClass = () => {
+    const base =
+      "inline-flex min-h-10 shrink-0 touch-manipulation items-center gap-1 rounded-lg px-3 py-2 text-xs"
     if (isMoreActive) {
-      return "inline-flex shrink-0 items-center gap-1 rounded-lg bg-accent px-3 py-1.5 text-xs font-semibold text-accent-fg shadow-sm"
+      return `${base} bg-accent font-semibold text-accent-fg shadow-sm`
     }
     if (moreOpen) {
-      return "inline-flex shrink-0 items-center gap-1 rounded-lg bg-surface px-3 py-1.5 text-xs font-medium text-foreground ring-1 ring-accent/30"
+      return `${base} bg-surface font-medium text-foreground ring-1 ring-accent/30`
     }
-    return "inline-flex shrink-0 items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-medium text-foreground/80 transition hover:bg-surface hover:text-foreground"
+    return `${base} font-medium text-foreground/80 transition hover:bg-surface hover:text-foreground`
   }
 
   const renderNavLink = (item: NavItem, compact = false) => {

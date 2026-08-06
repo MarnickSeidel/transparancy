@@ -9,12 +9,14 @@ import "./globals.css";
 
 const fraunces = Fraunces({
   subsets: ["latin"],
+  weight: ["400", "600", "700"],
   variable: "--font-fraunces",
   display: "swap",
 });
 
 const sourceSans = Source_Sans_3({
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
   variable: "--font-source-sans",
   display: "swap",
 });
@@ -23,6 +25,7 @@ const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
   weight: "100 900",
+  display: "swap",
 });
 
 export const metadata = rootMetadata();

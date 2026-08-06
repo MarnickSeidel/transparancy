@@ -10,7 +10,7 @@ export default function ListingNotFound() {
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-16 text-center sm:px-6">
+      <main id="main-content" className="mx-auto w-full max-w-3xl flex-1 px-4 py-16 text-center sm:px-6">
         <h1 className="text-display text-2xl font-semibold text-foreground">
           {txt.listingDetailNotFound}
         </h1>

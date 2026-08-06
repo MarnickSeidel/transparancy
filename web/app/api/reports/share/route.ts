@@ -8,6 +8,7 @@ import {
   type SharedAnalyzePayload,
 } from "@/lib/shareReport"
 import { enforceRateLimit } from "@/lib/rateLimit"
+import { enforceSameOrigin } from "@/lib/requestOrigin"
 
 export const dynamic = "force-dynamic"
 
@@ -19,6 +20,9 @@ type Body = {
 }
 
 export async function POST(req: Request) {
+  const originBlocked = enforceSameOrigin(req)
+  if (originBlocked) return originBlocked
+
   const limited = enforceRateLimit(req, "reports-share", 20, 60 * 60_000)
   if (limited) return limited
 

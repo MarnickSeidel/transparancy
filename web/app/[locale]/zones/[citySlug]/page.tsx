@@ -67,7 +67,7 @@ export default async function CityHubPage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <Breadcrumbs items={crumbs} />
+      <Breadcrumbs items={crumbs} lang={locale} />
       <CityZoneDirectory
         zones={data.zones.map((z) => ({
           slug: z.slug,

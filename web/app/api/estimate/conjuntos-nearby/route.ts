@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { haversineWithinMetersSql } from "@/lib/geoHaversine";
 import { groupConjuntoNames } from "@/lib/conjuntos";
 import { prisma } from "@/lib/prisma";
+import { enforceRateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -14,6 +15,9 @@ function parseCoord(v: string | null): number | null {
 }
 
 export async function GET(req: Request) {
+  const limited = enforceRateLimit(req, "estimate-conjuntos-nearby", 40, 15 * 60_000);
+  if (limited) return limited;
+
   try {
     const { searchParams } = new URL(req.url);
     const city = searchParams.get("city")?.trim() ?? "";

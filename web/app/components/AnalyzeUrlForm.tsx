@@ -10,6 +10,7 @@ import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection"
 import VerdictBanner from "@/app/components/VerdictBanner"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
+import ErrorBanner from "@/app/components/ui/ErrorBanner"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
 import SiteHeader from "@/app/components/SiteHeader"
@@ -307,11 +308,7 @@ export default function AnalyzeUrlForm() {
       />
 
       <main id="main-content" className="mx-auto w-full max-w-5xl flex-1 px-4 pb-28 pt-8 sm:px-6 md:pb-8 lg:px-8">
-        {error ? (
-          <div className="mb-6 rounded-2xl border border-amber-200/80 bg-amber-50 px-4 py-3 text-sm text-amber-950 shadow-card dark:border-amber-800/60 dark:bg-amber-950/30 dark:text-amber-100">
-            {error}
-          </div>
-        ) : null}
+        {error ? <ErrorBanner message={error} className="mb-6 shadow-card" /> : null}
 
         <Card className="mb-6 border-border-subtle shadow-card">
           <form id="analyze-url-form" onSubmit={(e) => void submit(e)}>
@@ -568,7 +565,7 @@ export default function AnalyzeUrlForm() {
           type="submit"
           form="analyze-url-form"
           disabled={loading}
-          className="w-full py-3.5 shadow-lg disabled:opacity-60"
+          className="w-full min-h-11 touch-manipulation py-3.5 shadow-lg disabled:opacity-60"
         >
           {loading ? txt.analyzeUrlLoading : txt.analyzeUrlSubmit}
         </Button>

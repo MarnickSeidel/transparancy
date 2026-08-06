@@ -79,6 +79,7 @@ export default function EmailSignupForm({
   const isFooterStrip = variant === "footer-strip"
 
   const [email, setEmail] = useState("")
+  const [company, setCompany] = useState("")
   const [city, setCity] = useState(defaultCity)
   const [cities, setCities] = useState<string[]>(priorityCities)
   const [selected, setSelected] = useState<Set<EmailList>>(() => new Set(defaultLists))
@@ -170,6 +171,7 @@ export default function EmailSignupForm({
           source,
           city,
           preferences,
+          company,
         }),
       })
       const j = (await res.json()) as {
@@ -258,6 +260,18 @@ export default function EmailSignupForm({
 
   const formInner = (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-3">
+      <div aria-hidden="true" className="pointer-events-none absolute -left-[9999px] h-0 w-0 overflow-hidden opacity-0">
+        <label htmlFor={`email-company-${source}`}>Company</label>
+        <input
+          id={`email-company-${source}`}
+          type="text"
+          name="company"
+          tabIndex={-1}
+          autoComplete="off"
+          value={company}
+          onChange={(e) => setCompany(e.target.value)}
+        />
+      </div>
       {formFields}
 
       {showPreferenceUi ? (
