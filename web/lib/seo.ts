@@ -128,7 +128,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
   if (locale === "en") {
     const title = BRAND_COPY.en.homeTitle;
     const description =
-      "Data-driven real estate platform: price/m² by neighborhood, deal scoring, heatmaps, and price estimator from Finca Raíz listings. Built for local and US investors.";
+      "Colombia listing-price intelligence: check any ad against barrio comps, or browse ranked undervalued deals. Asking prices from Finca Raíz — not appraisals. For local and US investors.";
     const url = canonicalForLocale(path, locale);
     return {
       title,
@@ -149,7 +149,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
 
   const title = BRAND_COPY.es.homeTitle;
   const description =
-    "Plataforma de datos inmobiliarios: precio/m² por barrio, scoring de oportunidades, heatmaps y estimador basado en publicaciones Finca Raíz.";
+    "Inteligencia de precios de avisos en Colombia: analiza un anuncio contra el barrio o explora oportunidades infravaloradas. Precios de publicación Finca Raíz — no tasaciones.";
   const url = alt.canonical;
   const ogImage = localeOgImage(locale);
   return {

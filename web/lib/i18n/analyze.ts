@@ -2,7 +2,7 @@
 export const analyze = {
   es: {
     analyzeUrlNav: "Analizar anuncio",
-    analyzeUrlCta: "¿Qué vale mi casa?",
+    analyzeUrlCta: "¿Es buen precio?",
     analyzeCompTypeMismatch: "Los comparables pueden ser de otro tipo de inmueble; interpreta el descuento con cautela.",
     analyzeLoadingHint: "Estamos leyendo el anuncio y buscando comparables…",
     analyzeUrlTitle: "¿Es buen precio?",
@@ -60,7 +60,7 @@ export const analyze = {
   },
   en: {
     analyzeUrlNav: "Check listing",
-    analyzeUrlCta: "What's my home worth?",
+    analyzeUrlCta: "Is this a good deal?",
     analyzeCompTypeMismatch: "Comparables may include a different property type; interpret the discount carefully.",
     analyzeLoadingHint: "Reading the listing and finding comparables…",
     analyzeUrlTitle: "Is it a good deal?",

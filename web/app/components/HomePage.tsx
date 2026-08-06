@@ -2,159 +2,57 @@
 
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useState } from "react"
 
 import AppHeader from "@/app/components/AppHeader"
-import CartographicPreview from "@/app/components/CartographicPreview"
 import DealComparisonBar from "@/app/components/DealComparisonBar"
 import ListingThumbnail from "@/app/components/ListingThumbnail"
 import PageFooter from "@/app/components/PageFooter"
-import Badge from "@/app/components/ui/Badge"
 import Button from "@/app/components/ui/Button"
-import Card from "@/app/components/ui/Card"
+import Badge from "@/app/components/ui/Badge"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
+import { BRAND_NAME } from "@/lib/brand"
+import { nearestCityFromCoords } from "@/lib/cityCenters"
 import type { HomePageData } from "@/lib/getHomeStats"
 import { formatFreshnessDate } from "@/lib/getDataFreshness"
 import {
   DEFAULT_OPPORTUNITIES_CITY,
   type OpportunityRow,
 } from "@/lib/getTopOpportunities"
-import { listingPath, localePath, localeToolPath, type Locale } from "@/lib/locale"
+import { listingPath, localePath, localeToolPath, opportunitiesPath, type Locale } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 import { uiText } from "@/lib/i18n"
 import { useUiLang } from "@/lib/useUiLang"
 
+const HOME_CITY_STORAGE_KEY = "claracasas-home-city"
+/** Only switch from Pereira if GPS is within this distance of a catalog city. */
+const MAX_GEO_CITY_DISTANCE_M = 80_000
+
 type Content = {
-  eyebrow: string
   heading: string
   blurb: string
-  ctaPrimary: string
-  ctaSecondary: string
-  dealsLabel: string
-  statsLoading: string
   statsListingsLabel: string
   statsNeighborhoodsLabel: string
   statsCitiesLabel: string
-  mapTitle: string
-  mapView: string
-  mapMedian: string
-  mapListings: string
-  features: Array<{ title: string; description: string }>
-  journeysTitle: string
-  journeys: Array<{ title: string; description: string; href: string; cta: string }>
 }
 
 const content: Record<"es" | "en", Content> = {
   es: {
-    eyebrow: "Datos Finca Raíz · Colombia",
-    heading: "Precio por m² con contexto de barrio, no solo anuncios.",
+    heading: "¿Este anuncio está bien de precio para el barrio?",
     blurb:
-      "Compara cada publicación contra la mediana de su zona, estrato y tipo. Barrios en Pereira, Medellín, Bogotá y más — inventario actualizado periódicamente desde Finca Raíz.",
-    ctaPrimary: "¿Qué vale mi casa?",
-    ctaSecondary: "Explorar barrios",
-    dealsLabel: "Oportunidades recientes",
-    statsLoading: "Cargando datos…",
+      "Inteligencia de precios de aviso en Colombia. Elige cómo empezar — no tasaciones ni ventas cerradas.",
     statsListingsLabel: "Anuncios analizados",
     statsNeighborhoodsLabel: "Barrios con datos",
     statsCitiesLabel: "Ciudades",
-    mapTitle: "Mapa de mercado",
-    mapView: "Ver heatmap",
-    mapMedian: "Mediana/m²",
-    mapListings: "activos",
-    features: [
-      {
-        title: "Dossiers por barrio",
-        description:
-          "Mediana de precio/m², tendencia mensual y mix de tipos — con tamaño de muestra visible en cada cifra.",
-      },
-      {
-        title: "Scoring vs comparables",
-        description:
-          "Prioriza inmuebles con descuento relativo frente a vecinos del mismo estrato y tipo.",
-      },
-      {
-        title: "Diagnóstico por URL",
-        description:
-          "Pega un enlace de Finca Raíz y recibe veredicto, banda de precio y contexto en segundos.",
-      },
-    ],
-    journeysTitle: "Empieza aquí",
-    journeys: [
-      {
-        title: "Investigar un barrio",
-        description: "Mediana de precio/m², tendencias y mix de tipos por zona.",
-        href: "/zones",
-        cta: "Ver barrios",
-      },
-      {
-        title: "Analizar un anuncio",
-        description: "Pega una URL de Finca Raíz y recibe veredicto con comparables.",
-        href: "/analyze-url",
-        cta: "¿Qué vale mi casa?",
-      },
-      {
-        title: "Encontrar oportunidades",
-        description: "Ranking de publicaciones con descuento vs la mediana del barrio.",
-        href: "/oportunidades",
-        cta: "Ver oportunidades",
-      },
-    ],
   },
   en: {
-    eyebrow: "Finca Raíz data · Colombia",
-    heading: "Price per m² with neighborhood context — not just listings.",
+    heading: "Is this listing fairly priced for the neighborhood?",
     blurb:
-      "Compare every listing against its zone median, estrato, and property type. Neighborhoods across Pereira, Medellín, Bogotá, and more — inventory refreshed periodically from Finca Raíz.",
-    ctaPrimary: "What's my home worth?",
-    ctaSecondary: "Browse neighborhoods",
-    dealsLabel: "Recent opportunities",
-    statsLoading: "Loading live data…",
+      "Listing-price intelligence for Colombia. Pick how to start — not appraisals or closed sales.",
     statsListingsLabel: "Listings analyzed",
     statsNeighborhoodsLabel: "Neighborhoods tracked",
     statsCitiesLabel: "Cities",
-    mapTitle: "Market map",
-    mapView: "Open heatmap",
-    mapMedian: "Median/m²",
-    mapListings: "active",
-    features: [
-      {
-        title: "Neighborhood dossiers",
-        description:
-          "Median price/m², monthly trends, and property mix — with sample size shown on every figure.",
-      },
-      {
-        title: "Comparable scoring",
-        description:
-          "Prioritize listings priced below neighbors of the same estrato and property type.",
-      },
-      {
-        title: "URL diagnostics",
-        description:
-          "Paste a Finca Raíz link and get a verdict, price band, and context in seconds.",
-      },
-    ],
-    journeysTitle: "Start here",
-    journeys: [
-      {
-        title: "Research a neighborhood",
-        description: "Median price/m², trends, and property mix by zone.",
-        href: "/zones",
-        cta: "Browse zones",
-      },
-      {
-        title: "Analyze a listing",
-        description: "Paste a Finca Raíz URL for a verdict with comparables.",
-        href: "/analyze-url",
-        cta: "What's my home worth?",
-      },
-      {
-        title: "Find opportunities",
-        description: "Ranked listings priced below neighborhood medians.",
-        href: "/oportunidades",
-        cta: "Deals",
-      },
-    ],
   },
 }
 
@@ -171,12 +69,10 @@ type OpportunityCard = {
   sampleSize: number | null
   imageUrl: string | null
   detailHref: string
-  sourceHref: string
 }
 
 type Props = {
   locale?: Locale
-  initialData?: HomePageData
 }
 
 const mapOpportunityCards = (
@@ -200,10 +96,33 @@ const mapOpportunityCards = (
     sampleSize: o.compSampleSize ?? null,
     imageUrl: o.imageUrl ?? null,
     detailHref: listingPath(lang, o.id),
-    sourceHref: o.url,
   }))
 
-export default function HomePage({ locale: pageLocale = "es", initialData }: Props) {
+const fmtTemplate = (template: string, vars: Record<string, string>) =>
+  Object.entries(vars).reduce(
+    (acc, [key, value]) => acc.replaceAll(`{${key}}`, value),
+    template,
+  )
+
+const readStoredCity = (): string => {
+  if (typeof window === "undefined") return DEFAULT_OPPORTUNITIES_CITY
+  try {
+    const raw = localStorage.getItem(HOME_CITY_STORAGE_KEY)?.trim()
+    return raw || DEFAULT_OPPORTUNITIES_CITY
+  } catch {
+    return DEFAULT_OPPORTUNITIES_CITY
+  }
+}
+
+const persistCity = (city: string) => {
+  try {
+    localStorage.setItem(HOME_CITY_STORAGE_KEY, city)
+  } catch {
+    /* ignore */
+  }
+}
+
+export default function HomePage({ locale: pageLocale = "es" }: Props) {
   const router = useRouter()
   const { lang, toggleLang } = useUiLang(pageLocale)
   const txt = uiText[lang]
@@ -212,111 +131,113 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
   const lp = (path: string) => localePath(lang, path)
 
   const [inlineUrl, setInlineUrl] = useState("")
-  const [highlights, setHighlights] = useState<
-    Array<{ label: string; value: string; loading: boolean }>
-  >(() =>
-    initialData
-      ? [
-          {
-            label: copy.statsListingsLabel,
-            value: initialData.totalListings.toLocaleString(localeFmt),
-            loading: false,
-          },
-          {
-            label: copy.statsNeighborhoodsLabel,
-            value: initialData.neighborhoodCount.toLocaleString(localeFmt),
-            loading: false,
-          },
-          {
-            label: copy.statsCitiesLabel,
-            value: initialData.cityCount.toLocaleString(localeFmt),
-            loading: false,
-          },
-        ]
-      : [
-          { label: copy.statsListingsLabel, value: "", loading: true },
-          { label: copy.statsNeighborhoodsLabel, value: "", loading: true },
-          { label: copy.statsCitiesLabel, value: "", loading: true },
-        ],
-  )
-  const [cards, setCards] = useState<OpportunityCard[]>(() =>
-    initialData?.featuredOpportunities?.length
-      ? mapOpportunityCards(initialData.featuredOpportunities, lang, localeFmt)
-      : [],
-  )
-  const featuredCity = initialData?.featuredCity ?? "Pereira"
-  const zonePreviews =
-    initialData?.featuredZones.slice(0, 6).map((z) => ({
-      name: z.displayName,
-      href: lp(`/zones/${z.citySlug}/${z.slug}`),
-      medianPricePerM2: z.medianPricePerM2,
-      listingCount: z.listingCount,
-    })) ?? []
+  const [city, setCity] = useState(DEFAULT_OPPORTUNITIES_CITY)
+  const [data, setData] = useState<HomePageData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [statsFailed, setStatsFailed] = useState(false)
+  const [geoLoading, setGeoLoading] = useState(false)
+
+  const cards = useMemo(
+    () =>
+      data?.featuredOpportunities?.length
+        ? mapOpportunityCards(data.featuredOpportunities, lang, localeFmt)
+        : [],
+    [data?.featuredOpportunities, lang, localeFmt],
+  )
+  const topDeal = cards[0] ?? null
 
   const lastUpdatedLabel = useMemo(() => {
-    const raw = initialData?.lastScrapedAt
+    const raw = data?.lastScrapedAt
     if (!raw) return null
     return formatFreshnessDate(new Date(raw), localeFmt)
-  }, [initialData?.lastScrapedAt, localeFmt])
+  }, [data?.lastScrapedAt, localeFmt])
 
-  useEffect(() => {
-    if (initialData) return
-
-    let cancelled = false
-
-    async function loadLiveData() {
+  const loadHomeData = useCallback(
+    async (forCity: string) => {
+      setLoading(true)
       setStatsFailed(false)
       try {
-        const [summaryRes, oppRes] = await Promise.all([
-          fetch("/api/summary"),
-          fetch(`/api/opportunities?city=${encodeURIComponent(DEFAULT_OPPORTUNITIES_CITY)}&limit=3`),
-        ])
-        if (!summaryRes.ok) {
-          if (!cancelled) setStatsFailed(true)
+        const res = await fetch(`/api/home?city=${encodeURIComponent(forCity)}`)
+        if (!res.ok) {
+          setStatsFailed(true)
+          setData(null)
           return
         }
-        const summary = await summaryRes.json()
-        if (cancelled) return
-
-        setHighlights([
-          {
-            label: copy.statsListingsLabel,
-            value: Number(summary.totalListings ?? 0).toLocaleString(localeFmt),
-            loading: false,
-          },
-          {
-            label: copy.statsNeighborhoodsLabel,
-            value: Number(summary.neighborhoodCount ?? 0).toLocaleString(localeFmt),
-            loading: false,
-          },
-          {
-            label: copy.statsCitiesLabel,
-            value: Number(summary.cityCount ?? 0).toLocaleString(localeFmt),
-            loading: false,
-          },
-        ])
-
-        if (oppRes.ok) {
-          const oppJson = await oppRes.json()
-          const opportunities = (oppJson.opportunities ?? []).slice(0, 3)
-          if (!cancelled && opportunities.length > 0) {
-            setCards(mapOpportunityCards(opportunities, lang, localeFmt))
-          }
-        }
+        const json = (await res.json()) as HomePageData
+        setData(json)
+        setCity(json.featuredCity)
+        persistCity(json.featuredCity)
       } catch {
-        if (!cancelled) {
-          setStatsFailed(true)
-          setHighlights((prev) => prev.map((h) => ({ ...h, loading: false })))
-        }
+        setStatsFailed(true)
+        setData(null)
+      } finally {
+        setLoading(false)
+      }
+    },
+    [],
+  )
+
+  useEffect(() => {
+    const stored = readStoredCity()
+    setCity(stored)
+    void loadHomeData(stored)
+  }, [loadHomeData])
+
+  const applyCoords = useCallback(
+    (lat: number, lng: number) => {
+      const nearest = nearestCityFromCoords(lat, lng)
+      if (!nearest || nearest.distanceM > MAX_GEO_CITY_DISTANCE_M) return
+      if (nearest.city === city) return
+      void loadHomeData(nearest.city)
+    },
+    [city, loadHomeData],
+  )
+
+  const handleUseLocation = useCallback(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return
+    setGeoLoading(true)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        applyCoords(pos.coords.latitude, pos.coords.longitude)
+        setGeoLoading(false)
+      },
+      () => {
+        setGeoLoading(false)
+      },
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 86_400_000 },
+    )
+  }, [applyCoords])
+
+  /** Quiet upgrade: only if permission already granted (no prompt). */
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) return
+    let cancelled = false
+
+    const run = async () => {
+      try {
+        const permissions = navigator.permissions
+        if (!permissions?.query) return
+        const status = await permissions.query({ name: "geolocation" })
+        if (cancelled || status.state !== "granted") return
+        navigator.geolocation.getCurrentPosition(
+          (pos) => {
+            if (!cancelled) {
+              applyCoords(pos.coords.latitude, pos.coords.longitude)
+            }
+          },
+          () => {},
+          { enableHighAccuracy: false, timeout: 5000, maximumAge: 86_400_000 },
+        )
+      } catch {
+        /* permissions API unsupported */
       }
     }
 
-    void loadLiveData()
+    void run()
     return () => {
       cancelled = true
     }
-  }, [copy, lang, localeFmt, initialData])
+  }, [applyCoords])
 
   const handleInlineAnalyze = (e: React.FormEvent) => {
     e.preventDefault()
@@ -325,238 +246,290 @@ export default function HomePage({ locale: pageLocale = "es", initialData }: Pro
     router.push(localeToolPath(lang, "/analyze-url", `url=${encodeURIComponent(trimmed)}`))
   }
 
+  const highlights = data
+    ? [
+        {
+          label: copy.statsListingsLabel,
+          value: data.totalListings.toLocaleString(localeFmt),
+        },
+        {
+          label: copy.statsNeighborhoodsLabel,
+          value: data.neighborhoodCount.toLocaleString(localeFmt),
+        },
+        {
+          label: copy.statsCitiesLabel,
+          value: data.cityCount.toLocaleString(localeFmt),
+        },
+      ]
+    : []
+
+  const statsLine = highlights.map((h) => `${h.value} ${h.label.toLowerCase()}`).join(" · ")
+  const opportunitiesHref = opportunitiesPath(lang, `city=${encodeURIComponent(city)}`)
+
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <AppHeader variant="marketing" homeHref={lp("/")} lang={lang} onToggleLang={toggleLang} />
 
-      <main id="main-content" className="relative z-10 mx-auto w-full max-w-7xl flex-1 px-4 pb-16 pt-8 sm:px-6 lg:px-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr_1.05fr] lg:gap-10">
-          <div>
-            <Badge variant="default">{copy.eyebrow}</Badge>
-            <h1 className="text-display mt-4 max-w-xl text-4xl font-semibold leading-[1.12] md:text-[2.75rem]">
-              {copy.heading}
-            </h1>
-            <p className="mt-4 max-w-xl text-base leading-relaxed text-muted md:text-lg">{copy.blurb}</p>
-            {lastUpdatedLabel ? (
-              <p className="mt-2 max-w-xl text-sm text-muted">
-                {txt.dataFreshnessLabel}: <strong className="font-medium text-foreground">{lastUpdatedLabel}</strong>
-                . {txt.dataFreshnessNote}
-              </p>
-            ) : null}
+      <main id="main-content" className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 pb-20 pt-10 sm:px-6 sm:pt-14 lg:px-8">
+        <p className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl">
+          {BRAND_NAME}
+        </p>
+        <h1 className="text-display mt-5 max-w-3xl text-2xl font-semibold leading-snug text-foreground sm:text-3xl md:text-[2.15rem]">
+          {copy.heading}
+        </h1>
+        <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">{copy.blurb}</p>
+        <p className="mt-3 text-sm text-muted">
+          {txt.homepageTrustStrip}{" "}
+          <Link href={lp("/methodology")} className="font-medium text-accent hover:underline link-focus">
+            {txt.homepageTrustMethodology}
+          </Link>
+          {lastUpdatedLabel ? (
+            <>
+              {" "}
+              · {txt.dataFreshnessLabel}:{" "}
+              <strong className="font-medium text-foreground">{lastUpdatedLabel}</strong>
+            </>
+          ) : null}
+        </p>
 
-            <form
-              onSubmit={handleInlineAnalyze}
-              className="mt-6 flex flex-col gap-2 sm:flex-row sm:items-stretch"
-            >
+        <div className="mt-10 grid gap-4 md:grid-cols-2 md:gap-5">
+          <div className="flex flex-col rounded-2xl border-2 border-accent/35 bg-elevated/80 p-5 sm:p-6">
+            <h2 className="text-display text-xl font-semibold">{txt.homepageDoorAnalyzeTitle}</h2>
+            <p className="mt-2 flex-1 text-sm leading-relaxed text-muted">{txt.homepageDoorAnalyzeHint}</p>
+            <form onSubmit={handleInlineAnalyze} className="mt-5 flex flex-col gap-2">
               <label className="sr-only" htmlFor="home-analyze-url">
                 {txt.homepageInlineAnalyze}
               </label>
               <input
                 id="home-analyze-url"
                 type="url"
-                className={`${inputClassName} mt-0 flex-1`}
+                className={`${inputClassName} mt-0`}
                 placeholder={txt.analyzeUrlPlaceholder}
                 value={inlineUrl}
                 onChange={(e) => setInlineUrl(e.target.value)}
               />
-              <Button type="submit" className="shrink-0">
+              <Button type="submit" className="w-full">
                 {txt.homepageInlineAnalyzeCta}
               </Button>
             </form>
-
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Button href={lp("/analyze-url")}>{copy.ctaPrimary}</Button>
-              <Button href={lp("/zones")} variant="secondary">
-                {copy.ctaSecondary}
-              </Button>
-              <Button href={lp("/price-drops")} variant="secondary">
-                {txt.priceDropsNav}
-              </Button>
-            </div>
-
-            <section className="mt-8" aria-labelledby="home-journeys-heading">
-              <h2 id="home-journeys-heading" className="text-display text-lg font-semibold">
-                {copy.journeysTitle}
-              </h2>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                {copy.journeys.map((journey) => (
-                  <Link
-                    key={journey.title}
-                    href={lp(journey.href)}
-                    className="surface-panel block p-4 transition hover:border-accent/35 hover:shadow-card-hover link-focus"
-                  >
-                    <h3 className="text-display text-sm font-semibold text-foreground">{journey.title}</h3>
-                    <p className="mt-1.5 text-xs leading-relaxed text-muted">{journey.description}</p>
-                    <span className="mt-3 inline-flex text-xs font-semibold text-accent">{journey.cta} →</span>
-                  </Link>
-                ))}
-              </div>
-            </section>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              {highlights.map((item) => (
-                <div key={item.label} className="surface-inline p-3.5">
-                  {item.loading ? (
-                    <>
-                      <Skeleton className="h-7 w-20" />
-                      <Skeleton className="mt-2 h-3 w-full" />
-                    </>
-                  ) : (
-                    <>
-                      <p className="text-xl font-bold tabular-nums text-foreground">{item.value || "—"}</p>
-                      <p className="mt-0.5 text-meta">{item.label}</p>
-                    </>
-                  )}
-                </div>
-              ))}
-            </div>
-            {statsFailed ? (
-              <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">{txt.couldNotLoad}</p>
-            ) : null}
           </div>
 
-          <div className="relative z-10">
-            <div className="surface-panel p-4 sm:p-5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="text-section-label">{copy.dealsLabel}</p>
-                {cards.length > 0 ? (
-                  <Link
-                    href={lp("/oportunidades")}
-                    className="text-xs font-semibold text-accent hover:underline link-focus"
-                  >
-                    {txt.nextStepsViewAllDeals} →
-                  </Link>
-                ) : null}
-              </div>
-              <div className="mt-3 space-y-3">
-                {cards.length === 0 && !statsFailed ? (
-                  <>
-                    <Skeleton className="h-28 w-full" />
-                    <Skeleton className="h-28 w-full" />
-                  </>
-                ) : null}
-                {cards.map((card) => (
-                  <Link
-                    key={card.id}
-                    href={card.detailHref}
-                    className="flex gap-3 rounded-lg border border-border-subtle bg-elevated p-3 transition hover:border-accent/35 hover:shadow-sm link-focus"
-                  >
-                    <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-surface">
-                      {card.imageUrl ? (
-                        <ListingThumbnail
-                          src={card.imageUrl}
-                          alt={card.zone}
-                          width={80}
-                          height={64}
-                          sizes="80px"
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <div className="flex h-full items-center justify-center text-[10px] text-muted">—</div>
-                      )}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <p className="font-semibold text-foreground">{card.zone}</p>
-                          <p className="text-meta">
-                            {card.city} · {card.type}
-                          </p>
-                        </div>
-                        <Badge variant="good">{card.score}</Badge>
+          <div className="flex flex-col rounded-2xl border-2 border-accent-secondary/35 bg-elevated/80 p-5 sm:p-6">
+            <h2 className="text-display text-xl font-semibold">{txt.homepageDoorDealsTitle}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-muted">{txt.homepageDoorDealsHint}</p>
+            <p className="mt-2 text-xs text-muted">
+              {fmtTemplate(txt.homepageCityLabel, { city })}
+              {" · "}
+              <button
+                type="button"
+                onClick={handleUseLocation}
+                disabled={geoLoading}
+                title={txt.homepageLocationHint}
+                className="font-semibold text-accent hover:underline disabled:opacity-60 link-focus"
+              >
+                {geoLoading ? "…" : txt.homepageUseLocation}
+              </button>
+            </p>
+
+            <div className="mt-5 flex-1">
+              {topDeal ? (
+                <Link
+                  href={topDeal.detailHref}
+                  className="flex gap-3 rounded-xl border border-border-subtle/80 bg-background/60 p-3 transition hover:border-accent/35 link-focus"
+                >
+                  <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-surface">
+                    {topDeal.imageUrl ? (
+                      <ListingThumbnail
+                        src={topDeal.imageUrl}
+                        alt={topDeal.zone}
+                        width={80}
+                        height={64}
+                        sizes="80px"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center text-[10px] text-muted">—</div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-2">
+                      <div>
+                        <p className="font-semibold text-foreground">{topDeal.zone}</p>
+                        <p className="text-meta">
+                          {topDeal.city} · {topDeal.type}
+                        </p>
                       </div>
-                      <p className="mt-1 text-sm font-semibold tabular-nums">{card.value}</p>
-                      {card.pricePerM2 != null && card.refAvg != null ? (
-                        <DealComparisonBar
-                          subject={card.pricePerM2}
-                          reference={card.refAvg}
-                          locale={localeFmt}
-                          className="mt-2"
-                        />
-                      ) : null}
-                      {card.sampleSize != null ? (
-                        <p className="mt-1 text-meta">n={card.sampleSize} comparables</p>
-                      ) : null}
+                      <Badge variant="good">{topDeal.score}</Badge>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                    <p className="mt-1 text-sm font-semibold tabular-nums">{topDeal.value}</p>
+                    {topDeal.discountPct != null && topDeal.discountPct > 0 ? (
+                      <p className="mt-0.5 text-xs font-medium text-deal-good">
+                        {fmtTemplate(txt.homepageDiscountVsComps, {
+                          pct: String(Math.round(topDeal.discountPct)),
+                        })}
+                      </p>
+                    ) : null}
+                  </div>
+                </Link>
+              ) : loading ? (
+                <Skeleton className="h-24 w-full" />
+              ) : null}
             </div>
+
+            <Button href={opportunitiesHref} variant="secondary" className="mt-4 w-full">
+              {txt.homepageDoorDealsCta}
+            </Button>
           </div>
         </div>
 
-        {initialData && initialData.featuredCities.length > 0 ? (
-          <section className="mt-14" aria-labelledby="home-cities-heading">
-            <h2 id="home-cities-heading" className="text-display text-xl font-semibold">
+        <section className="mt-16" aria-labelledby="home-proof-heading">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <h2 id="home-proof-heading" className="text-display text-xl font-semibold">
+                {txt.homepageProofTitle}
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                {txt.homepageProofHint}{" "}
+                <span className="text-foreground/80">
+                  ({fmtTemplate(txt.homepageCityLabel, { city })})
+                </span>
+              </p>
+              {loading && !statsLine ? (
+                <Skeleton className="mt-2 h-3 w-64" />
+              ) : statsLine ? (
+                <p className="mt-2 text-xs tabular-nums text-muted">{statsLine}</p>
+              ) : null}
+            </div>
+            {cards.length > 0 ? (
+              <Link
+                href={opportunitiesHref}
+                className="text-sm font-semibold text-accent hover:underline link-focus"
+              >
+                {txt.nextStepsViewAllDeals} →
+              </Link>
+            ) : null}
+          </div>
+          {statsFailed ? (
+            <p className="mt-3 text-xs text-amber-700 dark:text-amber-400">{txt.couldNotLoad}</p>
+          ) : null}
+          <div className="mt-6 divide-y divide-border-subtle/60 border-y border-border-subtle/60">
+            {loading && cards.length === 0 ? (
+              <div className="space-y-3 py-4">
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : null}
+            {cards.map((card) => (
+              <Link
+                key={card.id}
+                href={card.detailHref}
+                className="flex gap-3 py-4 transition hover:bg-elevated/40 link-focus"
+              >
+                <div className="relative h-16 w-20 shrink-0 overflow-hidden rounded-md bg-surface">
+                  {card.imageUrl ? (
+                    <ListingThumbnail
+                      src={card.imageUrl}
+                      alt={card.zone}
+                      width={80}
+                      height={64}
+                      sizes="80px"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="flex h-full items-center justify-center text-[10px] text-muted">—</div>
+                  )}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-foreground">{card.zone}</p>
+                      <p className="text-meta">
+                        {card.city} · {card.type}
+                      </p>
+                    </div>
+                    <Badge variant="good">{card.score}</Badge>
+                  </div>
+                  <p className="mt-1 text-sm font-semibold tabular-nums">{card.value}</p>
+                  {card.discountPct != null && card.discountPct > 0 ? (
+                    <p className="mt-0.5 text-xs font-medium text-deal-good">
+                      {fmtTemplate(txt.homepageDiscountVsComps, {
+                        pct: String(Math.round(card.discountPct)),
+                      })}
+                    </p>
+                  ) : null}
+                  {card.pricePerM2 != null && card.refAvg != null ? (
+                    <DealComparisonBar
+                      subject={card.pricePerM2}
+                      reference={card.refAvg}
+                      locale={localeFmt}
+                      className="mt-2"
+                    />
+                  ) : null}
+                  {card.sampleSize != null ? (
+                    <p className="mt-1 text-meta">n={card.sampleSize} comparables</p>
+                  ) : null}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        {data && (data.featuredCities.length > 0 || data.featuredZones.length > 0) ? (
+          <section className="mt-16" aria-labelledby="home-explore-heading">
+            <h2 id="home-explore-heading" className="text-display text-xl font-semibold">
               {txt.homepageCitiesTitle}
             </h2>
             <p className="mt-1 text-sm text-muted">{txt.homepageCitiesHint}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
-              {initialData.featuredCities.map((c) => (
-                <Link
-                  key={c.slug}
-                  href={lp(`/zones/${c.slug}`)}
-                  className="rounded-lg border border-border-subtle bg-elevated px-4 py-2 text-sm font-medium text-foreground transition hover:border-accent/40 hover:bg-surface link-focus"
-                  aria-label={`${c.name} — ${c.zoneCount} ${lang === "en" ? "neighborhoods" : "barrios"}`}
-                >
-                  {c.name} <span className="text-muted">({c.zoneCount})</span>
-                </Link>
-              ))}
-            </div>
+
+            {data.featuredCities.length > 0 ? (
+              <p className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-2 text-sm">
+                {data.featuredCities.map((c, i) => (
+                  <span key={c.slug} className="inline-flex items-baseline gap-x-3">
+                    {i > 0 ? <span className="text-muted/50" aria-hidden>·</span> : null}
+                    <Link
+                      href={lp(`/zones/${c.slug}`)}
+                      className={`font-medium link-focus ${
+                        c.name === city ? "text-accent" : "text-foreground hover:text-accent"
+                      }`}
+                      aria-label={`${c.name} — ${c.zoneCount} ${lang === "en" ? "neighborhoods" : "barrios"}`}
+                    >
+                      {c.name}{" "}
+                      <span className="font-normal text-muted">({c.zoneCount})</span>
+                    </Link>
+                  </span>
+                ))}
+              </p>
+            ) : null}
+
+            {data.featuredZones.length > 0 ? (
+              <ul className="mt-6 space-y-3">
+                {data.featuredZones.slice(0, 3).map((z) => (
+                  <li key={z.slug}>
+                    <Link
+                      href={lp(`/zones/${z.citySlug}/${z.slug}`)}
+                      className="group flex flex-wrap items-baseline justify-between gap-2 link-focus"
+                    >
+                      <span className="font-semibold text-foreground group-hover:text-accent">
+                        {z.displayName}
+                      </span>
+                      <span className="text-meta">
+                        {z.listingCount.toLocaleString(localeFmt)} {txt.activeListings.toLowerCase()}
+                        {z.medianPricePerM2 != null
+                          ? ` · ${txt.medianPriceM2} $${Math.round(z.medianPricePerM2).toLocaleString(localeFmt)}`
+                          : ""}
+                      </span>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </section>
+        ) : loading ? (
+          <section className="mt-16">
+            <Skeleton className="h-6 w-48" />
+            <Skeleton className="mt-3 h-4 w-full max-w-md" />
           </section>
         ) : null}
-
-        {initialData && initialData.featuredZones.length > 0 ? (
-          <section className="mt-14">
-            <h2 className="text-display text-xl font-semibold">{txt.homepageFeaturedZones}</h2>
-            <div className="mt-4 grid gap-3 md:grid-cols-3">
-              {initialData.featuredZones.slice(0, 3).map((z) => (
-                <Link
-                  key={z.slug}
-                  href={lp(`/zones/${z.citySlug}/${z.slug}`)}
-                  className="surface-inline block p-4 transition hover:border-accent/35 hover:shadow-sm"
-                >
-                  <p className="font-semibold text-foreground">{z.displayName}</p>
-                  <p className="mt-1 text-meta">
-                    {z.listingCount.toLocaleString(localeFmt)} {txt.activeListings.toLowerCase()}
-                  </p>
-                  {z.medianPricePerM2 != null ? (
-                    <p className="mt-2 text-sm font-semibold tabular-nums">
-                      {txt.medianPriceM2}: ${Math.round(z.medianPricePerM2).toLocaleString(localeFmt)}
-                    </p>
-                  ) : null}
-                  <p className="mt-2 text-xs font-semibold text-accent">{txt.viewBarrioDossier}</p>
-                </Link>
-              ))}
-            </div>
-          </section>
-        ) : null}
-
-        {zonePreviews.length > 0 ? (
-          <section className="mt-14">
-            <CartographicPreview
-              cityName={featuredCity}
-              zones={zonePreviews}
-              locale={localeFmt}
-              heatmapHref={lp("/heatmap")}
-              labels={{
-                title: copy.mapTitle,
-                viewMap: copy.mapView,
-                median: copy.mapMedian,
-                listings: copy.mapListings,
-              }}
-            />
-          </section>
-        ) : null}
-
-        <section className="mt-14 grid gap-4 md:grid-cols-3">
-          {copy.features.map((feature) => (
-            <Card key={feature.title} tier="inline">
-              <h2 className="text-display text-base font-semibold">{feature.title}</h2>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{feature.description}</p>
-            </Card>
-          ))}
-        </section>
       </main>
 
       <PageFooter />

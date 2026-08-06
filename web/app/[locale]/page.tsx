@@ -1,28 +1,24 @@
-import type { Metadata } from "next";
+import type { Metadata } from "next"
 
-import HomePage from "@/app/components/HomePage";
-import { getHomePageData } from "@/lib/getHomeStats";
-import { type Locale, LOCALES } from "@/lib/locale";
-import { homeMetadata } from "@/lib/seo";
-import { homeJsonLd } from "@/lib/trustSeo";
+import HomePage from "@/app/components/HomePage"
+import { type Locale, LOCALES } from "@/lib/locale"
+import { homeMetadata } from "@/lib/seo"
+import { homeJsonLd } from "@/lib/trustSeo"
 
 type Props = {
-  params: { locale: string };
-};
-
-export const revalidate = 300;
-
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const locale = params.locale as Locale;
-  return homeMetadata(locale);
+  params: { locale: string }
 }
 
-export default async function LocaleHomePage({ params }: Props) {
-  const locale = params.locale as Locale;
-  if (!LOCALES.includes(locale)) return null;
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const locale = params.locale as Locale
+  return homeMetadata(locale)
+}
 
-  const data = await getHomePageData();
-  const jsonLd = homeJsonLd(locale);
+export default function LocaleHomePage({ params }: Props) {
+  const locale = params.locale as Locale
+  if (!LOCALES.includes(locale)) return null
+
+  const jsonLd = homeJsonLd(locale)
 
   return (
     <>
@@ -33,7 +29,7 @@ export default async function LocaleHomePage({ params }: Props) {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
         />
       ))}
-      <HomePage locale={locale} initialData={data} />
+      <HomePage locale={locale} />
     </>
-  );
+  )
 }
