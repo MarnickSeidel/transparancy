@@ -282,6 +282,73 @@ export default function Dashboard() {
           </div>
         )}
 
+        <section className="mb-6 flex flex-wrap items-end gap-3 rounded-2xl border border-border-subtle bg-elevated p-4 shadow-card">
+          <div>
+            <label className="block text-xs font-medium text-muted" htmlFor="dashboard-city-filter">
+              {txt.city}
+            </label>
+            <select
+              id="dashboard-city-filter"
+              className="mt-1 min-w-[180px] rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
+              value={city}
+              onChange={(e) => {
+                setCity(e.target.value);
+                setNeighborhood("all");
+              }}
+            >
+              <option value="all">{txt.all}</option>
+              {cities.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted" htmlFor="dashboard-estrato-filter">
+              {txt.estrato}
+            </label>
+            <select
+              id="dashboard-estrato-filter"
+              className="mt-1 rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
+              value={estrato}
+              onChange={(e) => setEstrato(e.target.value)}
+            >
+              <option value="all">{txt.all}</option>
+              {estratos.map((e) => (
+                <option key={e} value={String(e)}>
+                  {e}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs font-medium text-muted" htmlFor="dashboard-neighborhood-filter">
+              {txt.neighborhood}
+            </label>
+            <select
+              id="dashboard-neighborhood-filter"
+              className="mt-1 min-w-[200px] rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
+              value={neighborhood}
+              onChange={(e) => setNeighborhood(e.target.value)}
+            >
+              <option value="all">{txt.all}</option>
+              {neighborhoods.map((n) => (
+                <option key={n} value={n}>
+                  {n}
+                </option>
+              ))}
+            </select>
+          </div>
+          <button
+            type="button"
+            className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-sm transition hover:bg-accent-hover"
+            onClick={() => void load()}
+          >
+            {txt.refresh}
+          </button>
+        </section>
+
         <section className="mb-6 surface-hero p-6 md:p-8">
           <p className="text-section-label">{txt.dashboardSnapshot}</p>
           <p className="mt-1 text-meta">
@@ -397,73 +464,6 @@ export default function Dashboard() {
               {txt.dashboardOpenEstimator}
             </Link>
           </div>
-        </section>
-
-        <section className="mb-8 flex flex-wrap items-end gap-3 rounded-2xl border border-border-subtle bg-elevated p-4 shadow-card">
-          <div>
-            <label className="block text-xs font-medium text-muted" htmlFor="dashboard-city-filter">
-              {txt.city}
-            </label>
-            <select
-              id="dashboard-city-filter"
-              className="mt-1 min-w-[180px] rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
-              value={city}
-              onChange={(e) => {
-                setCity(e.target.value);
-                setNeighborhood("all");
-              }}
-            >
-              <option value="all">{txt.all}</option>
-              {cities.map((c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted" htmlFor="dashboard-estrato-filter">
-              {txt.estrato}
-            </label>
-            <select
-              id="dashboard-estrato-filter"
-              className="mt-1 rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
-              value={estrato}
-              onChange={(e) => setEstrato(e.target.value)}
-            >
-              <option value="all">{txt.all}</option>
-              {estratos.map((e) => (
-                <option key={e} value={String(e)}>
-                  {e}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-medium text-muted" htmlFor="dashboard-neighborhood-filter">
-              {txt.neighborhood}
-            </label>
-            <select
-              id="dashboard-neighborhood-filter"
-              className="mt-1 min-w-[200px] rounded-xl border border-border-subtle bg-elevated px-3 py-2.5 text-sm shadow-sm"
-              value={neighborhood}
-              onChange={(e) => setNeighborhood(e.target.value)}
-            >
-              <option value="all">{txt.all}</option>
-              {neighborhoods.map((n) => (
-                <option key={n} value={n}>
-                  {n}
-                </option>
-              ))}
-            </select>
-          </div>
-          <button
-            type="button"
-            className="rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-fg shadow-sm transition hover:bg-accent-hover"
-            onClick={() => void load()}
-          >
-            {txt.refresh}
-          </button>
         </section>
 
         <section className="mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
