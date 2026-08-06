@@ -503,6 +503,17 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
             price_events,
         )
 
+    # If a listing returns from archive, drop its thin fact so trends don't double-count.
+    cur.execute("SELECT to_regclass('public.listing_market_facts')")
+    if cur.fetchone()[0] is not None:
+        cur.execute(
+            """
+            DELETE FROM listing_market_facts
+            WHERE external_id = ANY(%s)
+            """,
+            (external_ids,),
+        )
+
     conn.commit()
     return {
         "written": len(prepared),
@@ -684,6 +695,120 @@ def refresh_zone_list_aggregates(conn) -> None:
     conn.commit()
 
 
+# Detail blobs safe to drop on aged inactive listings. Metrics, ids, and
+# market window (first/last seen, ppm2, barrio, estrato) are preserved for trends.
+_SOFT_SHRINK_COLUMNS = (
+    "description",
+    "facilities",
+    "technical_sheet",
+    "quality_flags",
+    "address",
+    "owner_name",
+    "image_url",
+    "location_path",
+)
+
+
+def soft_shrink_inactive(
+    conn,
+    *,
+    min_inactive_days: int = 14,
+    dry_run: bool = True,
+    batch_size: int = 5000,
+    city: Optional[str] = None,
+) -> dict[str, int]:
+    """
+    Null heavy detail fields on inactive listings older than min_inactive_days.
+
+    Keeps identity + market-stat columns so neighborhood/estrato trends and
+    external_id reactivation still work. Idempotent: only touches rows that
+    still have at least one shrinkable field set.
+    """
+    if min_inactive_days < 1:
+        raise ValueError("min_inactive_days must be >= 1")
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
+
+    cur = conn.cursor()
+    city_clause = ""
+    params: list[Any] = [min_inactive_days]
+    if city and str(city).strip():
+        city_clause = " AND city ILIKE %s"
+        params.append(str(city).strip())
+
+    still_fat = " OR ".join(f"{col} IS NOT NULL" for col in _SOFT_SHRINK_COLUMNS)
+    byte_expr = " + ".join(
+        f"COALESCE(octet_length({col}::text), 0)"
+        if col
+        in ("facilities", "technical_sheet", "quality_flags", "location_path")
+        else f"COALESCE(octet_length({col}), 0)"
+        for col in _SOFT_SHRINK_COLUMNS
+    )
+
+    cur.execute(
+        f"""
+        SELECT
+          COUNT(*)::bigint,
+          COALESCE(SUM({byte_expr}), 0)::bigint
+        FROM listings
+        WHERE is_active = false
+          AND last_seen_at < NOW() - (%s * interval '1 day')
+          AND ({still_fat}){city_clause}
+        """,
+        params,
+    )
+    candidates, approx_bytes = cur.fetchone()
+    candidates_n = int(candidates or 0)
+    approx_bytes_n = int(approx_bytes or 0)
+
+    if dry_run or candidates_n == 0:
+        return {
+            "candidates": candidates_n,
+            "updated": 0,
+            "approx_bytes": approx_bytes_n,
+            "min_inactive_days": min_inactive_days,
+        }
+
+    set_sql = ", ".join(f"{col} = NULL" for col in _SOFT_SHRINK_COLUMNS)
+    updated_total = 0
+    while True:
+        batch_params: list[Any] = [min_inactive_days]
+        if city and str(city).strip():
+            batch_params.append(str(city).strip())
+        batch_params.append(batch_size)
+        cur.execute(
+            f"""
+            WITH doomed AS (
+              SELECT id
+              FROM listings
+              WHERE is_active = false
+                AND last_seen_at < NOW() - (%s * interval '1 day')
+                AND ({still_fat}){city_clause}
+              ORDER BY last_seen_at ASC
+              LIMIT %s
+              FOR UPDATE SKIP LOCKED
+            )
+            UPDATE listings l
+            SET {set_sql}
+            FROM doomed d
+            WHERE l.id = d.id
+            """,
+            batch_params,
+        )
+        batch_n = cur.rowcount
+        conn.commit()
+        updated_total += batch_n
+        if batch_n == 0:
+            break
+
+    return {
+        "candidates": candidates_n,
+        "updated": updated_total,
+        "approx_bytes": approx_bytes_n,
+        "min_inactive_days": min_inactive_days,
+    }
+
+
 def refresh_deals_after_scrape(
     conn,
     threshold_pct: Optional[float] = None,
@@ -797,3 +922,168 @@ def refresh_deals_after_scrape(
         page_size=200,
     )
     conn.commit()
+
+
+def archive_inactive_to_facts(
+    conn,
+    *,
+    min_inactive_days: int = 90,
+    dry_run: bool = True,
+    batch_size: int = 2000,
+    city: Optional[str] = None,
+) -> dict[str, int]:
+    """
+    Copy aged inactive listings into listing_market_facts, then delete full rows.
+
+    Preserves per-listing ppm2 + market window for trends. Price events cascade
+    away with the listing row. Idempotent via external_id upsert on facts.
+    """
+    if min_inactive_days < 1:
+        raise ValueError("min_inactive_days must be >= 1")
+    if batch_size < 1:
+        raise ValueError("batch_size must be >= 1")
+
+    cur = conn.cursor()
+    city_clause = ""
+    params: list[Any] = [min_inactive_days]
+    if city and str(city).strip():
+        city_clause = " AND city ILIKE %s"
+        params.append(str(city).strip())
+
+    cur.execute(
+        f"""
+        SELECT COUNT(*)::bigint
+        FROM listings
+        WHERE is_active = false
+          AND last_seen_at < NOW() - (%s * interval '1 day')
+          AND price_per_m2 IS NOT NULL
+          AND area_m2 >= 5{city_clause}
+        """,
+        params,
+    )
+    candidates = int(cur.fetchone()[0] or 0)
+
+    if dry_run or candidates == 0:
+        return {
+            "candidates": candidates,
+            "archived": 0,
+            "deleted": 0,
+            "min_inactive_days": min_inactive_days,
+        }
+
+    archived_total = 0
+    deleted_total = 0
+    while True:
+        batch_params: list[Any] = [min_inactive_days]
+        if city and str(city).strip():
+            batch_params.append(str(city).strip())
+        batch_params.append(batch_size)
+        cur.execute(
+            f"""
+            WITH doomed AS (
+              SELECT
+                id,
+                external_id,
+                city,
+                neighborhood,
+                estrato,
+                property_type,
+                operation_type,
+                price_cop,
+                area_m2,
+                price_per_m2,
+                source_created_at,
+                first_seen_at,
+                last_seen_at,
+                latitude,
+                longitude
+              FROM listings
+              WHERE is_active = false
+                AND last_seen_at < NOW() - (%s * interval '1 day')
+                AND price_per_m2 IS NOT NULL
+                AND area_m2 >= 5{city_clause}
+              ORDER BY last_seen_at ASC
+              LIMIT %s
+              FOR UPDATE SKIP LOCKED
+            ),
+            upserted AS (
+              INSERT INTO listing_market_facts (
+                id, external_id, city, neighborhood, estrato, property_type,
+                operation_type, price_cop, area_m2, price_per_m2,
+                source_created_at, first_seen_at, last_seen_at,
+                latitude, longitude, archived_at
+              )
+              SELECT
+                gen_random_uuid(),
+                d.external_id,
+                d.city,
+                d.neighborhood,
+                d.estrato,
+                d.property_type,
+                d.operation_type,
+                d.price_cop,
+                d.area_m2,
+                d.price_per_m2,
+                d.source_created_at,
+                d.first_seen_at,
+                d.last_seen_at,
+                d.latitude,
+                d.longitude,
+                NOW()
+              FROM doomed d
+              ON CONFLICT (external_id) DO UPDATE SET
+                city = EXCLUDED.city,
+                neighborhood = EXCLUDED.neighborhood,
+                estrato = EXCLUDED.estrato,
+                property_type = EXCLUDED.property_type,
+                operation_type = EXCLUDED.operation_type,
+                price_cop = EXCLUDED.price_cop,
+                area_m2 = EXCLUDED.area_m2,
+                price_per_m2 = EXCLUDED.price_per_m2,
+                source_created_at = EXCLUDED.source_created_at,
+                first_seen_at = EXCLUDED.first_seen_at,
+                last_seen_at = EXCLUDED.last_seen_at,
+                latitude = EXCLUDED.latitude,
+                longitude = EXCLUDED.longitude,
+                archived_at = NOW()
+              RETURNING external_id
+            ),
+            deleted AS (
+              DELETE FROM listings l
+              USING doomed d
+              WHERE l.id = d.id
+              RETURNING l.id
+            )
+            SELECT
+              (SELECT COUNT(*) FROM upserted)::int,
+              (SELECT COUNT(*) FROM deleted)::int
+            """,
+            batch_params,
+        )
+        archived_n, deleted_n = cur.fetchone()
+        conn.commit()
+        archived_total += int(archived_n or 0)
+        deleted_total += int(deleted_n or 0)
+        if deleted_n == 0:
+            break
+
+    return {
+        "candidates": candidates,
+        "archived": archived_total,
+        "deleted": deleted_total,
+        "min_inactive_days": min_inactive_days,
+    }
+
+
+def vacuum_listings_full(conn) -> None:
+    """Rewrite listings to reclaim disk. Requires autocommit (no open transaction)."""
+    old = conn.autocommit
+    conn.autocommit = True
+    try:
+        cur = conn.cursor()
+        cur.execute("VACUUM FULL listings")
+        cur.execute("VACUUM FULL listing_market_facts")
+        cur.execute("ANALYZE listings")
+        cur.execute("ANALYZE listing_market_facts")
+    finally:
+        conn.autocommit = old

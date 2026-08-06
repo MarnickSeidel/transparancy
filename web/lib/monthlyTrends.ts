@@ -18,26 +18,30 @@ export function clampTrendMonths(raw: number | undefined): number {
   return Math.max(3, Math.min(24, parsed));
 }
 
-function buildListingFilters(args: {
-  city?: string | null;
-  neighborhood?: string | null;
-  estrato?: string | null;
-}): Prisma.Sql[] {
+function buildMarketFilters(
+  alias: "l" | "f",
+  args: {
+    city?: string | null;
+    neighborhood?: string | null;
+    estrato?: string | null;
+  },
+): Prisma.Sql[] {
+  const a = Prisma.raw(alias);
   const conditions: Prisma.Sql[] = [
-    Prisma.sql`l.price_per_m2 IS NOT NULL`,
-    Prisma.sql`l.area_m2 >= ${MIN_ANALYTICS_AREA_M2}`,
+    Prisma.sql`${a}.price_per_m2 IS NOT NULL`,
+    Prisma.sql`${a}.area_m2 >= ${MIN_ANALYTICS_AREA_M2}`,
   ];
 
   if (args.city && args.city !== "all") {
-    conditions.push(Prisma.sql`l.city = ${args.city}`);
+    conditions.push(Prisma.sql`${a}.city = ${args.city}`);
   }
   if (args.neighborhood && args.neighborhood !== "all") {
-    conditions.push(Prisma.sql`l.neighborhood = ${args.neighborhood}`);
+    conditions.push(Prisma.sql`${a}.neighborhood = ${args.neighborhood}`);
   }
   if (args.estrato && args.estrato !== "all") {
     const parsed = Number.parseInt(args.estrato, 10);
     if (!Number.isNaN(parsed)) {
-      conditions.push(Prisma.sql`l.estrato = ${parsed}`);
+      conditions.push(Prisma.sql`${a}.estrato = ${parsed}`);
     }
   }
 
@@ -74,14 +78,18 @@ type RawTrendRow = {
   p75_ppm2: number | null;
 };
 
-/** Listings on market during each calendar month (supports neighborhood/estrato filters). */
+/**
+ * Listings on market during each calendar month (supports neighborhood/estrato filters).
+ * Includes thin archived facts so aged inactive history survives soft-archive.
+ */
 async function queryActivityWindowTrends(args: {
   city?: string | null;
   neighborhood?: string | null;
   estrato?: string | null;
   months: number;
 }): Promise<RawTrendRow[]> {
-  const listingFilters = buildListingFilters(args);
+  const listingFilters = buildMarketFilters("l", args);
+  const factFilters = buildMarketFilters("f", args);
 
   return prisma.$queryRaw<RawTrendRow[]>(Prisma.sql`
     WITH month_series AS (
@@ -93,12 +101,22 @@ async function queryActivityWindowTrends(args: {
       ) AS gs
     ),
     eligible AS (
-      SELECT
-        l.price_per_m2,
-        COALESCE(l.source_created_at, l.first_seen_at, l.date_scraped) AS market_start,
-        l.last_seen_at AS market_end
-      FROM listings l
-      WHERE ${Prisma.join(listingFilters, " AND ")}
+      SELECT price_per_m2, market_start, market_end
+      FROM (
+        SELECT
+          l.price_per_m2,
+          COALESCE(l.source_created_at, l.first_seen_at, l.date_scraped) AS market_start,
+          l.last_seen_at AS market_end
+        FROM listings l
+        WHERE ${Prisma.join(listingFilters, " AND ")}
+        UNION ALL
+        SELECT
+          f.price_per_m2,
+          COALESCE(f.source_created_at, f.first_seen_at) AS market_start,
+          f.last_seen_at AS market_end
+        FROM listing_market_facts f
+        WHERE ${Prisma.join(factFilters, " AND ")}
+      ) u
     ),
     paired AS (
       SELECT
@@ -190,11 +208,21 @@ export async function queryMonthlyTrends(args: {
       // Table may not exist until migration 20260712180000 is applied.
       snapshotRows = [];
     }
-    const liveRows = await queryActivityWindowTrends({ ...args, months });
+    let liveRows: RawTrendRow[];
+    try {
+      liveRows = await queryActivityWindowTrends({ ...args, months });
+    } catch {
+      // listing_market_facts may not exist until migration 20260806190000.
+      liveRows = await queryActivityWindowTrendsListingsOnly({ ...args, months });
+    }
     rows =
       snapshotRows.length > 0 ? mergeTrendRows(snapshotRows, liveRows) : liveRows;
   } else {
-    rows = await queryActivityWindowTrends({ ...args, months });
+    try {
+      rows = await queryActivityWindowTrends({ ...args, months });
+    } catch {
+      rows = await queryActivityWindowTrendsListingsOnly({ ...args, months });
+    }
   }
 
   return {
@@ -202,4 +230,52 @@ export async function queryMonthlyTrends(args: {
     minSampleSize: MIN_SAMPLE_SIZE,
     rows: mapTrendRows(rows),
   };
+}
+
+/** Fallback before listing_market_facts migration is applied. */
+async function queryActivityWindowTrendsListingsOnly(args: {
+  city?: string | null;
+  neighborhood?: string | null;
+  estrato?: string | null;
+  months: number;
+}): Promise<RawTrendRow[]> {
+  const listingFilters = buildMarketFilters("l", args);
+
+  return prisma.$queryRaw<RawTrendRow[]>(Prisma.sql`
+    WITH month_series AS (
+      SELECT gs::date AS month_start
+      FROM generate_series(
+        date_trunc('month', NOW())::date - ((${args.months} - 1) * interval '1 month'),
+        date_trunc('month', NOW())::date,
+        interval '1 month'
+      ) AS gs
+    ),
+    eligible AS (
+      SELECT
+        l.price_per_m2,
+        COALESCE(l.source_created_at, l.first_seen_at, l.date_scraped) AS market_start,
+        l.last_seen_at AS market_end
+      FROM listings l
+      WHERE ${Prisma.join(listingFilters, " AND ")}
+    ),
+    paired AS (
+      SELECT
+        ms.month_start,
+        e.price_per_m2
+      FROM month_series ms
+      INNER JOIN eligible e ON
+        e.market_start < (ms.month_start + interval '1 month')
+        AND e.market_end >= ms.month_start
+    )
+    SELECT
+      ms.month_start AS month,
+      COUNT(p.price_per_m2)::bigint AS sample,
+      percentile_cont(0.5) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS median_ppm2,
+      percentile_cont(0.25) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS p25_ppm2,
+      percentile_cont(0.75) WITHIN GROUP (ORDER BY p.price_per_m2)::float8 AS p75_ppm2
+    FROM month_series ms
+    LEFT JOIN paired p ON p.month_start = ms.month_start
+    GROUP BY ms.month_start
+    ORDER BY ms.month_start ASC
+  `);
 }

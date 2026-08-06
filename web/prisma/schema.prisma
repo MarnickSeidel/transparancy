@@ -134,6 +134,31 @@ model MonthlyMarketSnapshot {
   @@map("monthly_market_snapshots")
 }
 
+// Thin market facts for aged inactive listings (trends/reactivation without full row).
+model ListingMarketFact {
+  id               String    @id @default(uuid()) @db.Uuid
+  externalId       String    @unique @map("external_id")
+  city             String
+  neighborhood     String?
+  estrato          Int?
+  propertyType     String?   @map("property_type")
+  operationType    String?   @map("operation_type")
+  priceCop         BigInt    @map("price_cop")
+  areaM2           Float     @map("area_m2")
+  pricePerM2       Float     @map("price_per_m2")
+  sourceCreatedAt  DateTime? @map("source_created_at")
+  firstSeenAt      DateTime  @map("first_seen_at")
+  lastSeenAt       DateTime  @map("last_seen_at")
+  latitude         Float?
+  longitude        Float?
+  archivedAt       DateTime  @default(now()) @map("archived_at") @db.Timestamptz
+
+  @@index([city, lastSeenAt])
+  @@index([city, neighborhood])
+  @@index([lastSeenAt])
+  @@map("listing_market_facts")
+}
+
 model Subscriber {
   id         String   @id @default(uuid()) @db.Uuid
   email      String   @unique

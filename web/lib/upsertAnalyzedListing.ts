@@ -113,6 +113,15 @@ export const upsertAnalyzedListing = async (
     })
   }
 
+  // Avoid double-counting if this listing was previously thin-archived.
+  try {
+    await prisma.listingMarketFact.deleteMany({
+      where: { externalId: listing.externalId },
+    })
+  } catch {
+    // Table may not exist until migration 20260806190000 is applied.
+  }
+
   return { listing, created, priceChanged }
 }
 

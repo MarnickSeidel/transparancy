@@ -159,15 +159,45 @@ def main() -> int:
     print(f"\nFinished refresh: {ran} city/cities.", flush=True)
     print_global_summary(url)
 
-    from db import connect, refresh_deals_after_scrape, refresh_zone_list_aggregates
+    from db import (
+        archive_inactive_to_facts,
+        connect,
+        refresh_deals_after_scrape,
+        refresh_zone_list_aggregates,
+        soft_shrink_inactive,
+    )
 
-    print("\nPost-refresh maintenance (deal scores + zone aggregates)…", flush=True)
+    print(
+        "\nPost-refresh maintenance "
+        "(deals + zone MV + soft-shrink + archive aged inactive)…",
+        flush=True,
+    )
     conn = connect()
     try:
         refresh_deals_after_scrape(conn, city=None)
         print("  Deal scores updated for all active listings.", flush=True)
         refresh_zone_list_aggregates(conn)
         print("  zone_list_aggregates materialized view refreshed.", flush=True)
+        shrink = soft_shrink_inactive(conn, min_inactive_days=14, dry_run=False)
+        mb = shrink["approx_bytes"] / 1024 / 1024
+        print(
+            f"  Soft-shrink: updated {shrink['updated']:,} inactive rows "
+            f"(~{mb:.1f} MB detail payload was eligible).",
+            flush=True,
+        )
+        archived = archive_inactive_to_facts(
+            conn, min_inactive_days=90, dry_run=False
+        )
+        print(
+            f"  Archive: moved {archived['deleted']:,} inactive (>90d) "
+            f"to listing_market_facts.",
+            flush=True,
+        )
+        print(
+            "  Tip: run `python archive_inactive_listings.py --apply --vacuum` "
+            "occasionally to reclaim disk on Supabase.",
+            flush=True,
+        )
     finally:
         conn.close()
 

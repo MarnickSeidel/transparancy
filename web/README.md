@@ -106,7 +106,41 @@ Deal scores and zone aggregates are maintained by the scraper pipeline. Without 
 ```bash
 python refresh_derived_data.py
 python refresh_derived_data.py --city Pereira   # deals scoped; MV refresh still global
+python refresh_derived_data.py --soft-shrink    # also null detail blobs on aged inactive
 ```
+
+### Soft-shrink inactive listings (storage)
+
+Aged inactive rows keep market facts (ppm2, barrio, dates, `external_id`) but drop detail blobs (description, facilities, technical sheet, quality flags, etc.). Default threshold: **14 days** since `last_seen_at`.
+
+```bash
+cd scraper
+python soft_shrink_inactive.py              # dry-run
+python soft_shrink_inactive.py --apply      # write
+python soft_shrink_inactive.py --apply --days 14
+```
+
+### Archive aged inactive → thin facts (real MB reclaim)
+
+Inactive listings older than **90 days** are copied into `listing_market_facts` (sticky-note stats), then deleted from `listings`. Trends still use those points. `VACUUM FULL` is what makes the Supabase size meter drop.
+
+```bash
+cd scraper
+python archive_inactive_listings.py                    # dry-run
+python archive_inactive_listings.py --apply            # archive + delete
+python archive_inactive_listings.py --apply --vacuum   # + reclaim disk (locks briefly)
+```
+
+**Periodic options**
+
+| When | How |
+|------|-----|
+| After each monthly city refresh | Soft-shrink + archive (no vacuum) in `run_monthly_refresh.py` |
+| When Supabase size is near the plan limit | `python archive_inactive_listings.py --apply --vacuum` |
+| Weekly without scraping | Schedule soft-shrink and/or archive `--apply` |
+| Ad-hoc with deals + MV | `python refresh_derived_data.py --soft-shrink` |
+
+Disk files may not shrink until `VACUUM FULL` (or gradual autovacuum reuse). `--vacuum` locks `listings` for a few minutes.
 
 ## Common pitfalls
 
