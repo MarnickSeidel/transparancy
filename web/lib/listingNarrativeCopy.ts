@@ -71,6 +71,18 @@ export const narrativeCopy = {
       "Compras cotidianas: {place} a unos {dist}.",
       "A {dist} está {place} para el mercado del día a día.",
     ],
+    nearbyFood: [
+      "Para comer o un café: {place} a unos {dist}.",
+      "A {dist} queda {place}.",
+    ],
+    nearbySports: [
+      "Deporte y ocio cerca: {place} (~{dist}).",
+      "A {dist} está {place}.",
+    ],
+    nearbyServices: [
+      "Bancos y cajeros a mano: {place} (~{dist}).",
+      "A {dist} queda {place}.",
+    ],
     nearbyTransit: [
       "Moverse es fácil: {place} a ~{dist}.",
       "Transporte cercano — {place} (~{dist}).",
@@ -185,6 +197,18 @@ export const narrativeCopy = {
     nearbyGrocery: [
       "Daily errands: {place} about {dist} away.",
       "{place} is ~{dist} for everyday shopping.",
+    ],
+    nearbyFood: [
+      "Food or coffee nearby: {place} about {dist} away.",
+      "{place} is ~{dist} away.",
+    ],
+    nearbySports: [
+      "Sports and leisure close by: {place} (~{dist}).",
+      "{place} is about {dist} away.",
+    ],
+    nearbyServices: [
+      "Banks and ATMs nearby: {place} (~{dist}).",
+      "{place} is ~{dist} away.",
     ],
     nearbyTransit: [
       "Easy to move around: {place} ~{dist} away.",

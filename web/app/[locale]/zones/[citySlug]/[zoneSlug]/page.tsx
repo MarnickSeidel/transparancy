@@ -3,6 +3,8 @@ import { notFound } from "next/navigation";
 import ZoneDossier from "@/app/components/ZoneDossier";
 import { getRelatedZones } from "@/lib/getRelatedZones";
 import { getZoneDossier } from "@/lib/getZoneDossier";
+import { ZONE_NEARBY_RADIUS_M } from "@/lib/nearbyAmenities";
+import { getCachedNearbyAmenities } from "@/lib/serverCache";
 import { breadcrumbJsonLd } from "@/lib/trustSeo";
 import { LOCALES, stripLocalePrefix, type Locale } from "@/lib/locale";
 import { zoneIntroParagraphs } from "@/lib/zoneCopy";
@@ -60,6 +62,17 @@ export default async function ZoneDetailPage({ params }: Props) {
   const introParagraphs = zoneIntroParagraphs(dossier, locale);
   const breadcrumbItems = zoneBreadcrumbItems(dossier, locale);
 
+  const initialNearby =
+    dossier.geoListingCount >= 3 &&
+    dossier.centroidLatitude != null &&
+    dossier.centroidLongitude != null
+      ? await getCachedNearbyAmenities(
+          dossier.centroidLatitude,
+          dossier.centroidLongitude,
+          ZONE_NEARBY_RADIUS_M,
+        ).catch(() => null)
+      : null;
+
   const jsonLd = [
     zoneJsonLd(dossier, locale),
     breadcrumbJsonLd(
@@ -85,6 +98,7 @@ export default async function ZoneDetailPage({ params }: Props) {
         zoneSlug={params.zoneSlug}
         locale={locale}
         initialData={dossier}
+        initialNearby={initialNearby}
         introParagraphs={introParagraphs}
         breadcrumbItems={breadcrumbItems}
         relatedZones={relatedZones}

@@ -15,6 +15,9 @@ type Props = {
   compact?: boolean
   className?: string
   hideTitle?: boolean
+  variant?: "listing" | "zone"
+  /** Server-prefetched result — shown immediately; skips client fetch when present. */
+  initialData?: NearbyAmenitiesResult | null
   /** When set, skips the internal fetch (shared with listing narrative). */
   prefetched?: {
     data: NearbyAmenitiesResult | null
@@ -33,11 +36,14 @@ export default function NearbyAmenitiesSection({
   compact = false,
   className = "",
   hideTitle = false,
+  variant = "listing",
+  initialData = null,
   prefetched,
 }: Props) {
   const fetched = useNearbyAmenities(latitude, longitude, {
     enabled: enabled && !prefetched,
     radiusM,
+    initialData: prefetched ? null : initialData,
   })
 
   const data = prefetched?.data ?? fetched.data
@@ -56,6 +62,7 @@ export default function NearbyAmenitiesSection({
         locale={locale}
         compact={compact}
         hideTitle={hideTitle}
+        variant={variant}
       />
     </div>
   )

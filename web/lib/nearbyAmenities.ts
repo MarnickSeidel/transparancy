@@ -1,6 +1,8 @@
 import { haversineMeters } from "@/lib/geoHaversine"
 
 export const DEFAULT_NEARBY_RADIUS_M = 1000
+/** Wider search for barrio dossiers (centroid often sits away from the commercial strip). */
+export const ZONE_NEARBY_RADIUS_M = 2000
 export const MAX_NEARBY_RADIUS_M = 3000
 export const MAX_PLACES_PER_CATEGORY = 5
 
@@ -9,8 +11,11 @@ export type OsmTagFilter = { key: string; value: string }
 export type PoiCategoryId =
   | "education"
   | "health"
+  | "food"
   | "groceries"
+  | "sports"
   | "parks"
+  | "services"
   | "transit"
 
 export type PoiCategoryDef = {
@@ -24,6 +29,8 @@ export const POI_CATEGORIES: PoiCategoryDef[] = [
     osmFilters: [
       { key: "amenity", value: "school" },
       { key: "amenity", value: "kindergarten" },
+      { key: "amenity", value: "university" },
+      { key: "amenity", value: "college" },
     ],
   },
   {
@@ -36,11 +43,33 @@ export const POI_CATEGORIES: PoiCategoryDef[] = [
     ],
   },
   {
+    id: "food",
+    osmFilters: [
+      { key: "amenity", value: "restaurant" },
+      { key: "amenity", value: "cafe" },
+      { key: "amenity", value: "fast_food" },
+      { key: "amenity", value: "bar" },
+    ],
+  },
+  {
     id: "groceries",
     osmFilters: [
       { key: "shop", value: "supermarket" },
       { key: "shop", value: "convenience" },
       { key: "shop", value: "grocery" },
+      { key: "shop", value: "mall" },
+      { key: "shop", value: "clothes" },
+      { key: "shop", value: "bakery" },
+      { key: "amenity", value: "marketplace" },
+    ],
+  },
+  {
+    id: "sports",
+    osmFilters: [
+      { key: "leisure", value: "fitness_centre" },
+      { key: "leisure", value: "sports_centre" },
+      { key: "leisure", value: "swimming_pool" },
+      { key: "leisure", value: "pitch" },
     ],
   },
   {
@@ -48,6 +77,13 @@ export const POI_CATEGORIES: PoiCategoryDef[] = [
     osmFilters: [
       { key: "leisure", value: "park" },
       { key: "leisure", value: "playground" },
+    ],
+  },
+  {
+    id: "services",
+    osmFilters: [
+      { key: "amenity", value: "bank" },
+      { key: "amenity", value: "atm" },
     ],
   },
   {
@@ -176,6 +212,7 @@ const resolveSubType = (tags: Record<string, string>): string => {
   if (tags.highway) return tags.highway
   if (tags.railway) return tags.railway
   if (tags.public_transport) return tags.public_transport
+  if (tags.tourism) return tags.tourism
   return "place"
 }
 
@@ -284,19 +321,34 @@ export const fetchNearbyAmenities = async (
       const distanceM = haversineMeters(lat, lng, coords.lat, coords.lng)
       if (distanceM > radiusM) continue
 
+      const name = resolveName(tags)
+      const subType = resolveSubType(tags)
+      // Unnamed pools/pitches are usually private compounds — skip for barrio signal.
+      if (
+        categoryId === "sports" &&
+        !name &&
+        (subType === "swimming_pool" || subType === "pitch")
+      ) {
+        continue
+      }
+
       buckets.get(categoryId)?.push({
-        name: resolveName(tags),
+        name,
         distanceM,
         lat: coords.lat,
         lng: coords.lng,
-        subType: resolveSubType(tags),
+        subType,
       })
     }
 
     const categories: NearbyCategoryResult[] = POI_CATEGORIES.map((category) => {
-      const sorted = (buckets.get(category.id) ?? []).sort(
-        (a, b) => a.distanceM - b.distanceM,
-      )
+      const sorted = (buckets.get(category.id) ?? []).sort((a, b) => {
+        // Prefer named places so the UI surfaces recognizable finds first.
+        const aNamed = a.name ? 0 : 1
+        const bNamed = b.name ? 0 : 1
+        if (aNamed !== bNamed) return aNamed - bNamed
+        return a.distanceM - b.distanceM
+      })
       return {
         id: category.id,
         count: sorted.length,

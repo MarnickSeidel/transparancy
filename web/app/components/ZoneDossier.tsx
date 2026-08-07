@@ -15,6 +15,8 @@ import PromoCard from "@/app/components/ui/PromoCard";
 import Button from "@/app/components/ui/Button";
 import { buildFincaRaizSearchUrl } from "@/lib/fincaraizSearch";
 import { formatFreshnessDate } from "@/lib/getDataFreshness";
+import type { NearbyAmenitiesResult } from "@/lib/nearbyAmenities";
+import { ZONE_NEARBY_RADIUS_M } from "@/lib/nearbyAmenities";
 import {
   DEFAULT_MIN_ZONE_DATA_POINTS,
   isApartmentType,
@@ -38,6 +40,8 @@ type Props = {
   locale?: Locale;
   /** Server-rendered dossier — skips initial client fetch when set. */
   initialData?: ZoneDossier | null;
+  /** Server-prefetched nearby amenities for the barrio centroid. */
+  initialNearby?: NearbyAmenitiesResult | null;
   introParagraphs?: string[];
   breadcrumbItems?: Array<{ label: string; href: string }>;
   relatedZones?: PublishableZone[];
@@ -78,6 +82,7 @@ export default function ZoneDossier({
   zoneSlug,
   locale: pageLocale = "es",
   initialData,
+  initialNearby = null,
   introParagraphs = [],
   breadcrumbItems = [],
   relatedZones = [],
@@ -315,13 +320,14 @@ export default function ZoneDossier({
             data.centroidLatitude != null &&
             data.centroidLongitude != null ? (
               <div className="mb-6">
-                <p className="mb-2 text-xs text-muted">{txt.nearbyAmenitiesZoneSubtitle}</p>
                 <NearbyAmenitiesSection
                   latitude={data.centroidLatitude}
                   longitude={data.centroidLongitude}
                   lang={lang}
                   locale={locale}
-                  hideTitle
+                  radiusM={ZONE_NEARBY_RADIUS_M}
+                  variant="zone"
+                  initialData={initialNearby}
                 />
               </div>
             ) : null}

@@ -142,7 +142,7 @@ export const getCachedNearbyAmenities = (
       }
       return result
     },
-    ["nearby-amenities", latKey, lngKey, String(radiusM)],
+    ["nearby-amenities-v2", latKey, lngKey, String(radiusM)],
     { revalidate: NEARBY_AMENITIES_REVALIDATE },
   )().catch(() => fetchNearbyAmenities(lat, lng, radiusM))
 }

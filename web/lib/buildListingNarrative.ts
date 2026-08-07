@@ -33,7 +33,19 @@ export type ListingNarrativeInput = {
   nearby: NearbyAmenitiesResult | null
 }
 
+/** Walk-narrative categories stay focused; zone UI surfaces the fuller set. */
 const CATEGORY_PRIORITY: PoiCategoryId[] = [
+  "parks",
+  "food",
+  "groceries",
+  "sports",
+  "transit",
+  "education",
+  "health",
+  "services",
+]
+
+const WALK_CATEGORY_PRIORITY: PoiCategoryId[] = [
   "parks",
   "groceries",
   "transit",
@@ -85,8 +97,11 @@ function categoryLabel(id: PoiCategoryId, lang: Lang): string {
   const labels: Record<PoiCategoryId, string> = {
     education: txt.nearbyAmenitiesCategoryEducation.toLowerCase(),
     health: txt.nearbyAmenitiesCategoryHealth.toLowerCase(),
+    food: txt.nearbyAmenitiesCategoryFood.toLowerCase(),
     groceries: txt.nearbyAmenitiesCategoryGroceries.toLowerCase(),
+    sports: txt.nearbyAmenitiesCategorySports.toLowerCase(),
     parks: txt.nearbyAmenitiesCategoryParks.toLowerCase(),
+    services: txt.nearbyAmenitiesCategoryServices.toLowerCase(),
     transit: txt.nearbyAmenitiesCategoryTransit.toLowerCase(),
   }
   return labels[id]
@@ -97,15 +112,31 @@ function subTypeFallback(subType: string, lang: Lang): string {
   const labels: Record<string, string> = {
     school: txt.nearbyAmenitiesSubTypeSchool,
     kindergarten: txt.nearbyAmenitiesSubTypeKindergarten,
+    university: txt.nearbyAmenitiesSubTypeUniversity,
+    college: txt.nearbyAmenitiesSubTypeCollege,
     hospital: txt.nearbyAmenitiesSubTypeHospital,
     clinic: txt.nearbyAmenitiesSubTypeClinic,
     doctors: txt.nearbyAmenitiesSubTypeDoctors,
     pharmacy: txt.nearbyAmenitiesSubTypePharmacy,
+    restaurant: txt.nearbyAmenitiesSubTypeRestaurant,
+    cafe: txt.nearbyAmenitiesSubTypeCafe,
+    fast_food: txt.nearbyAmenitiesSubTypeFastFood,
+    bar: txt.nearbyAmenitiesSubTypeBar,
     supermarket: txt.nearbyAmenitiesSubTypeSupermarket,
     convenience: txt.nearbyAmenitiesSubTypeConvenience,
     grocery: txt.nearbyAmenitiesSubTypeGrocery,
+    mall: txt.nearbyAmenitiesSubTypeMall,
+    clothes: txt.nearbyAmenitiesSubTypeClothes,
+    bakery: txt.nearbyAmenitiesSubTypeBakery,
+    marketplace: txt.nearbyAmenitiesSubTypeMarketplace,
+    fitness_centre: txt.nearbyAmenitiesSubTypeFitnessCentre,
+    sports_centre: txt.nearbyAmenitiesSubTypeSportsCentre,
+    swimming_pool: txt.nearbyAmenitiesSubTypeSwimmingPool,
+    pitch: txt.nearbyAmenitiesSubTypePitch,
     park: txt.nearbyAmenitiesSubTypePark,
     playground: txt.nearbyAmenitiesSubTypePlayground,
+    bank: txt.nearbyAmenitiesSubTypeBank,
+    atm: txt.nearbyAmenitiesSubTypeAtm,
     bus_stop: txt.nearbyAmenitiesSubTypeBusStop,
     bus_station: txt.nearbyAmenitiesSubTypeBusStation,
     station: txt.nearbyAmenitiesSubTypeStation,
@@ -176,6 +207,9 @@ function nearbyPoolForCategory(
 ): readonly string[] {
   if (id === "parks") return copy.nearbyPark
   if (id === "groceries") return copy.nearbyGrocery
+  if (id === "food") return copy.nearbyFood
+  if (id === "sports") return copy.nearbySports
+  if (id === "services") return copy.nearbyServices
   if (id === "transit") return copy.nearbyTransit
   if (id === "education") return copy.nearbyEducation
   return copy.nearbyHealth
@@ -201,7 +235,7 @@ function walkDistanceParagraph(
 ): string | null {
   const copy = narrativeCopy[lang]
   const byCategory = nearestByCategory(nearby)
-  const present = CATEGORY_PRIORITY.filter((id) => byCategory.has(id))
+  const present = WALK_CATEGORY_PRIORITY.filter((id) => byCategory.has(id))
   if (present.length < 3) return null
 
   const intro = pickVariant(copy.walkIntro, seed, 11)
@@ -214,12 +248,12 @@ function walkDistanceParagraph(
       parks: "—",
       transit: "—",
     }
-    for (const id of CATEGORY_PRIORITY) {
+    for (const id of WALK_CATEGORY_PRIORITY) {
       const hit = byCategory.get(id)
       if (hit) distVars[id] = formatDistanceM(hit.distanceM, locale)
     }
-    // Only use full body when we have all five, else partial.
-    if (CATEGORY_PRIORITY.every((id) => byCategory.has(id))) {
+    // Only use full body when we have all five walk categories, else partial.
+    if (WALK_CATEGORY_PRIORITY.every((id) => byCategory.has(id))) {
       return `${intro} ${fill(pickVariant(copy.walkBody, seed, 13), distVars)}`
     }
   }
