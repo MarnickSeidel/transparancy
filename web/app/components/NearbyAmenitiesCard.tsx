@@ -217,7 +217,7 @@ export default function NearbyAmenitiesCard({
               >
                 <button
                   type="button"
-                  className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left"
+                  className="flex w-full items-start justify-between gap-3 px-3 py-3 text-left link-focus disabled:cursor-default disabled:opacity-70"
                   onClick={() => {
                     if (!canExpand) return
                     setExpandedId(isExpanded ? null : category.id)
