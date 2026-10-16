@@ -79,7 +79,6 @@ const listingSelect = {
   isProject: true,
   paidQuota: true,
   highlight: true,
-  description: true,
   dealScore: true,
   url: true,
   imageUrl: true,
@@ -515,13 +514,17 @@ export async function getTopOpportunities(
       analyzeSlice.map((r) => poolCacheKeyForPropertyType(r.propertyType)),
     ),
   )
-  const [priceEventsRaw, ...typePools] = await Promise.all([
+  const [priceEventsRaw, descriptionRows, ...typePools] = await Promise.all([
     prisma.listingPriceEvent.findMany({
       where: {
         listingId: { in: analyzeIds },
         recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
       },
       orderBy: { recordedAt: "desc" },
+    }),
+    prisma.listing.findMany({
+      where: { id: { in: analyzeIds } },
+      select: { id: true, description: true },
     }),
     ...typeKeys.map((key) => {
       const sample = analyzeSlice.find(
@@ -535,6 +538,9 @@ export async function getTopOpportunities(
   typeKeys.forEach((key, i) => {
     poolByType.set(key, typePools[i] ?? [])
   })
+  const descriptionById = new Map(
+    descriptionRows.map((row) => [row.id, row.description]),
+  )
 
   const priceEventsByListing = new Map<string, { priceCop: bigint; recordedAt: Date }[]>()
   for (const ev of priceEventsRaw) {
@@ -548,7 +554,10 @@ export async function getTopOpportunities(
   for (const row of analyzeSlice) {
     if (allResults.length >= MAX_RESULTS) break
 
-    const subject = toDealListingInput(row)
+    const subject = toDealListingInput({
+      ...row,
+      description: descriptionById.get(row.id) ?? null,
+    })
     const typeKey = poolCacheKeyForPropertyType(row.propertyType)
     const pool = poolByType.get(typeKey) ?? []
     const analysis = await analyzeListingDeal(subject, {

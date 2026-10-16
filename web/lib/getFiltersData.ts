@@ -5,6 +5,29 @@ import { catalogNeighborhoodOptionsForCity } from "@/lib/neighborhoodResolver"
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 
+const DEPARTMENT_CACHE_MS = 60 * 60 * 1000
+let departmentNameCache: { at: number; names: Set<string> } | null = null
+
+/** Department names barely change, and grouping them scans every active listing. */
+async function activeDepartmentNames(): Promise<Set<string>> {
+  const now = Date.now()
+  if (departmentNameCache && now - departmentNameCache.at < DEPARTMENT_CACHE_MS) {
+    return departmentNameCache.names
+  }
+  const rows = await prisma.listing.groupBy({
+    by: ["department"],
+    where: { isActive: true },
+    orderBy: { department: "asc" },
+  })
+  const names = new Set(
+    rows
+      .map((r) => r.department?.trim().toLowerCase())
+      .filter((name): name is string => Boolean(name)),
+  )
+  departmentNameCache = { at: now, names }
+  return names
+}
+
 export type FiltersData = {
   cities: string[]
   neighborhoods: string[]
@@ -20,22 +43,19 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
 
   const [
     cityRows,
-    departmentRows,
+    departmentNames,
     neighborhoodRows,
     estratoRows,
     propertyTypeRows,
     operationTypeRows,
+    conjuntoRows,
   ] = await Promise.all([
     prisma.listing.groupBy({
       by: ["city"],
       where: { isActive: true },
       orderBy: { city: "asc" },
     }),
-    prisma.listing.groupBy({
-      by: ["department"],
-      where: { isActive: true },
-      orderBy: { department: "asc" },
-    }),
+    activeDepartmentNames(),
     prisma.listing.groupBy({
       by: ["neighborhood"],
       where: { ...baseWhere, neighborhood: { not: null } },
@@ -57,33 +77,31 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
       where: { ...baseWhere, operationType: { not: null } },
       orderBy: { operationType: "asc" },
     }),
+    city && city !== "all"
+      ? prisma.listing
+          .groupBy({
+            by: ["conjunto"],
+            where: { ...baseWhere, conjunto: { not: null } },
+            _count: { _all: true },
+          })
+          .catch((conjuntoErr: unknown) => {
+            console.error("filters: conjunto groupBy failed (non-fatal)", conjuntoErr)
+            return []
+          })
+      : Promise.resolve([]),
   ])
 
-  let conjuntos: string[] = []
-  if (city && city !== "all") {
-    try {
-      const conjuntoRows = await prisma.listing.groupBy({
-        by: ["conjunto"],
-        where: { ...baseWhere, conjunto: { not: null } },
-        _count: { _all: true },
-      })
-      const grouped = groupConjuntoNames(
-        conjuntoRows
-          .filter(
-            (r): r is typeof r & { conjunto: string } =>
-              r.conjunto != null && r.conjunto.trim().length > 0,
-          )
-          .map((r) => ({ name: r.conjunto, count: r._count._all })),
-      )
-      conjuntos = grouped.map((g) => g.canonical)
-    } catch (conjuntoErr) {
-      console.error("filters: conjunto groupBy failed (non-fatal)", conjuntoErr)
-    }
+  const conjuntoInputs: { name: string; count: number }[] = []
+  for (const row of conjuntoRows) {
+    const name = row.conjunto?.trim()
+    if (!name) continue
+    conjuntoInputs.push({ name, count: row._count._all })
   }
+  const conjuntos =
+    conjuntoInputs.length > 0
+      ? groupConjuntoNames(conjuntoInputs).map((g) => g.canonical)
+      : []
 
-  const departmentNames = new Set(
-    departmentRows.map((r) => r.department?.trim().toLowerCase()).filter(Boolean),
-  )
   const detectedCities = cityRows
     .map((r) => r.city)
     .filter(

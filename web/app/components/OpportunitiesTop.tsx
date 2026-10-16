@@ -397,23 +397,17 @@ export default function OpportunitiesTop({
     setError(null)
     try {
       const filtersUrl = `/api/filters?city=${encodeURIComponent(city)}`
-      const [fJson, oJson] = await Promise.all([
-        fetchJsonCached<{
-          cities?: string[]
-          neighborhoods?: string[]
-          propertyTypes?: string[]
-          estratos?: number[]
-        }>(filtersUrl),
-        fetchJsonCached<{
-          opportunities?: OpportunityRow[]
-          pagination?: PaginationMeta
-        }>(`/api/opportunities${opportunitiesQs}`),
-      ])
+      const filtersPromise = fetchJsonCached<{
+        cities?: string[]
+        neighborhoods?: string[]
+        propertyTypes?: string[]
+        estratos?: number[]
+      }>(filtersUrl)
+      const oJson = await fetchJsonCached<{
+        opportunities?: OpportunityRow[]
+        pagination?: PaginationMeta
+      }>(`/api/opportunities${opportunitiesQs}`)
       if (signal?.aborted) return
-      if (fJson.cities?.length) setCities(fJson.cities)
-      setNeighborhoods(fJson.neighborhoods ?? [])
-      setPropertyTypes(fJson.propertyTypes ?? [])
-      setEstratos(fJson.estratos ?? [])
       setRows((oJson.opportunities ?? []) as OpportunityRow[])
       setPagination(
         oJson.pagination ?? {
@@ -424,6 +418,18 @@ export default function OpportunitiesTop({
         },
       )
       setExpandedId(null)
+      setLoading(false)
+      try {
+        const fJson = await filtersPromise
+        if (signal?.aborted) return
+        if (fJson.cities?.length) setCities(fJson.cities)
+        setNeighborhoods(fJson.neighborhoods ?? [])
+        setPropertyTypes(fJson.propertyTypes ?? [])
+        setEstratos(fJson.estratos ?? [])
+      } catch (filterErr) {
+        if (signal?.aborted || (filterErr instanceof DOMException && filterErr.name === "AbortError")) return
+        console.error(filterErr)
+      }
     } catch (err) {
       if (signal?.aborted || (err instanceof DOMException && err.name === "AbortError")) return
       setError(uiText[lang].couldNotLoad)
@@ -464,6 +470,9 @@ export default function OpportunitiesTop({
   const handleCityChange = (nextCity: string) => {
     setCity(nextCity)
     setNeighborhood("all")
+    setNeighborhoods([])
+    setPropertyTypes([])
+    setEstratos([])
     setSelectedEstratos([])
     setExcludedNeighborhoods([])
     setPage(1)
