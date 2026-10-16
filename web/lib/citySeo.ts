@@ -4,6 +4,7 @@ import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { ogLocale, type Locale } from "@/lib/locale";
 import { localeOgImage, ogImageMeta } from "@/lib/ogImages";
 import { BRAND_NAME } from "@/lib/brand";
+import { pageTitle } from "@/lib/seo";
 import { cityNameToSlug } from "@/lib/getCityFromSlug";
 import { absoluteUrl } from "@/lib/siteUrl";
 import type { PublishableZone } from "@/lib/zones";
@@ -27,7 +28,7 @@ export function cityHubMetadata(
     const url = canonicalForLocale(path, locale);
     const ogImage = localeOgImage(locale);
     return {
-      title,
+      title: pageTitle(title),
       description,
       alternates: { canonical: url, languages: alt.languages },
       openGraph: {
@@ -47,7 +48,7 @@ export function cityHubMetadata(
   const description = `Datos de mercado para ${zoneCount} barrios en ${city}: mediana de precio/m², publicaciones activas y tendencias basadas en anuncios Finca Raíz.`;
   const ogImage = localeOgImage(locale);
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: { canonical: alt.canonical, languages: alt.languages },
     openGraph: {

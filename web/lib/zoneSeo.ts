@@ -4,6 +4,7 @@ import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
 import { localePath, ogLocale, type Locale } from "@/lib/locale";
 import { ogImageMeta, zoneOgImage } from "@/lib/ogImages";
 import { BRAND_NAME } from "@/lib/brand";
+import { pageTitle } from "@/lib/seo";
 import { absoluteUrl } from "@/lib/siteUrl";
 import type { ZoneDossier } from "@/lib/zones";
 
@@ -42,7 +43,7 @@ export function zonePageMetadata(dossier: ZoneDossier, locale: Locale = "es"): M
   const ogImage = zoneOgImage(dossier.citySlug, dossier.slug, locale);
 
   return {
-    title,
+    title: pageTitle(title),
     description,
     ...(!published ? { robots: { index: false, follow: true } } : {}),
     alternates: { canonical, languages: alt.languages },
@@ -113,7 +114,7 @@ export function zonesIndexMetadata(locale: Locale = "es"): Metadata {
     const description =
       "Explore median price per m², active listings, and trends by neighborhood in Bogotá, Medellín, Cali, Pereira, and more Colombian cities. Data for local and US investors.";
     return {
-      title,
+      title: pageTitle(title),
       description,
       alternates: { canonical: canonicalForLocale(path, locale), languages: alt.languages },
       openGraph: {
@@ -131,7 +132,7 @@ export function zonesIndexMetadata(locale: Locale = "es"): Metadata {
   const description =
     "Explora mediana de precio por m², publicaciones activas y tendencias por barrio en Bogotá, Medellín, Cali, Pereira y más ciudades de Colombia.";
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: { canonical: alt.canonical, languages: alt.languages },
     openGraph: {

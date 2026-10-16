@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
+import { pageTitle } from "@/lib/seo";
 import { methodologyFaqJsonLdFromCopy } from "@/lib/methodologyCopy";
 import { ogLocale, type Locale } from "@/lib/locale";
 
@@ -54,7 +55,7 @@ export function trustPageMetadata(page: TrustPage, locale: Locale): Metadata {
   const { title, description } = COPY[page][locale];
 
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: {
       canonical: canonicalForLocale(path, locale),

@@ -112,10 +112,18 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
   };
 }
 
+/**
+ * Document `<title>`. The root layout template appends `| ClaraCasas`.
+ * Titles that already name the brand stay absolute so it is not repeated.
+ */
+export function pageTitle(title: string): Metadata["title"] {
+  return title.includes(BRAND_NAME) ? { absolute: title } : title;
+}
+
 /** Tool/dashboard routes: thin CSR shells — keep out of index until SSR content exists. */
 export function noIndexMetadata(title: string, description?: string): Metadata {
   return {
-    title,
+    title: pageTitle(title),
     description,
     robots: { index: false, follow: true },
   };
@@ -131,7 +139,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
       "Colombia listing-price intelligence: check any ad against barrio comps, or browse ranked undervalued deals. Asking prices from Finca Raíz — not appraisals. For local and US investors.";
     const url = canonicalForLocale(path, locale);
     return {
-      title,
+      title: pageTitle(title),
       description,
       alternates: { canonical: url, languages: alt.languages },
       openGraph: {
@@ -153,7 +161,7 @@ export function homeMetadata(locale: Locale = "es"): Metadata {
   const url = alt.canonical;
   const ogImage = localeOgImage(locale);
   return {
-    title,
+    title: pageTitle(title),
     description,
     alternates: { canonical: url, languages: alt.languages },
     openGraph: {

@@ -1,11 +1,12 @@
 import type { Metadata } from "next"
 
 import SharedReportPageClient from "@/app/r/[slug]/SharedReportPageClient"
+import { pageTitle } from "@/lib/seo"
 
 type Props = { params: { slug: string } }
 
 export const metadata: Metadata = {
-  title: "Informe ClaraCasas",
+  title: pageTitle("Informe ClaraCasas"),
   description: "Análisis compartido de precio por m² vs comparables.",
   robots: { index: false, follow: false },
 }
