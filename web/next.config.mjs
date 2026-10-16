@@ -6,7 +6,7 @@ const nextConfig = {
       "default-src 'self'",
       "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
       "style-src 'self' 'unsafe-inline'",
-      "img-src 'self' data: blob: https://*.fincaraiz.com.co https://*.metrocuadrado.com https://*.cloudinary.com https://images.unsplash.com https://*.infocasas.com.uy https://*.tile.openstreetmap.org",
+      "img-src 'self' data: blob: https://*.fincaraiz.com.co https://s3.amazonaws.com https://*.s3.amazonaws.com https://*.metrocuadrado.com https://*.cloudinary.com https://images.unsplash.com https://*.infocasas.com.uy https://*.tile.openstreetmap.org",
       "font-src 'self' data:",
       "connect-src 'self'",
       "worker-src 'self' blob:",
@@ -36,6 +36,14 @@ const nextConfig = {
       {
         protocol: "https",
         hostname: "**.fincaraiz.com.co",
+      },
+      {
+        protocol: "https",
+        hostname: "s3.amazonaws.com",
+      },
+      {
+        protocol: "https",
+        hostname: "**.s3.amazonaws.com",
       },
       {
         protocol: "https",
