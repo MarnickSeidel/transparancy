@@ -59,19 +59,27 @@ export async function getRecentPriceDrops(
         e.id AS event_id,
         e.listing_id,
         e.price_cop,
-        e.recorded_at,
-        LAG(e.price_cop) OVER (
-          PARTITION BY e.listing_id
-          ORDER BY e.recorded_at ASC
-        ) AS prev_price_cop
+        e.recorded_at
       FROM listing_price_events e
       WHERE e.recorded_at >= NOW() - (${days} * INTERVAL '1 day')
     ),
     drops AS (
-      SELECT *
-      FROM recent_events
-      WHERE prev_price_cop IS NOT NULL
-        AND price_cop < prev_price_cop
+      SELECT
+        r.event_id,
+        r.listing_id,
+        r.price_cop,
+        r.recorded_at,
+        prev.price_cop AS prev_price_cop
+      FROM recent_events r
+      JOIN LATERAL (
+        SELECT e2.price_cop
+        FROM listing_price_events e2
+        WHERE e2.listing_id = r.listing_id
+          AND (e2.recorded_at, e2.id) < (r.recorded_at, r.event_id)
+        ORDER BY e2.recorded_at DESC, e2.id DESC
+        LIMIT 1
+      ) prev ON true
+      WHERE prev.price_cop > r.price_cop
     )
     SELECT
       d.event_id,

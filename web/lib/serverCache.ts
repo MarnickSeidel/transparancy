@@ -155,7 +155,7 @@ export const getCachedGlobalDataFreshness = () =>
   )().then(normalizeDataFreshness)
 
 const priceDropCacheKey = (query: PriceDropQuery): string[] => [
-  "price-drops",
+  "price-drops-v2",
   query.city ?? "all",
   String(query.limit ?? 30),
   String(query.days ?? 30),
