@@ -62,9 +62,9 @@ export default function CityZoneDirectory({ zones, citySlug, locale }: Props) {
   const handleSelect = useCallback(
     (slug: string) => {
       if (!slug) return
-      router.push(lp(`/zones/${citySlug}/${slug}`))
+      router.push(localePath(locale, `/zones/${citySlug}/${slug}`))
     },
-    [citySlug, lp, router],
+    [citySlug, locale, router],
   )
 
   const handleQueryChange = useCallback((query: string) => {
