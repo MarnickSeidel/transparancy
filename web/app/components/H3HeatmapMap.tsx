@@ -10,21 +10,7 @@ import "leaflet/dist/leaflet.css";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
 import { isValidColombiaCoordinate } from "@/lib/nearbyAmenities";
 import type { H3HeatCell } from "@/lib/h3Heatmap";
-
-function fixLeafletIcons() {
-  const proto = L.Icon.Default.prototype as unknown as {
-    _getIconUrl?: string;
-  };
-  delete proto._getIconUrl;
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-    iconUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  });
-}
+import { fixLeafletIcons } from "@/lib/leafletIcons";
 
 function FitCityCells({
   cells,

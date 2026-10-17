@@ -5,6 +5,7 @@ import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet"
 import L from "leaflet"
 import "leaflet/dist/leaflet.css"
 
+import { fixLeafletIcons } from "@/lib/leafletIcons"
 import { listingPath } from "@/lib/locale"
 import {
   isValidColombiaCoordinate,
@@ -38,21 +39,6 @@ type Props = {
 }
 
 const FALLBACK_CENTER: [number, number] = [4.8133, -75.6961]
-
-const fixLeafletIcons = () => {
-  const proto = L.Icon.Default.prototype as unknown as {
-    _getIconUrl?: string
-  }
-  delete proto._getIconUrl
-  L.Icon.Default.mergeOptions({
-    iconRetinaUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
-    iconUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
-    shadowUrl:
-      "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
-  })
-}
 
 const safeMapMove = (map: L.Map, run: () => void) => {
   const container = map.getContainer()
