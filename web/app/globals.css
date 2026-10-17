@@ -182,6 +182,21 @@ body {
     outline-offset: 2px;
   }
 
+  /* Leaflet paths: CSS beats presentation attributes, so theme tokens apply */
+  .estimate-radius-area {
+    stroke: var(--accent);
+    stroke-width: 2;
+    fill: var(--accent);
+    fill-opacity: 0.12;
+  }
+
+  .estimate-radius-center {
+    stroke: #fff;
+    stroke-width: 2;
+    fill: var(--accent);
+    fill-opacity: 1;
+  }
+
   /* Instant navigation feedback (NavigationProgress) */
   .nav-progress {
     position: fixed;

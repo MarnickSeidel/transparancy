@@ -622,6 +622,7 @@ export default function EstimateForm({
                           : [4.65, -74.05]
                     }
                     marker={mapMarker}
+                    radiusMeters={radiusMeters}
                     onPick={(lat, lng) => setMapMarker({ lat, lng })}
                   />
                 </>

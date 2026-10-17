@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from "react";
 import {
+  Circle,
+  CircleMarker,
   MapContainer,
-  Marker,
   TileLayer,
   useMap,
   useMapEvents,
 } from "react-leaflet";
+import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-import { fixLeafletIcons } from "@/lib/leafletIcons";
 
 function MapClickLayer({
   onPick,
@@ -40,35 +40,37 @@ function FlyToCenter({
   return null;
 }
 
-function FlyToMarker({
+function FitRadius({
   marker,
+  radiusMeters,
 }: {
-  marker: { lat: number; lng: number } | null;
+  marker: { lat: number; lng: number };
+  radiusMeters: number;
 }) {
   const map = useMap();
+  const { lat, lng } = marker;
   useEffect(() => {
-    if (!marker) return;
-    map.flyTo([marker.lat, marker.lng], Math.max(map.getZoom(), 14), {
-      duration: 0.75,
-    });
-  }, [marker, map]);
+    const bounds = L.latLng(lat, lng).toBounds(radiusMeters * 2);
+    map.flyToBounds(bounds, { padding: [24, 24], maxZoom: 16, duration: 0.75 });
+  }, [lat, lng, radiusMeters, map]);
   return null;
 }
 
 export default function EstimateMapPicker({
   center,
   marker,
+  radiusMeters,
   onPick,
 }: {
   center: [number, number];
   marker: { lat: number; lng: number } | null;
+  radiusMeters: number;
   onPick: (lat: number, lng: number) => void;
 }) {
   /** Leaflet binds to DOM nodes; render only after mount so SSR / Strict Mode remounts do not tear the app. */
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    fixLeafletIcons();
     setReady(true);
   }, []);
 
@@ -94,11 +96,22 @@ export default function EstimateMapPicker({
       />
       <MapClickLayer onPick={onPick} />
       {marker ? (
-        <FlyToMarker marker={marker} />
+        <>
+          <FitRadius marker={marker} radiusMeters={radiusMeters} />
+          <Circle
+            center={[marker.lat, marker.lng]}
+            radius={radiusMeters}
+            pathOptions={{ className: "estimate-radius-area" }}
+          />
+          <CircleMarker
+            center={[marker.lat, marker.lng]}
+            radius={6}
+            pathOptions={{ className: "estimate-radius-center" }}
+          />
+        </>
       ) : (
         <FlyToCenter center={center} zoom={13} />
       )}
-      {marker ? <Marker position={[marker.lat, marker.lng]} /> : null}
     </MapContainer>
   );
 }
