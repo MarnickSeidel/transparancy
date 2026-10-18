@@ -2,17 +2,20 @@ import type { Listing } from "@prisma/client"
 
 import {
   analyzeListingDeal,
+  getPlaceholderCoordKeys,
   GOOD_DEAL_DISCOUNT_PCT,
+  hasPlaceholderCoords,
   OVERPRICED_DISCOUNT_PCT,
 } from "@/lib/dealCompPool"
 import {
   buildWhyDeal,
   toDealListingInput,
 } from "@/lib/dealEngine"
+import { buildDealReview, type DealReview, type DealVerdict } from "@/lib/dealReview"
 import { haversineMeters } from "@/lib/geoHaversine"
 import { prisma } from "@/lib/prisma"
 
-export type ListingDetailVerdict = "good_deal" | "fair" | "overpriced"
+export type ListingDetailVerdict = DealVerdict
 
 export type ListingDetailResponse = {
   listing: {
@@ -64,6 +67,11 @@ export type ListingDetailResponse = {
     priceDropPct: number | null
     domDays: number | null
     whyDeal: ReturnType<typeof buildWhyDeal>
+    review: DealReview
+    /** Latest recorded price change in the 90-day window (ISO), if any. */
+    lastPriceChangeAt: string | null
+    adminFeeCop: string | null
+    promoted: boolean
   }
   priceTimeline: Array<{ recordedAt: string; priceCop: string }>
   comps: Array<{
@@ -86,15 +94,31 @@ function verdictFromDiscount(discountPct: number | null): ListingDetailVerdict {
   return "fair"
 }
 
-function verdictFromAnalysis(analysis: {
-  compSampleSize: number
-  refPpm2: number | null
-  discountVsRefPct: number | null
-}): ListingDetailVerdict {
+function verdictFromAnalysis(
+  analysis: {
+    compSampleSize: number
+    refPpm2: number | null
+    discountVsRefPct: number | null
+  },
+  review: DealReview,
+): ListingDetailVerdict {
   if (analysis.compSampleSize === 0 || analysis.refPpm2 == null) {
     return "fair"
   }
-  return verdictFromDiscount(analysis.discountVsRefPct)
+  const base = verdictFromDiscount(analysis.discountVsRefPct)
+  return base === "good_deal" && review.needsReview ? "review" : base
+}
+
+/** Most recent event whose price differs from the one before it. */
+function lastPriceChangeAt(
+  eventsDesc: Array<{ priceCop: bigint; recordedAt: Date }>,
+): string | null {
+  for (let i = 0; i < eventsDesc.length - 1; i++) {
+    if (eventsDesc[i]!.priceCop !== eventsDesc[i + 1]!.priceCop) {
+      return eventsDesc[i]!.recordedAt.toISOString()
+    }
+  }
+  return null
 }
 
 function confidenceForResponse(analysis: {
@@ -118,13 +142,18 @@ export async function buildListingDetailResponse(
 ): Promise<ListingDetailResponse> {
   const subject = toDealListingInput(listing)
 
-  const priceEvents = await prisma.listingPriceEvent.findMany({
-    where: {
-      listingId: listing.id,
-      recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
-    },
-    orderBy: { recordedAt: "desc" },
-  })
+  const [priceEvents, placeholderKeys] = await Promise.all([
+    prisma.listingPriceEvent.findMany({
+      where: {
+        listingId: listing.id,
+        recordedAt: { gte: new Date(Date.now() - 90 * 86400000) },
+      },
+      orderBy: { recordedAt: "desc" },
+    }),
+    getPlaceholderCoordKeys(subject.city),
+  ])
+  const placeholderCoordKeys = new Set(placeholderKeys)
+  const approximateLocation = hasPlaceholderCoords(listing, placeholderCoordKeys)
 
   // Same pool + house floor as opportunities (no requirePositiveDiscount here).
   const analysis = await analyzeListingDeal(subject, {
@@ -132,9 +161,18 @@ export async function buildListingDetailResponse(
       priceCop: e.priceCop,
       recordedAt: e.recordedAt,
     })),
+    placeholderCoordKeys,
   })
 
-  const verdict = verdictFromAnalysis(analysis)
+  const review = buildDealReview({
+    discountPct: analysis.discountVsRefPct,
+    compMethod: analysis.compMethod,
+    city: listing.city,
+    subjectNeighborhood: listing.neighborhood,
+    subjectZoneName: listing.zoneName,
+    comps: analysis.selectedComps,
+  })
+  const verdict = verdictFromAnalysis(analysis, review)
   const responseConfidence = confidenceForResponse(analysis)
   const whyDeal = buildWhyDeal(analysis, subject)
 
@@ -201,8 +239,8 @@ export async function buildListingDetailResponse(
       acceptsBarter: listing.acceptsBarter,
       facilities: listing.facilities,
       constructionState: listing.constructionState,
-      latitude: listing.latitude,
-      longitude: listing.longitude,
+      latitude: approximateLocation ? null : listing.latitude,
+      longitude: approximateLocation ? null : listing.longitude,
       address: listing.address,
       technicalSheet: listing.technicalSheet,
       imageUrl: listing.imageUrl,
@@ -228,6 +266,10 @@ export async function buildListingDetailResponse(
       priceDropPct: analysis.priceDropPct,
       domDays: analysis.domDays,
       whyDeal,
+      review,
+      lastPriceChangeAt: lastPriceChangeAt(priceEvents),
+      adminFeeCop: listing.adminFeeCop != null ? listing.adminFeeCop.toString() : null,
+      promoted: Boolean(listing.paidQuota) || (listing.highlight ?? 0) > 0,
     },
     priceTimeline,
     comps: selectedCompIds.flatMap((id) => {
@@ -235,6 +277,8 @@ export async function buildListingDetailResponse(
       if (!c) return []
       let distanceMeters: number | null = null
       if (
+        !approximateLocation &&
+        !hasPlaceholderCoords(c, placeholderCoordKeys) &&
         listing.latitude != null &&
         listing.longitude != null &&
         c.latitude != null &&

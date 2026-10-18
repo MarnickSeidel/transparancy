@@ -1,4 +1,5 @@
 import type { OpportunityRow } from "@/lib/getTopOpportunities";
+import { isFeaturableDeal } from "@/lib/dealReview";
 import { getGlobalDataFreshness } from "@/lib/getDataFreshness";
 import { DEFAULT_OPPORTUNITIES_CITY } from "@/lib/getTopOpportunities";
 import { getCachedDashboardSummary, getCachedTopOpportunities } from "@/lib/serverCache";
@@ -6,6 +7,10 @@ import { getZoneCities, getZoneCountsByCity, getZonesForCity } from "@/lib/getZo
 import { cityNameToSlug } from "@/lib/getCityFromSlug";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
 import type { PublishableZone } from "@/lib/zones";
+
+const HOME_FEATURED_COUNT = 3;
+/** Ranked candidates to scan for clean, photographed, matched-barrio deals. */
+const HOME_CANDIDATE_POOL = 40;
 
 export type HomePageData = {
   totalListings: number;
@@ -39,7 +44,7 @@ export async function getHomePageData(preferredCity?: string): Promise<HomePageD
   const [featuredOpportunitiesResult, zonesData, featuredCities] = await Promise.all([
     getCachedTopOpportunities({
       city: featuredCity,
-      pageSize: 3,
+      pageSize: HOME_CANDIDATE_POOL,
       hideLowConfidence: true,
     }),
     getZonesForCity(featuredCity, DEFAULT_MIN_ZONE_DATA_POINTS),
@@ -60,6 +65,8 @@ export async function getHomePageData(preferredCity?: string): Promise<HomePageD
     featuredCitySlug: cityNameToSlug(featuredCity),
     featuredZones,
     featuredCities: featuredCities.slice(0, 8),
-    featuredOpportunities: featuredOpportunitiesResult.items,
+    featuredOpportunities: featuredOpportunitiesResult.items
+      .filter(isFeaturableDeal)
+      .slice(0, HOME_FEATURED_COUNT),
   };
 }

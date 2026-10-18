@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 
 export const runtime = "edge";
-export const alt = "ClaraCasas";
+export const alt = "CasasClaras";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -35,7 +35,7 @@ export default async function OgImage({
       >
         <div style={{ fontSize: 56, fontWeight: 700, lineHeight: 1.15 }}>{title}</div>
         <div style={{ fontSize: 28, marginTop: 24, opacity: 0.9 }}>{subtitle}</div>
-        <div style={{ fontSize: 36, marginTop: 48, fontWeight: 600 }}>ClaraCasas</div>
+        <div style={{ fontSize: 36, marginTop: 48, fontWeight: 600 }}>CasasClaras</div>
       </div>
     ),
     { ...size },

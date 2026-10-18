@@ -7,7 +7,7 @@ const Dashboard = loadToolPage(() => import("@/app/components/Dashboard"))
 
 export const metadata: Metadata = noIndexMetadata(
   "Dashboard de mercado",
-  "Panel interno de analítica inmobiliaria ClaraCasas.",
+  "Panel interno de analítica inmobiliaria CasasClaras.",
 )
 
 export default function DashboardPage() {

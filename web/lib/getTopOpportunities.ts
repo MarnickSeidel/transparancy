@@ -5,6 +5,7 @@ import {
   analyzeListingDeal,
   getCityHouseFloor,
   getDealCompPool,
+  getPlaceholderCoordKeys,
   GOOD_DEAL_DISCOUNT_PCT,
   poolCacheKeyForPropertyType,
 } from "@/lib/dealCompPool"
@@ -14,6 +15,7 @@ import {
   type DealListingInput,
   type MetricType,
 } from "@/lib/dealEngine"
+import { buildDealReview, type DealReview } from "@/lib/dealReview"
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
@@ -94,6 +96,8 @@ export type OpportunityQuery = {
   excludeNeighborhoods?: string[]
   excludeUnknownNeighborhoods?: boolean
   hideLowConfidence?: boolean
+  /** Drop rows flagged by `buildDealReview` (extreme or borrowed-comp discounts). */
+  hideReview?: boolean
   excludeBarter?: boolean
   excludeProjects?: boolean
   minDiscountPct?: number
@@ -126,6 +130,9 @@ export type OpportunityRow = {
   priceCop: string
   areaM2: number
   areaPrivateM2: number | null
+  estrato: number | null
+  bedrooms: number | null
+  bathrooms: number | null
   pricePerM2: number | null
   metricType: MetricType
   refAvgUsed: number | null
@@ -137,6 +144,8 @@ export type OpportunityRow = {
   confidence: "high" | "medium" | "low"
   confidenceReasons: string[]
   discountVsRefPct: number | null
+  review: DealReview
+  promoted: boolean
   priceDropPct: number | null
   domDays: number | null
   priceTimeline: Array<{ recordedAt: string; priceCop: string }>
@@ -374,6 +383,9 @@ function rowToOpportunity(
     priceCop: row.priceCop.toString(),
     areaM2: row.areaM2,
     areaPrivateM2: row.areaPrivateM2,
+    estrato: row.estrato,
+    bedrooms: row.bedrooms,
+    bathrooms: row.bathrooms,
     pricePerM2: analysis.subjectPpm2,
     metricType: analysis.metricType,
     refAvgUsed: analysis.refPpm2,
@@ -385,6 +397,15 @@ function rowToOpportunity(
     confidence: analysis.confidence,
     confidenceReasons: analysis.confidenceReasons,
     discountVsRefPct: analysis.discountVsRefPct,
+    review: buildDealReview({
+      discountPct: analysis.discountVsRefPct,
+      compMethod: analysis.compMethod,
+      city: row.city,
+      subjectNeighborhood: row.neighborhood,
+      subjectZoneName: row.zoneName,
+      comps: analysis.selectedComps,
+    }),
+    promoted: Boolean(row.paidQuota) || (row.highlight ?? 0) > 0,
     priceDropPct: analysis.priceDropPct,
     domDays: analysis.domDays,
     priceTimeline,
@@ -407,6 +428,7 @@ export async function getTopOpportunities(
     city,
     excludeUnknownNeighborhoods = false,
     hideLowConfidence = true,
+    hideReview = false,
     minDiscountPct = DEFAULT_MIN_OPPORTUNITY_DISCOUNT_PCT,
     conjunto = null,
     page = 1,
@@ -459,7 +481,7 @@ export async function getTopOpportunities(
   }
 
   // Prefer stored dealScore pool first; mid/value pools only diversify coverage.
-  const [scoreRows, valueRows, midTierRows, houseFloor] = await Promise.all([
+  const [scoreRows, valueRows, midTierRows, houseFloor, placeholderKeys] = await Promise.all([
     prisma.listing.findMany({
       where: scoreWhere,
       orderBy: [{ dealScore: "desc" }, { dateScraped: "desc" }],
@@ -479,7 +501,9 @@ export async function getTopOpportunities(
       select: listingSelect,
     }),
     getCityHouseFloor(city),
+    getPlaceholderCoordKeys(city),
   ])
+  const placeholderCoordKeys = new Set(placeholderKeys)
 
   const mergedRows = mergeCandidateRows(scoreRows, midTierRows, valueRows)
   const filteredRows = mergedRows
@@ -565,6 +589,7 @@ export async function getTopOpportunities(
       requirePositiveDiscount: true,
       pool,
       houseFloor,
+      placeholderCoordKeys,
     })
     if (analysis.excluded) continue
     if (
@@ -575,9 +600,9 @@ export async function getTopOpportunities(
     }
     if (hideLowConfidence && analysis.confidence === "low") continue
 
-    allResults.push(
-      rowToOpportunity(row, analysis, priceEventsByListing.get(row.id)),
-    )
+    const opportunity = rowToOpportunity(row, analysis, priceEventsByListing.get(row.id))
+    if (hideReview && opportunity.review.needsReview) continue
+    allResults.push(opportunity)
   }
 
   const sorted = sortOpportunityRows(allResults, sortBy)

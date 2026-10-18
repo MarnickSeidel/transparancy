@@ -11,6 +11,7 @@ import SearchableSelect, { matchesSearchQuery } from "@/app/components/ui/Search
 import { inputClassName } from "@/app/components/ui/Field";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { DEFAULT_MIN_ZONE_DATA_POINTS, DEFAULT_ZONE_CITY } from "@/lib/zones";
+import { cityDisplayName } from "@/lib/cityNames";
 import { localePath, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
@@ -167,7 +168,7 @@ export default function ZonesIndex({
           >
             {cities.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {cityDisplayName(c)}
               </option>
             ))}
           </select>
@@ -232,7 +233,7 @@ export default function ZonesIndex({
                   <h2 className="text-lg font-semibold text-foreground">
                     {zone.displayName}
                   </h2>
-                  <p className="mt-1 text-xs text-muted">{zone.city}</p>
+                  <p className="mt-1 text-xs text-muted">{cityDisplayName(zone.city)}</p>
                   <dl className="mt-4 grid grid-cols-3 gap-3 text-sm">
                     <div>
                       <dt className="text-xs uppercase tracking-wide text-muted">

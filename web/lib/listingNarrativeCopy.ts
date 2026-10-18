@@ -9,6 +9,14 @@ export const narrativeCopy = {
       "Frente a comparables en {place}, el aviso se ve ~{pct}% más barato por m² — {type}, {area} m².",
       "Hay un margen a favor del comprador: ~{pct}% bajo la mediana comparable para este {type} en {place}.",
     ],
+    leadReview: [
+      "El precio/m² de este {type} ({area} m², {place}) aparece ~{pct}% bajo la referencia, una brecha tan grande que puede ser un error de datos antes que una ganga.",
+      "Este {type} de {area} m² en {place} sale ~{pct}% más barato por m² que sus comparables; revisa el anuncio antes de tomar ese número como descuento.",
+    ],
+    reviewCompBarrio: [
+      "Los {count} comparables están sobre todo en {barrio}, no en este barrio.",
+      "La referencia viene de {count} anuncios cercanos, en su mayoría de {barrio}.",
+    ],
     leadFair: [
       "Este {type} de {area} m² en {place} se mueve cerca de lo que piden anuncios similares.",
       "En {place}, el precio/m² de este {type} ({area} m²) está alineado con la mediana local.",
@@ -135,6 +143,14 @@ export const narrativeCopy = {
       "Price/m² sits ~{pct}% under the local reference — {type}, {area} m² in {place}.",
       "Against comps in {place}, the ask looks ~{pct}% cheaper per m² for this {area} m² {type}.",
       "Buyer-leaning ticket: ~{pct}% below the comparable median for a {type} in {place}.",
+    ],
+    leadReview: [
+      "Price/m² for this {type} ({area} m², {place}) shows ~{pct}% under the reference, a gap large enough to be a data problem rather than a bargain.",
+      "This {area} m² {type} in {place} looks ~{pct}% cheaper per m² than its comps; check the listing before treating that as a discount.",
+    ],
+    reviewCompBarrio: [
+      "Most of the {count} comps are in {barrio}, not this neighborhood.",
+      "The reference comes from {count} nearby listings, mostly in {barrio}.",
     ],
     leadFair: [
       "This {area} m² {type} in {place} tracks what similar listings ask.",

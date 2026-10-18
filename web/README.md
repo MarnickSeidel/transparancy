@@ -1,6 +1,6 @@
-# ClaraCasas Web App
+# CasasClaras Web App
 
-Next.js 14 app for the ClaraCasas platform. See the [root README](../README.md) for full stack setup. Agent-oriented architecture notes live in [`AGENTS.md`](../AGENTS.md).
+Next.js 14 app for the CasasClaras platform. See the [root README](../README.md) for full stack setup. Agent-oriented architecture notes live in [`AGENTS.md`](../AGENTS.md).
 
 ## Quick start
 
@@ -36,8 +36,8 @@ Barrio JSON files live in `data/neighborhoods/`. The scraper reads the same path
 
 Place logo assets in `public/branding/`:
 
-- `claracasas-logo-horizontal.svg` (or `.png`) — header + Open Graph
-- `claracasas-mark.svg` (or `.png`) — favicon + PWA icon
+- `casasclaras-logo-horizontal.svg` (or `.png`) — header + Open Graph
+- `casasclaras-mark.svg` (or `.png`) — favicon + PWA icon
 
 ## Deal analysis (opportunities + listing detail)
 

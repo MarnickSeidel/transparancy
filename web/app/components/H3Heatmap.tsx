@@ -11,6 +11,7 @@ import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { mapCenterForCity } from "@/lib/cityCenters";
+import { cityDisplayName } from "@/lib/cityNames";
 import type { H3HeatCell } from "@/lib/h3Heatmap";
 import { BUCKET_COLORS } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
@@ -46,6 +47,8 @@ type SelectedCell = {
   topNeighborhood: string | null;
   center: { lat: number; lng: number };
 };
+
+const HEATMAP_MIN_CELL_LISTINGS = 3;
 
 function initialParam(name: string, fallback = "all"): string {
   if (typeof window === "undefined") return fallback;
@@ -109,9 +112,15 @@ export default function H3Heatmap({
     return `/explore?${p.toString()}`;
   }, [city, selected]);
 
+  const visibleCells = useMemo(
+    () => (data?.cells ?? []).filter((cell) => cell.count >= HEATMAP_MIN_CELL_LISTINGS),
+    [data?.cells],
+  );
+  const hiddenCellCount = (data?.cells.length ?? 0) - visibleCells.length;
+
   const mapFitKey = useMemo(
-    () => `${city}-${resolution}-${propertyType}-${estrato}-${data?.cellCount ?? 0}`,
-    [city, resolution, propertyType, estrato, data?.cellCount],
+    () => `${city}-${resolution}-${propertyType}-${estrato}-${visibleCells.length}`,
+    [city, resolution, propertyType, estrato, visibleCells.length],
   );
 
   const nextSteps = useMemo(() => {
@@ -220,12 +229,23 @@ export default function H3Heatmap({
       .catch(() => setDossierHref(null));
   }, [city, selected]);
 
-  const bucketLegend = [
-    { bucket: 0 as const, label: txt.exploreSignalBelow },
-    { bucket: 1 as const, label: txt.exploreSignalNearLow },
-    { bucket: 2 as const, label: txt.exploreSignalAbove },
-    { bucket: 3 as const, label: txt.exploreSignalHigh },
-  ];
+  const scale = data?.scale;
+  const hasScale = scale?.p25 != null && scale.p50 != null && scale.p75 != null;
+  const bucketLegend = hasScale
+    ? [
+        { bucket: 0 as const, label: `≤ ${fmtPpm2(scale.p25!)}` },
+        { bucket: 1 as const, label: `${fmtPpm2(scale.p25!)} – ${fmtPpm2(scale.p50!)}` },
+        { bucket: 2 as const, label: `${fmtPpm2(scale.p50!)} – ${fmtPpm2(scale.p75!)}` },
+        { bucket: 3 as const, label: `> ${fmtPpm2(scale.p75!)}` },
+      ]
+    : [
+        { bucket: 0 as const, label: txt.exploreSignalBelow },
+        { bucket: 1 as const, label: txt.exploreSignalNearLow },
+        { bucket: 2 as const, label: txt.exploreSignalAbove },
+        { bucket: 3 as const, label: txt.exploreSignalHigh },
+      ];
+  const selectedVsCity =
+    selected && scale?.p50 ? ((selected.medianPpm2 - scale.p50) / scale.p50) * 100 : null;
 
   return (
     <div className="app-shell flex min-h-screen flex-col">
@@ -260,11 +280,11 @@ export default function H3Heatmap({
                 onChange={(e) => setCity(e.target.value)}
               >
                 {cities.length === 0 ? (
-                  <option value={city}>{city}</option>
+                  <option value={city}>{cityDisplayName(city)}</option>
                 ) : (
                   cities.map((c) => (
                     <option key={c} value={c}>
-                      {c}
+                      {cityDisplayName(c)}
                     </option>
                   ))
                 )}
@@ -328,6 +348,7 @@ export default function H3Heatmap({
         </Card>
 
         <div className="mb-4 flex flex-wrap items-center gap-4">
+          <span className="text-xs font-semibold text-foreground">{txt.heatmapLegendTitle}</span>
           {bucketLegend.map((item) => (
             <div key={item.bucket} className="flex items-center gap-2 text-xs text-muted">
               <span
@@ -350,13 +371,18 @@ export default function H3Heatmap({
             {txt.heatmapSummary
               .replace("{listings}", data.listingCount.toLocaleString(locale))
               .replace("{cells}", data.cellCount.toLocaleString(locale))
-              .replace("{city}", data.city)}
+              .replace("{city}", cityDisplayName(data.city))}
+            {hiddenCellCount > 0
+              ? ` · ${txt.heatmapHiddenCells
+                  .replace("{n}", hiddenCellCount.toLocaleString(locale))
+                  .replace("{min}", String(HEATMAP_MIN_CELL_LISTINGS))}`
+              : ""}
           </p>
         ) : null}
 
         <H3HeatmapMap
           center={mapCenterForCity(city)}
-          cells={data?.cells ?? []}
+          cells={visibleCells}
           fitKey={mapFitKey}
           selectedCell={selectedForMap}
           onCellSelect={handleCellSelect}
@@ -375,6 +401,12 @@ export default function H3Heatmap({
             </p>
             <p className="mt-2 text-sm text-muted">
               {txt.medianPriceM2}: {fmtPpm2(selected.medianPpm2)}
+              {selectedVsCity != null
+                ? ` (${txt.heatmapVsCity.replace(
+                    "{pct}",
+                    `${selectedVsCity > 0 ? "+" : ""}${selectedVsCity.toFixed(0)}`,
+                  )})`
+                : ""}
             </p>
             <p className="text-sm text-muted">
               {txt.sample}: {selected.count}

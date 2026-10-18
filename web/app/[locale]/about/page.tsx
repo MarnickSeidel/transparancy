@@ -24,13 +24,13 @@ export default function AboutPage({ params }: Props) {
   return (
     <TrustPageChrome locale={locale}>
       <h1 className="text-display text-3xl font-semibold text-foreground">
-        {isEn ? "About ClaraCasas" : "Acerca de ClaraCasas"}
+        {isEn ? "About CasasClaras" : "Acerca de CasasClaras"}
       </h1>
       <div className="mt-8 space-y-6 text-sm leading-relaxed text-muted">
         {isEn ? (
           <>
             <p>
-              ClaraCasas is listing-price intelligence for Colombia&apos;s residential market. We turn
+              CasasClaras is listing-price intelligence for Colombia&apos;s residential market. We turn
               Finca Raíz (and Metrocuadrado for URL analysis) asking prices into neighborhood context —
               median price per m², active inventory, property mix, and deal scores versus comps — so
               local buyers and US investors can research with data instead of anecdotes.
@@ -63,7 +63,7 @@ export default function AboutPage({ params }: Props) {
               </ul>
             </div>
             <p>
-              <strong className="text-foreground">Disclaimer:</strong> ClaraCasas is not a licensed
+              <strong className="text-foreground">Disclaimer:</strong> CasasClaras is not a licensed
               broker, appraiser, or investment advisor. All figures reflect published asking prices.
             </p>
             <p>
@@ -89,7 +89,7 @@ export default function AboutPage({ params }: Props) {
         ) : (
           <>
             <p>
-              ClaraCasas es inteligencia de precios de avisos para el mercado residencial en Colombia.
+              CasasClaras es inteligencia de precios de avisos para el mercado residencial en Colombia.
               Convertimos precios publicados de Finca Raíz (y Metrocuadrado en el análisis por URL) en
               contexto de barrio — mediana de precio/m², inventario activo, mix por tipo y scoring vs
               comparables — para que compradores locales e inversores investiguen con datos, no con
@@ -123,7 +123,7 @@ export default function AboutPage({ params }: Props) {
               </ul>
             </div>
             <p>
-              <strong className="text-foreground">Aviso:</strong> ClaraCasas no es corredor, tasador ni
+              <strong className="text-foreground">Aviso:</strong> CasasClaras no es corredor, tasador ni
               asesor de inversión. Las cifras reflejan precios publicados.
             </p>
             <p>

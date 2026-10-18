@@ -13,6 +13,7 @@ import Skeleton from "./ui/Skeleton";
 import TrustMeta from "./TrustMeta";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
 import { MIN_SAMPLE_SIZE } from "@/lib/analytics";
+import { cityDisplayName } from "@/lib/cityNames";
 import { opportunitiesPath, localePath } from "@/lib/locale";
 import { buildListingContextLinks } from "@/lib/listingContextLinks";
 import { uiText } from "@/lib/i18n";
@@ -299,7 +300,7 @@ export default function Dashboard() {
               <option value="all">{txt.all}</option>
               {cities.map((c) => (
                 <option key={c} value={c}>
-                  {c}
+                  {cityDisplayName(c)}
                 </option>
               ))}
             </select>
@@ -385,7 +386,7 @@ export default function Dashboard() {
             sampleSize={summary?.sampleSizePricePerM2}
             minSample={summary?.minSampleSize ?? MIN_SAMPLE_SIZE}
             updatedAt={lastUpdatedAt ? lastUpdatedAt.toLocaleString(locale) : null}
-            source="Finca Raíz"
+            source={txt.dashboardDataSourceValue}
             labels={{
               sample: txt.sample,
               confidence: txt.quality,
@@ -442,8 +443,10 @@ export default function Dashboard() {
               {loading ? "…" : summary?.minSampleMet ? txt.pass : txt.lowSample}
             </p>
             <p className="mt-1 text-xs text-muted">
-              n={(summary?.sampleSizePricePerM2 ?? 0)} (min {summary?.minSampleSize ?? MIN_SAMPLE_SIZE}), outlier:{" "}
-              {summary?.outlierRule ?? "n/a"}
+              {txt.kpiSampleFootnote
+                .replace("{n}", String(summary?.sampleSizePricePerM2 ?? 0))
+                .replace("{min}", String(summary?.minSampleSize ?? MIN_SAMPLE_SIZE))
+                .replace("{rule}", summary?.outlierRule ?? "n/a")}
             </p>
           </div>
         </section>
@@ -757,19 +760,21 @@ export default function Dashboard() {
           </div>
         </section>
 
-        <section className="mb-8 overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
-          <div className="border-b border-border-subtle bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground">
-            {txt.investmentReadiness}
-          </div>
+        <CollapsibleSection title={txt.investmentReadiness} className="mb-8">
+        <section className="overflow-hidden rounded-2xl border border-border-subtle bg-elevated shadow-card">
           <div className="p-4 text-sm text-foreground">
             <p className="mb-3">
               {txt.status}: <span className="font-semibold">{investmentGate.ready ? txt.readyToEnable : txt.hold}</span>
             </p>
-            <p>- {txt.monthlyHistory} (&gt;=4 months): {investmentGate.enoughMonthlyHistory ? txt.pass : txt.pending}</p>
-            <p>- Price/m² coverage (&gt;=60%): {investmentGate.enoughCoverage ? txt.pass : txt.pending}</p>
-            <p>- KPI sample size (&gt;= {MIN_SAMPLE_SIZE}): {investmentGate.enoughSample ? txt.pass : txt.pending}</p>
+            <p>- {txt.readinessHistory}: {investmentGate.enoughMonthlyHistory ? txt.pass : txt.pending}</p>
+            <p>- {txt.readinessCoverage}: {investmentGate.enoughCoverage ? txt.pass : txt.pending}</p>
+            <p>
+              - {txt.readinessSample.replace("{min}", String(MIN_SAMPLE_SIZE))}:{" "}
+              {investmentGate.enoughSample ? txt.pass : txt.pending}
+            </p>
           </div>
         </section>
+        </CollapsibleSection>
 
         <CollapsibleSection title={txt.estratoTypeMatrix} className="mb-8">
         <section className="overflow-hidden surface-panel">

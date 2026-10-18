@@ -6,6 +6,7 @@ import { prisma } from "@/lib/prisma";
 import {
   DEFAULT_MIN_ZONE_DATA_POINTS,
   DEFAULT_ZONE_CITY,
+  curateDirectoryZones,
   mapRawZoneRow,
   sqlBucketKey,
   sqlEffectivePpm2,
@@ -113,7 +114,10 @@ export async function getZonesForCity(
     citySlug,
     minDataPoints,
     minCount: minDataPoints,
-    zones: rows.map((row) => mapRawZoneRow(row, citySlug)),
+    zones: curateDirectoryZones(
+      rows.map((row) => mapRawZoneRow(row, citySlug)),
+      city,
+    ),
   };
 }
 
@@ -167,34 +171,17 @@ export async function getZoneCities(
 export async function getZoneCountsByCity(
   minDataPoints = DEFAULT_MIN_ZONE_DATA_POINTS,
 ): Promise<Array<{ name: string; slug: string; zoneCount: number }>> {
-  try {
-    const rows = await prisma.$queryRaw<Array<{ city: string; zone_count: bigint }>>(Prisma.sql`
-      SELECT city, COUNT(*)::bigint AS zone_count
-      FROM zone_list_aggregates
-      WHERE data_point_count >= ${minDataPoints}
-      GROUP BY city
-      ORDER BY zone_count DESC, city ASC
-    `);
-    if (rows.length > 0) {
-      return rows.map((row) => ({
-        name: row.city,
-        slug:
-          catalogKeyForCity(row.city) ??
-          row.city.trim().toLowerCase().replace(/\s+/g, "-"),
-        zoneCount: Number(row.zone_count),
-      }));
-    }
-  } catch {
-    /* fall through */
-  }
-
+  // Count curated directory zones so the number matches the city page.
   const cities = await getZoneCities(minDataPoints);
-  return Promise.all(
-    cities.slice(0, 8).map(async (name) => {
+  const counts = await Promise.all(
+    cities.map(async (name) => {
       const slug =
         catalogKeyForCity(name) ?? name.trim().toLowerCase().replace(/\s+/g, "-");
       const data = await getZonesForCity(name, minDataPoints);
       return { name, slug, zoneCount: data.zones.length };
     }),
   );
+  return counts
+    .filter((c) => c.zoneCount > 0)
+    .sort((a, b) => b.zoneCount - a.zoneCount || a.name.localeCompare(b.name));
 }

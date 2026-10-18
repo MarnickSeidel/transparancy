@@ -15,6 +15,8 @@ import SiteHeader from "@/app/components/SiteHeader"
 import { fetchJsonCached } from "@/lib/clientFetchCache"
 import type { FiltersData } from "@/lib/getFiltersData"
 import { formatDomDays } from "@/lib/formatDom"
+import { DEFAULT_OPPORTUNITIES_CITY } from "@/lib/getTopOpportunities"
+import { cityDisplayName } from "@/lib/cityNames"
 import { uiText } from "@/lib/i18n"
 import { localePath } from "@/lib/locale"
 import type { PriceDropRow } from "@/lib/getPriceDrops"
@@ -33,10 +35,12 @@ function fmtTemplate(template: string, vars: Record<string, string | number>) {
   )
 }
 
+const PRICE_DROPS_WINDOW_DAYS = 30
+
 function initialCityParam(): string {
-  if (typeof window === "undefined") return "all"
+  if (typeof window === "undefined") return DEFAULT_OPPORTUNITIES_CITY
   const v = new URLSearchParams(window.location.search).get("city")?.trim()
-  return v && v.length > 0 ? v : "all"
+  return v && v.length > 0 ? v : DEFAULT_OPPORTUNITIES_CITY
 }
 
 export default function PriceDropsFeed({
@@ -103,6 +107,13 @@ export default function PriceDropsFeed({
 
   const analyzeHref = useMemo(() => localePath(lang, "/analyze-url"), [lang])
 
+  const windowRange = useMemo(() => {
+    const to = new Date()
+    const from = new Date(to.getTime() - PRICE_DROPS_WINDOW_DAYS * 86400000)
+    const fmt = (d: Date) => d.toLocaleDateString(locale, { day: "numeric", month: "short" })
+    return { from: fmt(from), to: fmt(to) }
+  }, [locale])
+
   return (
     <div className="app-shell flex min-h-screen flex-col">
       <SiteHeader
@@ -116,6 +127,9 @@ export default function PriceDropsFeed({
       <main id="main-content" className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
         <Card className="mb-6 border-border-subtle shadow-card">
           <p className="text-sm text-muted">{txt.priceDropsHint}</p>
+          <p className="mt-1 text-xs text-muted">
+            {fmtTemplate(txt.priceDropsWindow, { ...windowRange, days: PRICE_DROPS_WINDOW_DAYS })}
+          </p>
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-end">
             <label className="flex-1 text-xs font-medium text-muted">
               {txt.city}
@@ -127,7 +141,7 @@ export default function PriceDropsFeed({
                 <option value="all">{txt.allCities}</option>
                 {cities.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {cityDisplayName(c)}
                   </option>
                 ))}
               </select>
@@ -150,7 +164,11 @@ export default function PriceDropsFeed({
           </div>
         ) : drops.length === 0 ? (
           <Card>
-            <p className="text-sm text-muted">{txt.priceDropsEmpty}</p>
+            <p className="text-sm text-muted">
+              {city !== "all"
+                ? fmtTemplate(txt.priceDropsEmptyWindow, { ...windowRange, city })
+                : txt.priceDropsEmpty}
+            </p>
           </Card>
         ) : (
           <div className="space-y-3">
@@ -177,7 +195,7 @@ export default function PriceDropsFeed({
                         {row.title}
                       </a>
                       <p className="mt-1 text-sm text-muted">
-                        {row.city}
+                        {cityDisplayName(row.city)}
                         {row.neighborhood ? ` · ${row.neighborhood}` : ""}
                         {row.propertyType
                           ? ` · ${propertyTypeLabel(row.propertyType, lang)}`

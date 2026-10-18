@@ -69,6 +69,7 @@ export async function GET(req: Request) {
   const excludeUnknownNeighborhoods =
     searchParams.get("excludeUnknownNeighborhoods") === "1"
   const hideLowConfidence = searchParams.get("hideLowConfidence") !== "0"
+  const hideReview = searchParams.get("hideReview") === "1"
   const excludeBarter = searchParams.get("excludeBarter") === "1"
   const excludeProjects = searchParams.get("excludeProjects") === "1"
   const minDiscountRaw = searchParams.get("minDiscountPct")
@@ -128,6 +129,7 @@ export async function GET(req: Request) {
       excludeNeighborhoods,
       excludeUnknownNeighborhoods,
       hideLowConfidence,
+      hideReview,
       excludeBarter,
       excludeProjects,
       minDiscountPct,

@@ -26,7 +26,7 @@ export default function PrivacyPage({ params }: Props) {
         {locale === "en" ? (
           <>
             <p>
-              ClaraCasas is an analytics platform. We do not sell personal data. This policy describes
+              CasasClaras is an analytics platform. We do not sell personal data. This policy describes
               what we store in your browser and what we collect if you subscribe to updates.
             </p>
             <h2 className="text-lg font-semibold text-foreground">Local storage</h2>
@@ -55,7 +55,7 @@ export default function PrivacyPage({ params }: Props) {
         ) : (
           <>
             <p>
-              ClaraCasas es una plataforma de analítica. No vendemos datos personales. Esta política
+              CasasClaras es una plataforma de analítica. No vendemos datos personales. Esta política
               describe qué guardamos en tu navegador y qué recopilamos si te suscribes.
             </p>
             <h2 className="text-lg font-semibold text-foreground">Almacenamiento local</h2>

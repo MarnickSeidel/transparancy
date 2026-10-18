@@ -37,6 +37,26 @@ export default function MethodologyPage({ params }: Props) {
           </div>
         ))}
         <h2 className="mt-8 text-xl font-semibold text-foreground">
+          {copy.dealExample.heading}
+        </h2>
+        <p className="text-muted leading-relaxed">{copy.dealExample.intro}</p>
+        <ul className="mt-4 list-disc space-y-2 pl-5 text-muted">
+          {copy.dealExample.rules.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
+        </ul>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {copy.dealExample.cases.map((c) => (
+            <div
+              key={c.label}
+              className="rounded-2xl border border-border-subtle bg-elevated p-4 shadow-card"
+            >
+              <p className="font-semibold text-foreground">{c.label}</p>
+              <p className="mt-2 text-sm leading-relaxed text-muted">{c.body}</p>
+            </div>
+          ))}
+        </div>
+        <h2 className="mt-8 text-xl font-semibold text-foreground">
           {copy.limitationsHeading}
         </h2>
         <ul className="mt-4 list-disc space-y-2 pl-5 text-muted">

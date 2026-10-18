@@ -7,6 +7,8 @@ type Props = {
   title: string
   detailHref: string
   location: string
+  facts?: string
+  reviewLabel?: string
   price: string
   pricePerM2: string
   pricePerM2Num?: number | null
@@ -33,6 +35,8 @@ export default function OpportunityMobileCard({
   title,
   detailHref,
   location,
+  facts,
+  reviewLabel,
   price,
   pricePerM2,
   pricePerM2Num,
@@ -65,11 +69,21 @@ export default function OpportunityMobileCard({
         <div className="min-w-0 flex-1">
           <a
             href={detailHref}
-            className="font-semibold text-accent hover:underline"
+            className="line-clamp-2 font-semibold text-accent hover:underline"
           >
             {title}
           </a>
           <p className="mt-0.5 text-meta">{location}</p>
+          {facts || reviewLabel ? (
+            <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-meta">
+              {facts ? <span>{facts}</span> : null}
+              {reviewLabel ? (
+                <span className="rounded-full bg-amber-500/10 px-1.5 py-0.5 text-xs font-semibold text-amber-800 ring-1 ring-amber-500/30 dark:text-amber-300">
+                  {reviewLabel}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
         </div>
       </div>
       <div className="mt-3 grid grid-cols-2 gap-2 text-sm">

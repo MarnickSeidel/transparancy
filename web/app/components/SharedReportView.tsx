@@ -65,6 +65,7 @@ export default function SharedReportView({
 
       <VerdictBanner
         verdict={payload.analysis.verdict}
+        review={payload.analysis.review}
         confidence={payload.analysis.confidence}
         dealScore={payload.analysis.dealScore}
         discountPct={payload.analysis.discountVsRefPct}

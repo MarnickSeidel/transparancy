@@ -18,6 +18,7 @@ from typing import Literal, Optional
 
 from neighborhood_catalog import (
     catalog_key_for_city,
+    dossier_keyed_by_name,
     resolve_by_source_id,
     resolve_exact_in_catalog,
 )
@@ -104,7 +105,11 @@ def build_dossier_key(
     ck = _city_key(city, city_slug) or (city or "").strip().lower().replace(" ", "-")
     if not ck:
         return None
-    if neighborhood_source_id and neighborhood_source_id.strip():
+    if (
+        neighborhood_source_id
+        and neighborhood_source_id.strip()
+        and not dossier_keyed_by_name(ck, neighborhood)
+    ):
         return f"{ck}:uuid:{neighborhood_source_id.strip()}"
     if neighborhood and neighborhood.strip():
         nk = normalize_neighborhood_key(neighborhood)

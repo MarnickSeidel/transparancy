@@ -19,12 +19,15 @@ import { fetchJsonCached } from "@/lib/clientFetchCache"
 import type { FiltersData } from "@/lib/getFiltersData"
 import { formatDomDays } from "@/lib/formatDom"
 import type { WhyDeal } from "@/lib/dealEngine"
+import type { DealReview } from "@/lib/dealReview"
+import { dealReviewLabels } from "@/lib/dealLabels"
 import {
   DEFAULT_OPPORTUNITIES_CITY,
   DEFAULT_OPPORTUNITIES_PAGE_SIZE,
   MAX_OPPORTUNITIES_RESULTS,
 } from "@/lib/getTopOpportunities"
 import { mapCenterForCity } from "@/lib/cityCenters"
+import { cityDisplayName } from "@/lib/cityNames"
 import { listingPath } from "@/lib/locale"
 import { buildListingContextLinks } from "@/lib/listingContextLinks"
 import { uiText } from "@/lib/i18n"
@@ -51,6 +54,11 @@ type OpportunityRow = {
   zoneName?: string | null
   priceCop: string
   areaM2: number
+  estrato?: number | null
+  bedrooms?: number | null
+  bathrooms?: number | null
+  review?: DealReview
+  promoted?: boolean
   pricePerM2: number | null
   metricType?: "private" | "built" | "terrain" | "generic"
   refAvgUsed: number | null
@@ -95,6 +103,38 @@ function confidenceLabel(
   if (c === "medium") return txt.confidenceMedium
   if (c === "low") return txt.confidenceLow
   return "—"
+}
+
+function listingFacts(
+  row: OpportunityRow,
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+) {
+  const parts: string[] = []
+  if (Number.isFinite(row.areaM2) && row.areaM2 > 0) parts.push(`${Math.round(row.areaM2)} m²`)
+  if (row.bedrooms != null && row.bedrooms > 0) {
+    parts.push(txt.opportunitiesBedsShort.replace("{n}", String(row.bedrooms)))
+  }
+  if (row.estrato != null) {
+    parts.push(txt.opportunitiesEstratoShort.replace("{n}", String(row.estrato)))
+  }
+  return parts.join(" · ")
+}
+
+/** Portals often put the city in the barrio field; the zone is more useful then. */
+function locationLines(row: OpportunityRow): { main: string | null; sub: string | null } {
+  const barrio = row.neighborhood?.trim() || null
+  const zone = row.zoneName?.trim() || null
+  const main =
+    barrio && barrio.toLowerCase() !== row.city.trim().toLowerCase() ? barrio : zone
+  return { main, sub: zone && zone !== main ? zone : null }
+}
+
+function discountText(
+  pct: number | null,
+  txt: (typeof uiText)["es"] | (typeof uiText)["en"],
+) {
+  if (pct == null) return "—"
+  return txt.opportunitiesDiscountBelow.replace("{pct}", pct.toFixed(1))
 }
 
 function signalTags(
@@ -214,6 +254,8 @@ export default function OpportunitiesTop({
   const [excludeUnknownNeighborhoods, setExcludeUnknownNeighborhoods] =
     useState(false)
   const [hideLowConfidence, setHideLowConfidence] = useState(true)
+  const [hideReview, setHideReview] = useState(() => initialOppParam("hideReview", "1") !== "0")
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>("dealScore")
   const [resultsView, setResultsView] = useState<ResultsView>("list")
   const [page, setPage] = useState(1)
@@ -299,6 +341,7 @@ export default function OpportunitiesTop({
     if (excludeProjects) p.set("excludeProjects", "1")
     if (excludeUnknownNeighborhoods) p.set("excludeUnknownNeighborhoods", "1")
     if (!hideLowConfidence) p.set("hideLowConfidence", "0")
+    p.set("hideReview", hideReview ? "1" : "0")
     p.set("sortBy", sortBy)
     return p
   }, [
@@ -309,6 +352,7 @@ export default function OpportunitiesTop({
     excludeUnknownNeighborhoods,
     excludedNeighborhoods,
     hideLowConfidence,
+    hideReview,
     maxAreaM2,
     maxPriceCop,
     minAreaM2,
@@ -539,7 +583,22 @@ export default function OpportunitiesTop({
         ) : null}
 
         <div className="flex flex-col gap-6 lg:flex-row lg:items-start">
-          <aside className="w-full shrink-0 lg:sticky lg:top-24 lg:w-72 lg:self-start">
+          <button
+            type="button"
+            className="flex w-full items-center justify-between rounded-xl border border-border-subtle bg-elevated px-4 py-3 text-sm font-semibold text-foreground shadow-card lg:hidden"
+            aria-expanded={mobileFiltersOpen}
+            aria-controls="opp-filters"
+            onClick={() => setMobileFiltersOpen((open) => !open)}
+          >
+            <span>{mobileFiltersOpen ? txt.opportunitiesHideFilters : txt.opportunitiesShowFilters}</span>
+            <span className="text-xs font-normal text-muted">{city}</span>
+          </button>
+          <aside
+            id="opp-filters"
+            className={`w-full shrink-0 lg:sticky lg:top-24 lg:block lg:w-72 lg:self-start ${
+              mobileFiltersOpen ? "block" : "hidden"
+            }`}
+          >
             <Card className="border-border-subtle p-4 shadow-card">
               <p className="mb-4 text-xs font-semibold uppercase tracking-wide text-muted">
                 {txt.opportunitiesPrimaryFilters}
@@ -560,7 +619,7 @@ export default function OpportunitiesTop({
                     ) : (
                       cities.map((c) => (
                         <option key={c} value={c}>
-                          {c}
+                          {cityDisplayName(c)}
                         </option>
                       ))
                     )}
@@ -724,11 +783,30 @@ export default function OpportunitiesTop({
                       setMinDiscountPct(e.target.value)
                       handleFilterChange()
                     }}
-                    placeholder="12"
+                    placeholder={txt.opportunitiesMinDiscountPlaceholder}
                     aria-describedby="opp-min-discount-hint"
                   />
                   <p id="opp-min-discount-hint" className="mt-1 text-xs text-muted">
                     {txt.opportunitiesMinDiscountHint}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="flex items-start gap-2 text-sm text-foreground">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5"
+                      checked={hideReview}
+                      onChange={(e) => {
+                        setHideReview(e.target.checked)
+                        handleFilterChange()
+                      }}
+                      aria-describedby="opp-hide-review-hint"
+                    />
+                    <span>{txt.opportunitiesHideReview}</span>
+                  </label>
+                  <p id="opp-hide-review-hint" className="mt-1 text-xs text-muted">
+                    {txt.opportunitiesHideReviewHint}
                   </p>
                 </div>
 
@@ -990,26 +1068,40 @@ export default function OpportunitiesTop({
                                       />
                                     ) : null}
                                   </div>
-                                  <a
-                                    href={listingPath(lang, r.id)}
-                                    className="font-medium text-accent hover:underline"
-                                  >
-                                    {r.title}
-                                  </a>
+                                  <div className="min-w-0 max-w-xs">
+                                    <a
+                                      href={listingPath(lang, r.id)}
+                                      className="line-clamp-2 font-medium text-accent hover:underline"
+                                      title={r.title}
+                                    >
+                                      {r.title}
+                                    </a>
+                                    <p className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted">
+                                      <span>{listingFacts(r, txt)}</span>
+                                      {r.review?.needsReview ? (
+                                        <span
+                                          className="rounded-full bg-amber-500/10 px-1.5 py-0.5 font-semibold text-amber-800 ring-1 ring-amber-500/30 dark:text-amber-300"
+                                          title={dealReviewLabels(r.review, lang).join(" ")}
+                                        >
+                                          {txt.reviewBadge}
+                                        </span>
+                                      ) : null}
+                                    </p>
+                                  </div>
                                 </div>
                               </td>
                               <td className="px-4 py-3">
-                                {r.neighborhood ?? txt.unknown}
-                                {r.zoneName ? (
-                                  <span className="ml-1 text-xs text-muted">({r.zoneName})</span>
+                                <span className="block">{locationLines(r).main ?? txt.unknown}</span>
+                                {locationLines(r).sub ? (
+                                  <span className="block text-xs text-muted">{locationLines(r).sub}</span>
                                 ) : null}
                               </td>
                               <td className="px-4 py-3 tabular-nums">
                                 {fmtCop(Number(r.priceCop), locale)}
                               </td>
                               <td className="px-4 py-3 tabular-nums">{fmtCop(r.pricePerM2, locale)}</td>
-                              <td className="px-4 py-3 tabular-nums">
-                                {r.discountVsRefPct == null ? "—" : `${r.discountVsRefPct.toFixed(1)}%`}
+                              <td className="whitespace-nowrap px-4 py-3 tabular-nums">
+                                {discountText(r.discountVsRefPct, txt)}
                               </td>
                               <td className="px-4 py-3 tabular-nums">
                                 {r.dealScore?.toFixed(1) ?? "—"}
@@ -1122,15 +1214,15 @@ export default function OpportunitiesTop({
                         key={r.id}
                         title={r.title}
                         detailHref={listingPath(lang, r.id)}
-                        location={`${r.city} · ${r.neighborhood ?? txt.unknown}`}
+                        location={`${cityDisplayName(r.city)} · ${locationLines(r).main ?? txt.unknown}`}
                         price={fmtCop(Number(r.priceCop), locale)}
                         pricePerM2={fmtCop(r.pricePerM2, locale)}
                         pricePerM2Num={r.pricePerM2}
                         refAvg={r.refAvgUsed}
                         locale={locale}
-                        discount={
-                          r.discountVsRefPct == null ? "—" : `${r.discountVsRefPct.toFixed(1)}%`
-                        }
+                        discount={discountText(r.discountVsRefPct, txt)}
+                        facts={listingFacts(r, txt)}
+                        reviewLabel={r.review?.needsReview ? txt.reviewBadge : undefined}
                         dealScore={r.dealScore?.toFixed(1) ?? "—"}
                         confidence={confidenceLabel(r.confidence, txt)}
                         sampleSize={r.compSampleSize}

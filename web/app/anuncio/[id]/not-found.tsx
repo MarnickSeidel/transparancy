@@ -18,7 +18,7 @@ export default function ListingNotFound() {
         <div className="mt-6 flex justify-center gap-3">
           <Button href={opportunitiesPath("es")}>{txt.listingDetailBack}</Button>
           <Link href="/" className="inline-flex items-center text-sm font-medium text-accent hover:underline">
-            ClaraCasas
+            CasasClaras
           </Link>
         </div>
       </main>

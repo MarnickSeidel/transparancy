@@ -1,6 +1,6 @@
 # Email digests — operations runbook
 
-Transactional email for ClaraCasas uses **Resend**. Lists, preferences, and send logs live in Postgres (Prisma models `EmailContact`, `EmailPreference`, `EmailSendLog`).
+Transactional email for CasasClaras uses **Resend**. Lists, preferences, and send logs live in Postgres (Prisma models `EmailContact`, `EmailPreference`, `EmailSendLog`).
 
 **Code:** `web/lib/email/` · **Cron:** `POST|GET /api/cron/send-digests` · **Subscribe:** `POST /api/subscribe`
 
@@ -25,7 +25,7 @@ Defined in `web/lib/email/types.ts` (`EMAIL_LISTS`).
 | Variable | Required in prod | Purpose |
 |----------|------------------|---------|
 | `RESEND_API_KEY` | Yes (to send) | Resend API auth |
-| `EMAIL_FROM` | Yes (to send) | From header, e.g. `ClaraCasas <alertas@…>` |
+| `EMAIL_FROM` | Yes (to send) | From header, e.g. `CasasClaras <alertas@…>` |
 | `CRON_SECRET` | Yes | Auth for digest cron |
 | `NEXT_PUBLIC_SITE_URL` | Recommended | Absolute links in templates |
 

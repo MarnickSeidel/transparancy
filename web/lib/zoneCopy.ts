@@ -13,7 +13,10 @@ function fmtUsdFromCop(cop: number): string {
   return `$${Math.round(cop / INDICATIVE_USD_RATE).toLocaleString("en-US")}`;
 }
 
-function trendPhrase(dossier: ZoneDossier, locale: Locale): string | null {
+export function zoneTrendPhrase(
+  dossier: Pick<ZoneDossier, "monthlyTrend">,
+  locale: Locale,
+): string | null {
   const rows = dossier.monthlyTrend.filter((r) => r.medianPpm2 != null);
   if (rows.length < 2) return null;
   const first = rows[0].medianPpm2!;
@@ -24,7 +27,7 @@ function trendPhrase(dossier: ZoneDossier, locale: Locale): string | null {
       ? "Los precios se han mantenido estables en los últimos meses."
       : "Prices have remained relatively stable over recent months.";
   }
-  const dir = pct > 0 ? (locale === "es" ? "subieron" : "rose") : locale === "es" ? "bajaron" : "fell";
+  const dir = pct > 0 ? (locale === "es" ? "subió" : "rose") : locale === "es" ? "bajó" : "fell";
   const abs = Math.abs(pct).toFixed(1);
   return locale === "es"
     ? `La mediana de precio/m² ${dir} aproximadamente ${abs}% en el periodo analizado.`
@@ -37,18 +40,18 @@ export function zoneIntroParagraphs(dossier: ZoneDossier, locale: Locale): strin
 
   if (locale === "es") {
     paragraphs.push(
-      `${displayName} es un barrio en ${city}, Colombia, con ${listingCount.toLocaleString("es-CO")} publicaciones activas analizadas en ClaraCasas. Los datos provienen de anuncios de Finca Raíz y se actualizan periódicamente.`,
+      `${displayName} es un barrio en ${city}, Colombia, con ${listingCount.toLocaleString("es-CO")} publicaciones activas analizadas en CasasClaras. Los datos provienen de anuncios de Finca Raíz y se actualizan periódicamente.`,
     );
     if (medianPricePerM2 != null) {
       paragraphs.push(
         `La mediana de precio por metro cuadrado en ${displayName} es ${fmtCop(medianPricePerM2, locale)}, calculada a partir de ${dataPointCount.toLocaleString("es-CO")} anuncios con precio/m² disponible.`,
       );
     }
-    const trend = trendPhrase(dossier, locale);
+    const trend = zoneTrendPhrase(dossier, locale);
     if (trend) paragraphs.push(trend);
   } else {
     paragraphs.push(
-      `${displayName} is a neighborhood in ${city}, Colombia, with ${listingCount.toLocaleString("en-US")} active listings tracked on ClaraCasas. Data is sourced from Finca Raíz listings and updated on a rolling basis — useful for US and international investors researching Colombian real estate markets.`,
+      `${displayName} is a neighborhood in ${city}, Colombia, with ${listingCount.toLocaleString("en-US")} active listings tracked on CasasClaras. Data is sourced from Finca Raíz listings and updated on a rolling basis — useful for US and international investors researching Colombian real estate markets.`,
     );
     if (medianPricePerM2 != null) {
       const usd = fmtUsdFromCop(medianPricePerM2);
@@ -56,7 +59,7 @@ export function zoneIntroParagraphs(dossier: ZoneDossier, locale: Locale): strin
         `The median asking price per square meter in ${displayName} is ${fmtCop(medianPricePerM2, locale)} COP (~${usd}/m² USD at an indicative rate of ${INDICATIVE_USD_RATE} COP/USD), based on ${dataPointCount.toLocaleString("en-US")} listings with price/m² data. This is not an appraisal — it reflects published asking prices.`,
       );
     }
-    const trend = trendPhrase(dossier, locale);
+    const trend = zoneTrendPhrase(dossier, locale);
     if (trend) paragraphs.push(trend);
   }
 
@@ -69,7 +72,7 @@ export function cityIntroParagraph(
   locale: Locale,
 ): string {
   if (locale === "es") {
-    return `${city} cuenta con ${zoneCount} barrios con datos suficientes en ClaraCasas. Explora la mediana de precio por m², publicaciones activas y tendencias de cada zona.`;
+    return `${city} cuenta con ${zoneCount} barrios con datos suficientes en CasasClaras. Explora la mediana de precio por m², publicaciones activas y tendencias de cada zona.`;
   }
-  return `${city} has ${zoneCount} neighborhoods with sufficient listing data on ClaraCasas. Explore median price per m², active listings, and monthly trends for each barrio — a practical starting point for US investors evaluating ${city}.`;
+  return `${city} has ${zoneCount} neighborhoods with sufficient listing data on CasasClaras. Explore median price per m², active listings, and monthly trends for each barrio — a practical starting point for US investors evaluating ${city}.`;
 }

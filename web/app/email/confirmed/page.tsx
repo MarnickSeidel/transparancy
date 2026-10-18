@@ -6,7 +6,7 @@ import { absoluteUrl } from "@/lib/siteUrl"
 
 export const metadata: Metadata = noIndexMetadata(
   "Correo confirmado",
-  "Confirmación de suscripción a alertas de ClaraCasas.",
+  "Confirmación de suscripción a alertas de CasasClaras.",
 )
 
 type Props = {

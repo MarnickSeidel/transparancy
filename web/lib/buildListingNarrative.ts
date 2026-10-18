@@ -1,4 +1,5 @@
 import { compMethodLabel } from "@/lib/dealLabels"
+import type { DealVerdict } from "@/lib/dealReview"
 import { listFacilities } from "@/lib/formatFacilities"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
@@ -22,12 +23,14 @@ export type ListingNarrativeInput = {
   bedrooms: number | null
   bathrooms: number | null
   facilities: unknown
-  verdict: "good_deal" | "fair" | "overpriced"
+  verdict: DealVerdict
   confidence: "high" | "medium" | "low"
   discountVsRefPct: number | null
   sampleSize: number
   referencePpm2: number | null
   compMethod: string | null
+  /** Dominant comp barrio when comps sit outside the subject barrio. */
+  compBarrio?: string | null
   priceDropPct: number | null
   domDays: number | null
   nearby: NearbyAmenitiesResult | null
@@ -341,16 +344,25 @@ export function buildListingNarrative(input: ListingNarrativeInput): string {
     sentences.push(fill(pickVariant(copy.leadInsufficient, seed, 1), leadVars))
   } else {
     const leadPool =
-      input.verdict === "good_deal" && pct
-        ? copy.leadGood
-        : input.verdict === "overpriced" && pct
-          ? copy.leadOver
-          : copy.leadFair
+      input.verdict === "review" && pct
+        ? copy.leadReview
+        : input.verdict === "good_deal" && pct
+          ? copy.leadGood
+          : input.verdict === "overpriced" && pct
+            ? copy.leadOver
+            : copy.leadFair
     sentences.push(fill(pickVariant(leadPool, seed, 1), leadVars))
 
     const supportRoll = seed % 3
     const method = compMethodLabel(input.compMethod ?? undefined, input.lang)
     const count = String(input.sampleSize)
+
+    const compBarrio = input.compBarrio?.trim()
+    if (compBarrio) {
+      sentences.push(
+        fill(pickVariant(copy.reviewCompBarrio, seed, 3), { count, barrio: compBarrio }),
+      )
+    }
     const supportPool =
       input.confidence === "high"
         ? copy.supportHigh
@@ -358,7 +370,7 @@ export function buildListingNarrative(input: ListingNarrativeInput): string {
           ? copy.supportMedium
           : copy.supportLow
 
-    if (supportRoll !== 0 || input.confidence === "low") {
+    if (!compBarrio && (supportRoll !== 0 || input.confidence === "low")) {
       sentences.push(fill(pickVariant(supportPool, seed, 3), { count, method }))
     }
   }

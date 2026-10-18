@@ -1,5 +1,6 @@
 import { randomBytes } from "crypto"
 
+import type { DealReview, DealVerdict } from "@/lib/dealReview"
 import type { Lang } from "@/lib/i18n"
 
 export type SharedAnalyzePayload = {
@@ -28,7 +29,8 @@ export type SharedAnalyzePayload = {
   }
   analysis: {
     dealScore: number | null
-    verdict: "good_deal" | "fair" | "overpriced"
+    verdict: DealVerdict
+    review?: DealReview
     confidence: "high" | "medium" | "low"
     warnings: string[]
     discountVsRefPct: number | null
@@ -85,6 +87,10 @@ export const buildShareMessage = (
       ? lang === "es"
         ? "Buena oportunidad"
         : "Good deal"
+      : payload.analysis.verdict === "review"
+        ? lang === "es"
+          ? "Revisar antes de confiar"
+          : "Check before trusting"
       : payload.analysis.verdict === "overpriced"
         ? lang === "es"
           ? "Caro para el barrio"
@@ -99,7 +105,7 @@ export const buildShareMessage = (
       : "—"
 
   if (lang === "es") {
-    return `Análisis ClaraCasas: ${payload.listing.title}\nVeredicto: ${verdictLabel} (${discount} vs referencia)\n${reportUrl}`
+    return `Análisis CasasClaras: ${payload.listing.title}\nVeredicto: ${verdictLabel} (${discount} vs referencia)\n${reportUrl}`
   }
-  return `ClaraCasas analysis: ${payload.listing.title}\nVerdict: ${verdictLabel} (${discount} vs reference)\n${reportUrl}`
+  return `CasasClaras analysis: ${payload.listing.title}\nVerdict: ${verdictLabel} (${discount} vs reference)\n${reportUrl}`
 }

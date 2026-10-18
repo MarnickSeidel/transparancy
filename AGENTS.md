@@ -1,4 +1,4 @@
-# Agent instructions — ClaraCasas (`transparancy`)
+# Agent instructions — CasasClaras (`transparancy`)
 
 Short architecture map for agents. **Open this file only when the task needs it** (routing, deal engine, SEO, caching, env). Everyday hard rules live in [`.cursor/rules/habidata-project.mdc`](.cursor/rules/habidata-project.mdc).
 
@@ -8,7 +8,7 @@ Short architecture map for agents. **Open this file only when the task needs it*
 
 ## What this is
 
-**ClaraCasas** — transparency for Colombia residential **listing** asking prices (Finca Raíz + Metrocuadrado analyze-url). Not closed sales or appraisals.
+**CasasClaras** — transparency for Colombia residential **listing** asking prices (Finca Raíz + Metrocuadrado analyze-url). Not closed sales or appraisals.
 
 | Path | Role |
 |------|------|
@@ -17,7 +17,7 @@ Short architecture map for agents. **Open this file only when the task needs it*
 | `web/data/neighborhoods/` | Barrio JSON (web + scraper) |
 | `docker-compose.yml` | Postgres 16 |
 
-Product name: **ClaraCasas** (`lib/brand.ts`). Folder name: `transparancy`.
+Product name: **CasasClaras** (`lib/brand.ts`). Folder name: `transparancy`.
 
 **Stack:** Next 14.2, React 18, TS 5, Prisma 5, Tailwind 3.4, Leaflet, h3-js, Recharts, Resend. i18n is custom (`lib/i18n/`, `lib/locale.ts`, `middleware.ts`) — not next-intl.
 
@@ -46,6 +46,7 @@ Product name: **ClaraCasas** (`lib/brand.ts`). Folder name: `transparancy`.
 - `lib/dealCompPool.ts` — `analyzeListingDeal` (opportunities, `/anuncio`, analyze-url)
 - Good-deal floor: `GOOD_DEAL_DISCOUNT_PCT = 12` (opportunities `minDiscountPct` aligns)
 - Zone publish: ≥20 valid price/m² (`DEFAULT_MIN_ZONE_DATA_POINTS`)
+- Web-only post-processing in `analyzeListingDeal` (scraper untouched): portal placeholder coords (≥8 listings, ≥3 barrios on one point) are stripped before geo comps; discount ≥40% or approximate location caps confidence at medium; >35% discount subtracts up to 15 from score (`priceSanityPenalty`)
 - Detail: [`web/README.md`](web/README.md) § Deal analysis
 
 ### Caching / scraper

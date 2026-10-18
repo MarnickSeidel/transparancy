@@ -43,6 +43,12 @@ export type ZonePropertyTypeStat = {
   medianPricePerM2: number | null;
 };
 
+export type ZoneGroupMedian = {
+  dataPointCount: number;
+  medianPricePerM2: number | null;
+  medianPriceCop: number | null;
+};
+
 export type ZoneMonthlyTrend = {
   month: string;
   sample: number;
@@ -55,6 +61,7 @@ export type ZoneDossier = PublishableZone & {
   medianPriceCop: number | null;
   opportunityCount: number;
   propertyTypes: ZonePropertyTypeStat[];
+  groupMedians: { apt: ZoneGroupMedian; house: ZoneGroupMedian };
   aliases: ZoneAlias[];
   exploreNeighborhood: string;
   monthlyTrend: ZoneMonthlyTrend[];
@@ -290,6 +297,53 @@ export function dominantConfidence(mix: ConfidenceMix): ZoneConfidence {
   if (entries.every(([, n]) => n === 0)) return "missing";
   entries.sort((a, b) => b[1] - a[1]);
   return entries[0][0];
+}
+
+/** Zone medians this many times above/below the city's median-of-medians are hidden from directories. */
+export const ZONE_DIRECTORY_OUTLIER_RATIO = 3;
+
+function medianOf(values: number[]): number | null {
+  if (values.length === 0) return null;
+  const sorted = [...values].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+
+/**
+ * Directory view of a city's zones: drops the bucket named after the city itself,
+ * extreme median outliers, and the smaller of a readable/`uuid-` pair sharing a name.
+ * Dossier pages stay reachable; this only affects lists.
+ */
+export function curateDirectoryZones(zones: PublishableZone[], city: string): PublishableZone[] {
+  const cityKey = normalizeNeighborhoodKey(city);
+  const named = zones.filter((z) => normalizeNeighborhoodKey(z.displayName) !== cityKey);
+
+  const baseline = medianOf(
+    named.map((z) => z.medianPricePerM2).filter((v): v is number => v != null && v > 0),
+  );
+  const inRange = baseline
+    ? named.filter(
+        (z) =>
+          z.medianPricePerM2 == null ||
+          (z.medianPricePerM2 <= baseline * ZONE_DIRECTORY_OUTLIER_RATIO &&
+            z.medianPricePerM2 >= baseline / ZONE_DIRECTORY_OUTLIER_RATIO),
+      )
+    : named;
+
+  const byName = new Map<string, PublishableZone>();
+  const bySize = [...inRange].sort((a, b) => b.dataPointCount - a.dataPointCount);
+  for (const zone of bySize) {
+    const key = normalizeNeighborhoodKey(zone.displayName) || zone.bucketKey;
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, zone);
+      continue;
+    }
+    if (existing.slug.startsWith("uuid-") === zone.slug.startsWith("uuid-")) {
+      byName.set(`${key}#${zone.bucketKey}`, zone);
+    }
+  }
+  return Array.from(byName.values()).sort((a, b) => b.dataPointCount - a.dataPointCount);
 }
 
 export function isApartmentType(type: string): boolean {

@@ -25,8 +25,10 @@ import {
   type ZoneConfidence,
   type ZoneDossier,
 } from "@/lib/zones";
+import { cityDisplayName } from "@/lib/cityNames";
 import { localePath, localeToolPath, opportunitiesPath, type Locale } from "@/lib/locale";
 import { uiText } from "@/lib/i18n";
+import { zoneTrendPhrase } from "@/lib/zoneCopy";
 import { useUiLang } from "@/lib/useUiLang";
 
 const MonthlyTrendChart = dynamic(() => import("@/app/components/MonthlyTrendChart"), {
@@ -198,6 +200,26 @@ export default function ZoneDossier({
     return data.propertyTypes;
   }, [data, propertyTab]);
 
+  const heroStats = useMemo(() => {
+    if (!data) return null;
+    if (propertyTab === "all") {
+      return {
+        medianPricePerM2: data.medianPricePerM2,
+        medianPriceCop: data.medianPriceCop,
+      };
+    }
+    return data.groupMedians[propertyTab];
+  }, [data, propertyTab]);
+
+  const tabLabels: Record<PropertyTab, string> = {
+    all: txt.zonesTabAll,
+    apt: txt.zonesTabApt,
+    house: txt.zonesTabHouse,
+  };
+  const heroSuffix = propertyTab === "all" ? "" : ` · ${tabLabels[propertyTab]}`;
+  const trendSentence = data ? zoneTrendPhrase(data, lang) : null;
+  const showDataPointsCard = data != null && data.dataPointCount !== data.listingCount;
+
   const title = data?.displayName ?? zoneSlug;
   const published = data?.published !== false;
 
@@ -205,7 +227,7 @@ export default function ZoneDossier({
     <div className="app-shell flex min-h-screen flex-col">
       <SiteHeader
         title={loading ? txt.loadingData : title}
-        subtitle={data ? `${data.city} · ${txt.zonesPurpose}` : undefined}
+        subtitle={data ? `${cityDisplayName(data.city)} · ${txt.zonesPurpose}` : undefined}
         active="zones"
         lang={lang}
         onToggleLang={toggleLang}
@@ -289,29 +311,66 @@ export default function ZoneDossier({
               ) : null}
             </div>
 
-            <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div
+              className="mb-3 inline-flex gap-1 rounded-xl border border-slate-200/90 bg-surface/60 p-1 dark:border-slate-700/80"
+              role="group"
+              aria-label={txt.zonesPropertyMix}
+            >
+              {(["all", "apt", "house"] as const).map((tab) => (
+                <button
+                  key={tab}
+                  type="button"
+                  aria-pressed={propertyTab === tab}
+                  className={
+                    propertyTab === tab
+                      ? "rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-accent-fg"
+                      : "rounded-lg px-3 py-1 text-xs font-medium text-muted hover:text-foreground"
+                  }
+                  onClick={() => setPropertyTab(tab)}
+                >
+                  {tabLabels[tab]}
+                </button>
+              ))}
+            </div>
+
+            <div
+              className={`mb-6 grid gap-3 sm:grid-cols-2 ${showDataPointsCard ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}
+            >
               <Card tier="inline">
                 <p className="text-meta">{txt.zonesActiveListings}</p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
                   {data.listingCount.toLocaleString(locale)}
                 </p>
               </Card>
-              <Card tier="inline">
-                <p className="text-meta">{txt.zonesDataPoints}</p>
-                <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
-                  {data.dataPointCount.toLocaleString(locale)}
-                </p>
-              </Card>
+              {showDataPointsCard ? (
+                <Card tier="inline">
+                  <p className="text-meta">{txt.zonesDataPoints}</p>
+                  <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
+                    {data.dataPointCount.toLocaleString(locale)}
+                  </p>
+                </Card>
+              ) : null}
               <Card tier="hero">
-                <p className="text-section-label">{txt.zonesMedianPpm2}</p>
-                <p className="text-data-hero mt-2 text-3xl md:text-3xl">
-                  {fmtCop(data.medianPricePerM2, locale)}
+                <p className="text-section-label">
+                  {txt.zonesMedianPpm2}
+                  {heroSuffix}
                 </p>
+                <p className="text-data-hero mt-2 text-3xl md:text-3xl">
+                  {fmtCop(heroStats?.medianPricePerM2, locale)}
+                </p>
+                {propertyTab !== "all" && heroStats && "dataPointCount" in heroStats ? (
+                  <p className="mt-1 text-xs text-muted">
+                    n = {heroStats.dataPointCount.toLocaleString(locale)}
+                  </p>
+                ) : null}
               </Card>
               <Card tier="inline">
-                <p className="text-meta">{txt.zonesMedianPrice}</p>
+                <p className="text-meta">
+                  {txt.zonesMedianPrice}
+                  {heroSuffix}
+                </p>
                 <p className="mt-2 text-3xl font-semibold tabular-nums text-foreground">
-                  {fmtCop(data.medianPriceCop, locale)}
+                  {fmtCop(heroStats?.medianPriceCop, locale)}
                 </p>
               </Card>
             </div>
@@ -334,33 +393,10 @@ export default function ZoneDossier({
 
             <div className="mb-6 grid gap-4 lg:grid-cols-3">
               <Card className="lg:col-span-2">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-                    {txt.zonesPropertyMix}
-                  </h2>
-                  <div className="flex gap-1 rounded-xl border border-slate-200/90 bg-surface/60 p-1 dark:border-slate-700/80">
-                    {(
-                      [
-                        ["all", txt.zonesTabAll],
-                        ["apt", txt.zonesTabApt],
-                        ["house", txt.zonesTabHouse],
-                      ] as const
-                    ).map(([tab, label]) => (
-                      <button
-                        key={tab}
-                        type="button"
-                        className={
-                          propertyTab === tab
-                            ? "rounded-lg bg-accent px-3 py-1 text-xs font-semibold text-accent-fg"
-                            : "rounded-lg px-3 py-1 text-xs font-medium text-muted hover:text-foreground"
-                        }
-                        onClick={() => setPropertyTab(tab)}
-                      >
-                        {label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+                  {txt.zonesPropertyMix}
+                  {heroSuffix}
+                </h2>
                 {filteredPropertyTypes.length === 0 ? (
                   <p className="mt-3 text-sm text-muted">{txt.noDataForFilters}</p>
                 ) : (
@@ -416,14 +452,14 @@ export default function ZoneDossier({
             </div>
 
             {data.aliases.length > 0 ? (
-              <Card className="mb-6">
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
-                  {txt.zonesAliases}
-                </h2>
+              <details className="mb-6 rounded-2xl border border-border-subtle bg-elevated px-4 py-3 shadow-card">
+                <summary className="cursor-pointer text-sm font-semibold uppercase tracking-wide text-muted">
+                  {txt.zonesAliases} ({data.aliases.length})
+                </summary>
                 <p className="mt-3 text-sm leading-relaxed text-foreground">
                   {data.aliases.map((a) => a.label).join(" · ")}
                 </p>
-              </Card>
+              </details>
             ) : null}
 
             {published && chartRows.length >= 1 ? (
@@ -431,6 +467,9 @@ export default function ZoneDossier({
                 <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-muted">
                   {txt.zonesMonthlyTrend}
                 </h2>
+                {trendSentence ? (
+                  <p className="mb-3 text-sm text-foreground">{trendSentence}</p>
+                ) : null}
                 <div className="mb-4 overflow-x-auto">
                   <table className="min-w-full text-sm">
                     <thead>
@@ -489,19 +528,6 @@ export default function ZoneDossier({
 
             <p className="mb-6 text-xs text-muted">{txt.dataFreshnessNote}</p>
 
-            <EmailSignupForm
-              lang={lang}
-              source="zone_dossier"
-              title={txt.estimateSubscribeTitle}
-              hint={fmtTemplate(txt.estimateSubscribeHint, { city: data.city })}
-              defaultCity={data.city}
-              defaultNeighborhood={data.displayName}
-              defaultLists={["deals_neighborhood", "market_monthly_city"]}
-              visibleLists={["deals_neighborhood", "deals_city", "market_monthly_city"]}
-              collapsedByDefault
-              className="mb-6"
-            />
-
             <Card className="mb-6 border-accent/30 bg-accent/5 shadow-card">
               <h2 className="text-base font-semibold text-foreground">
                 {fmtTemplate(txt.zonesAnalyzeCtaTitle, { barrio: data.displayName })}
@@ -540,6 +566,19 @@ export default function ZoneDossier({
                 ) : null}
               </div>
             </Card>
+
+            <EmailSignupForm
+              lang={lang}
+              source="zone_dossier"
+              title={txt.estimateSubscribeTitle}
+              hint={fmtTemplate(txt.estimateSubscribeHint, { city: data.city })}
+              defaultCity={data.city}
+              defaultNeighborhood={data.displayName}
+              defaultLists={["deals_neighborhood", "market_monthly_city"]}
+              visibleLists={["deals_neighborhood", "deals_city", "market_monthly_city"]}
+              collapsedByDefault
+              className="mt-6"
+            />
           </>
         ) : null}
       </main>

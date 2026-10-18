@@ -45,6 +45,12 @@ export default function MonthlyTrendChart({
     );
   }
 
+  const values = data.map((d) => d.median);
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const pad = Math.max((max - min) * 0.2, max * 0.05);
+  const yDomain: [number, number] = [Math.max(0, Math.floor(min - pad)), Math.ceil(max + pad)];
+
   return (
     <div className="h-[280px] w-full px-2 pb-2 pt-4">
       <ResponsiveContainer width="100%" height="100%">
@@ -61,6 +67,7 @@ export default function MonthlyTrendChart({
             tickLine={false}
             axisLine={{ stroke: "#e2e8f0" }}
             tickFormatter={(v) => formatCompactCop(Number(v), locale)}
+            domain={yDomain}
             width={48}
           />
           <Tooltip

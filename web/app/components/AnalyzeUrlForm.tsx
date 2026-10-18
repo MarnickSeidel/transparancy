@@ -18,6 +18,7 @@ import ToolNextSteps from "@/app/components/ToolNextSteps"
 import WhyDealPanel from "@/app/components/WhyDealPanel"
 import type { WhyDeal } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
+import type { DealReview, DealVerdict } from "@/lib/dealReview"
 import { formatDomDays } from "@/lib/formatDom"
 import { formatFacilities } from "@/lib/formatFacilities"
 import { opportunitiesPath } from "@/lib/locale"
@@ -60,7 +61,8 @@ type AnalyzeResponse = {
   }
   analysis: {
     dealScore: number | null
-    verdict: "good_deal" | "fair" | "overpriced"
+    verdict: DealVerdict
+    review?: DealReview
     confidence: "high" | "medium" | "low"
     warnings: string[]
     discountVsRefPct: number | null
@@ -185,6 +187,7 @@ export default function AnalyzeUrlForm() {
       analysis: {
         dealScore: data.analysis.dealScore,
         verdict: data.analysis.verdict,
+        review: data.analysis.review,
         confidence: data.analysis.confidence,
         warnings: data.analysis.warnings,
         discountVsRefPct: data.analysis.discountVsRefPct,
@@ -347,6 +350,7 @@ export default function AnalyzeUrlForm() {
           <div className="space-y-6">
             <VerdictBanner
               verdict={data.analysis.verdict}
+              review={data.analysis.review}
               confidence={data.analysis.confidence}
               dealScore={data.analysis.dealScore}
               discountPct={data.analysis.discountVsRefPct}

@@ -12,8 +12,8 @@ import Button from "@/app/components/ui/Button"
 import Badge from "@/app/components/ui/Badge"
 import { inputClassName } from "@/app/components/ui/Field"
 import Skeleton from "@/app/components/ui/Skeleton"
-import { BRAND_NAME } from "@/lib/brand"
 import { nearestCityFromCoords } from "@/lib/cityCenters"
+import { cityDisplayName } from "@/lib/cityNames"
 import type { HomePageData } from "@/lib/getHomeStats"
 import { formatFreshnessDate } from "@/lib/getDataFreshness"
 import {
@@ -82,7 +82,10 @@ const mapOpportunityCards = (
 ): OpportunityCard[] =>
   opportunities.map((o) => ({
     id: o.id,
-    zone: o.neighborhood?.trim() || o.city,
+    zone:
+      (o.neighborhood?.trim() && o.neighborhood.trim().toLowerCase() !== o.city.trim().toLowerCase()
+        ? o.neighborhood.trim()
+        : o.zoneName?.trim()) || cityDisplayName(o.city),
     city: o.city,
     type: propertyTypeLabel(o.propertyType, lang),
     value: `COP ${Number(String(o.priceCop).replace(/\D/g, "")).toLocaleString(localeFmt)}`,
@@ -145,6 +148,11 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
     [data?.featuredOpportunities, lang, localeFmt],
   )
   const topDeal = cards[0] ?? null
+  const recentCards = cards.slice(1)
+  const cityOptions = useMemo(() => {
+    const names = (data?.featuredCities ?? []).map((c) => c.name)
+    return names.includes(city) ? names : [city, ...names]
+  }, [data?.featuredCities, city])
 
   const lastUpdatedLabel = useMemo(() => {
     const raw = data?.lastScrapedAt
@@ -239,6 +247,11 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
     }
   }, [applyCoords])
 
+  const handleCityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const next = e.target.value
+    if (next && next !== city) void loadHomeData(next)
+  }
+
   const handleInlineAnalyze = (e: React.FormEvent) => {
     e.preventDefault()
     const trimmed = inlineUrl.trim()
@@ -271,10 +284,7 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
       <AppHeader variant="marketing" homeHref={lp("/")} lang={lang} onToggleLang={toggleLang} />
 
       <main id="main-content" className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 pb-20 pt-10 sm:px-6 sm:pt-14 lg:px-8">
-        <p className="font-display text-4xl font-semibold tracking-tight text-foreground sm:text-5xl md:text-6xl">
-          {BRAND_NAME}
-        </p>
-        <h1 className="text-display mt-5 max-w-3xl text-2xl font-semibold leading-snug text-foreground sm:text-3xl md:text-[2.15rem]">
+        <h1 className="text-display max-w-3xl text-3xl font-semibold leading-snug text-foreground sm:text-4xl md:text-[2.75rem]">
           {copy.heading}
         </h1>
         <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted sm:text-lg">{copy.blurb}</p>
@@ -317,9 +327,24 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
           <div className="flex flex-col rounded-2xl border-2 border-accent-secondary/35 bg-elevated/80 p-5 sm:p-6">
             <h2 className="text-display text-xl font-semibold">{txt.homepageDoorDealsTitle}</h2>
             <p className="mt-2 text-sm leading-relaxed text-muted">{txt.homepageDoorDealsHint}</p>
-            <p className="mt-2 text-xs text-muted">
-              {fmtTemplate(txt.homepageCityLabel, { city })}
-              {" · "}
+            <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted">
+              <label htmlFor="home-city" className="sr-only">
+                {txt.homepageCitySelectLabel}
+              </label>
+              <select
+                id="home-city"
+                value={city}
+                onChange={handleCityChange}
+                disabled={loading}
+                className="rounded-md border border-border-subtle bg-background px-2 py-1 text-xs font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:opacity-60"
+              >
+                {cityOptions.map((name) => (
+                  <option key={name} value={name}>
+                    {cityDisplayName(name)}
+                  </option>
+                ))}
+              </select>
+              <span aria-hidden>·</span>
               <button
                 type="button"
                 onClick={handleUseLocation}
@@ -329,7 +354,7 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
               >
                 {geoLoading ? "…" : txt.homepageUseLocation}
               </button>
-            </p>
+            </div>
 
             <div className="mt-5 flex-1">
               {topDeal ? (
@@ -356,7 +381,7 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
                       <div>
                         <p className="font-semibold text-foreground">{topDeal.zone}</p>
                         <p className="text-meta">
-                          {topDeal.city} · {topDeal.type}
+                          {cityDisplayName(topDeal.city)} · {topDeal.type}
                         </p>
                       </div>
                       <Badge variant="good">{topDeal.score}</Badge>
@@ -373,6 +398,10 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
                 </Link>
               ) : loading ? (
                 <Skeleton className="h-24 w-full" />
+              ) : data ? (
+                <p className="rounded-xl border border-border-subtle/80 bg-background/60 p-3 text-sm text-muted">
+                  {fmtTemplate(txt.homepageNoCleanDeals, { city: cityDisplayName(city) })}
+                </p>
               ) : null}
             </div>
 
@@ -391,7 +420,7 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
               <p className="mt-1 text-sm text-muted">
                 {txt.homepageProofHint}{" "}
                 <span className="text-foreground/80">
-                  ({fmtTemplate(txt.homepageCityLabel, { city })})
+                  ({fmtTemplate(txt.homepageCityLabel, { city: cityDisplayName(city) })})
                 </span>
               </p>
               {loading && !statsLine ? (
@@ -419,7 +448,7 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
                 <Skeleton className="h-20 w-full" />
               </div>
             ) : null}
-            {cards.map((card) => (
+            {recentCards.map((card) => (
               <Link
                 key={card.id}
                 href={card.detailHref}
@@ -444,13 +473,15 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
                     <div>
                       <p className="font-semibold text-foreground">{card.zone}</p>
                       <p className="text-meta">
-                        {card.city} · {card.type}
+                        {cityDisplayName(card.city)} · {card.type}
                       </p>
                     </div>
                     <Badge variant="good">{card.score}</Badge>
                   </div>
                   <p className="mt-1 text-sm font-semibold tabular-nums">{card.value}</p>
-                  {card.discountPct != null && card.discountPct > 0 ? (
+                  {card.discountPct != null &&
+                  card.discountPct > 0 &&
+                  (card.pricePerM2 == null || card.refAvg == null) ? (
                     <p className="mt-0.5 text-xs font-medium text-deal-good">
                       {fmtTemplate(txt.homepageDiscountVsComps, {
                         pct: String(Math.round(card.discountPct)),
@@ -491,9 +522,9 @@ export default function HomePage({ locale: pageLocale = "es" }: Props) {
                       className={`font-medium link-focus ${
                         c.name === city ? "text-accent" : "text-foreground hover:text-accent"
                       }`}
-                      aria-label={`${c.name} — ${c.zoneCount} ${lang === "en" ? "neighborhoods" : "barrios"}`}
+                      aria-label={`${cityDisplayName(c.name)} — ${c.zoneCount} ${lang === "en" ? "neighborhoods" : "barrios"}`}
                     >
-                      {c.name}{" "}
+                      {cityDisplayName(c.name)}{" "}
                       <span className="font-normal text-muted">({c.zoneCount})</span>
                     </Link>
                   </span>

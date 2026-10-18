@@ -1,4 +1,4 @@
-import type { Prisma } from "@prisma/client"
+import { Prisma } from "@prisma/client"
 import { unstable_cache } from "next/cache"
 
 import { MIN_ANALYTICS_AREA_M2, percentile } from "@/lib/analytics"
@@ -22,6 +22,22 @@ const DEFAULT_HOUSE_BUILT_PPM2_FLOOR = 900_000
  */
 export const GOOD_DEAL_DISCOUNT_PCT = 12
 export const OVERPRICED_DISCOUNT_PCT = -12
+
+/**
+ * Asking-price discounts this deep are more often data errors than bargains:
+ * score penalty above PLAUSIBLE, no "high" confidence from LARGE.
+ */
+export const PLAUSIBLE_DISCOUNT_PCT = 35
+export const LARGE_DISCOUNT_PCT = 40
+const MAX_PLAUSIBILITY_PENALTY = 15
+
+/**
+ * Portals fall back to a city/zone centroid when the address is unknown; a point
+ * shared by many listings across several barrios is not a real location.
+ */
+const PLACEHOLDER_COORD_MIN_LISTINGS = 8
+const PLACEHOLDER_COORD_MIN_BARRIOS = 3
+const PLACEHOLDER_COORD_DECIMALS = 4
 
 /**
  * Lean select for comparable pools.
@@ -181,6 +197,99 @@ export const getCityHouseFloor = (city: string): Promise<number> =>
     { revalidate: DEAL_COMP_POOL_REVALIDATE_SEC },
   )()
 
+const coordKey = (lat: number, lng: number): string =>
+  `${lat.toFixed(PLACEHOLDER_COORD_DECIMALS)},${lng.toFixed(PLACEHOLDER_COORD_DECIMALS)}`
+
+/** Rounded lat/lng keys that are portal placeholders in this city. */
+export const getPlaceholderCoordKeys = (city: string): Promise<string[]> =>
+  unstable_cache(
+    async () => {
+      const rows = await prisma.$queryRaw<{ lat: number; lng: number }[]>(Prisma.sql`
+        SELECT
+          ROUND(latitude::numeric, ${PLACEHOLDER_COORD_DECIMALS}::int)::float8 AS lat,
+          ROUND(longitude::numeric, ${PLACEHOLDER_COORD_DECIMALS}::int)::float8 AS lng
+        FROM listings
+        WHERE is_active = true
+          AND city = ${city}
+          AND latitude IS NOT NULL
+          AND longitude IS NOT NULL
+        GROUP BY 1, 2
+        HAVING COUNT(*) >= ${PLACEHOLDER_COORD_MIN_LISTINGS}
+          AND COUNT(DISTINCT LOWER(TRIM(neighborhood))) >= ${PLACEHOLDER_COORD_MIN_BARRIOS}
+      `)
+      return rows.map((r) => coordKey(Number(r.lat), Number(r.lng)))
+    },
+    ["deal-placeholder-coords-v1", city],
+    { revalidate: DEAL_COMP_POOL_REVALIDATE_SEC },
+  )()
+
+export const hasPlaceholderCoords = (
+  listing: Pick<DealListingInput, "latitude" | "longitude">,
+  keys: Set<string>,
+): boolean =>
+  listing.latitude != null &&
+  listing.longitude != null &&
+  keys.has(coordKey(listing.latitude, listing.longitude))
+
+const withoutCoords = (listing: DealListingInput): DealListingInput => ({
+  ...listing,
+  latitude: null,
+  longitude: null,
+})
+
+const strippedPools = new WeakMap<DealListingInput[], DealListingInput[]>()
+
+/** Same pool without placeholder coordinates so geo_1km only uses real points. */
+const stripPlaceholderCoords = (
+  pool: DealListingInput[],
+  keys: Set<string>,
+): DealListingInput[] => {
+  if (keys.size === 0) return pool
+  const cached = strippedPools.get(pool)
+  if (cached) return cached
+  const stripped = pool.map((l) => (hasPlaceholderCoords(l, keys) ? withoutCoords(l) : l))
+  strippedPools.set(pool, stripped)
+  return stripped
+}
+
+/** Deep discounts and approximate locations lower confidence and score. */
+const applyPlausibility = (
+  analysis: DealAnalysis,
+  approximateLocation: boolean,
+): DealAnalysis => {
+  const discount = analysis.discountVsRefPct
+  const reasons = [...analysis.confidenceReasons]
+  if (approximateLocation) reasons.push("approximate_location")
+  const largeDiscount =
+    discount != null && discount >= LARGE_DISCOUNT_PCT && !reasons.includes("extreme_discount")
+  if (largeDiscount) reasons.push("large_discount")
+
+  const confidence =
+    analysis.confidence === "high" && (approximateLocation || largeDiscount)
+      ? "medium"
+      : analysis.confidence
+
+  const penalty =
+    discount != null && discount > PLAUSIBLE_DISCOUNT_PCT
+      ? Math.min(MAX_PLAUSIBILITY_PENALTY, discount - PLAUSIBLE_DISCOUNT_PCT)
+      : 0
+  if (penalty === 0 || analysis.breakdown == null || analysis.dealScore == null) {
+    return { ...analysis, confidence, confidenceReasons: reasons }
+  }
+  return {
+    ...analysis,
+    confidence,
+    confidenceReasons: reasons,
+    dealScore: Number(Math.max(0, analysis.dealScore - penalty).toFixed(4)),
+    breakdown: {
+      ...analysis.breakdown,
+      priceSanityPenalty: Number(
+        (analysis.breakdown.priceSanityPenalty + penalty).toFixed(4),
+      ),
+    },
+  }
+}
+
 export type AnalyzeListingDealOptions = {
   priceEvents?: PriceEventInput[]
   /** Opportunities list filter only — do not pass from listing detail. */
@@ -189,6 +298,8 @@ export type AnalyzeListingDealOptions = {
   pool?: DealListingInput[]
   /** Prefetched city house floor (batch paths). */
   houseFloor?: number
+  /** Prefetched placeholder coordinate keys (batch paths). */
+  placeholderCoordKeys?: Set<string>
 }
 
 /**
@@ -202,10 +313,18 @@ export const analyzeListingDeal = async (
     opts?.pool ?? (await getDealCompPool(subject.city, subject.propertyType))
   const houseFloor =
     opts?.houseFloor ?? (await getCityHouseFloor(subject.city))
+  const keys =
+    opts?.placeholderCoordKeys ?? new Set(await getPlaceholderCoordKeys(subject.city))
+  const approximateLocation = hasPlaceholderCoords(subject, keys)
 
-  return analyzeDeal(subject, pool, {
-    priceEvents: opts?.priceEvents,
-    minBuiltPpm2ForHouse: houseFloor,
-    requirePositiveDiscount: opts?.requirePositiveDiscount,
-  })
+  const analysis = analyzeDeal(
+    approximateLocation ? withoutCoords(subject) : subject,
+    stripPlaceholderCoords(pool, keys),
+    {
+      priceEvents: opts?.priceEvents,
+      minBuiltPpm2ForHouse: houseFloor,
+      requirePositiveDiscount: opts?.requirePositiveDiscount,
+    },
+  )
+  return applyPlausibility(analysis, approximateLocation)
 }

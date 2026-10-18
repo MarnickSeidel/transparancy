@@ -17,6 +17,7 @@ import WhyDealPanel from "@/app/components/WhyDealPanel"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
 import Skeleton from "@/app/components/ui/Skeleton"
+import { cityDisplayName } from "@/lib/cityNames"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
 import { formatFacilities } from "@/lib/formatFacilities"
@@ -29,6 +30,7 @@ import { propertyTypeLabel } from "@/lib/propertyTypes"
 import type { SharedAnalyzePayload } from "@/lib/shareReport"
 import { useNearbyAmenities } from "@/lib/useNearbyAmenities"
 import { useUiLang } from "@/lib/useUiLang"
+import { isHouseType } from "@/lib/zones"
 
 const PriceTimelineChart = dynamic(() => import("@/app/components/PriceTimelineChart"), {
   ssr: false,
@@ -43,6 +45,13 @@ type Props = {
 function fmtCop(v: number | null | undefined, locale: string) {
   if (v == null || Number.isNaN(v)) return "—"
   return `$ ${Math.round(v).toLocaleString(locale)}`
+}
+
+function daysSince(iso: string | null | undefined): number | null {
+  if (!iso) return null
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return null
+  return Math.max(0, Math.floor((Date.now() - t) / 86400000))
 }
 
 export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
@@ -79,6 +88,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
     analysis: {
       dealScore: data.analysis.dealScore,
       verdict: data.analysis.verdict,
+      review: data.analysis.review,
       confidence: data.analysis.confidence,
       warnings: data.analysis.warnings,
       discountVsRefPct: data.analysis.discountVsRefPct,
@@ -139,10 +149,58 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
     [data.priceTimeline],
   )
 
-  const domLabel = formatDomDays(data.analysis.domDays, lang)
   const updatedLabel = data.listing.sourceUpdatedAt
     ? formatFreshnessDate(new Date(data.listing.sourceUpdatedAt), locale)
     : null
+  const sourceUpdatedDays = daysSince(data.listing.sourceUpdatedAt)
+  const domLabel =
+    data.analysis.domDays != null &&
+    data.analysis.domDays <= 0 &&
+    sourceUpdatedDays != null &&
+    sourceUpdatedDays > 0
+      ? txt.listingFirstSeenToday
+      : formatDomDays(data.analysis.domDays, lang)
+
+  const lastPriceChangeDays = daysSince(data.analysis.lastPriceChangeAt)
+  const lastPriceChangeLabel =
+    lastPriceChangeDays == null
+      ? txt.listingNoPriceChange
+      : `${txt.listingLastPriceChange}: ${
+          lastPriceChangeDays === 0
+            ? txt.listingLastPriceChangeToday
+            : lastPriceChangeDays === 1
+              ? txt.listingLastPriceChangeOneDay
+              : txt.listingLastPriceChangeDays.replace("{n}", String(lastPriceChangeDays))
+        }`
+  const adminFee = data.analysis.adminFeeCop != null ? Number(data.analysis.adminFeeCop) : null
+
+  const listingChecks = useMemo(() => {
+    const l = data.listing
+    const checks: string[] = []
+    if (!l.imageUrl) checks.push(txt.listingCheckNoPhoto)
+    // Apartments routinely repeat one area in every field; only houses are misleading.
+    const built = l.areaBuiltM2
+    const lot = l.areaTerrainM2
+    if (
+      isHouseType(l.propertyType ?? "") &&
+      built != null &&
+      lot != null &&
+      built > 0 &&
+      Math.abs(built - lot) < 0.5
+    ) {
+      checks.push(txt.listingCheckSameAreas.replace("{area}", built.toFixed(0)))
+    }
+    return checks
+  }, [data.listing, txt])
+
+  const compBarrioNote = useMemo(() => {
+    const { compBarrio, compBarrioShare } = data.analysis.review
+    if (!compBarrio || compBarrioShare == null) return null
+    return txt.listingCompBarrioNote
+      .replace("{pct}", String(Math.round(compBarrioShare * 100)))
+      .replace("{barrio}", compBarrio)
+      .replace("{subject}", data.listing.neighborhood ?? data.listing.zoneName ?? txt.unknown)
+  }, [data.analysis.review, data.listing.neighborhood, data.listing.zoneName, txt])
 
   const opportunitiesHref = useMemo(() => {
     const p = new URLSearchParams()
@@ -238,13 +296,15 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
                   className="h-full w-full object-cover"
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-sm text-muted">—</div>
+                <div className="flex h-full items-center justify-center px-3 text-center text-sm text-muted">
+                  {txt.listingNoPhoto}
+                </div>
               )}
             </div>
             <div className="min-w-0 flex-1">
               <p className="text-xl font-semibold text-foreground">{data.listing.title}</p>
               <p className="mt-1 text-sm text-muted">
-                {data.listing.city}
+                {cityDisplayName(data.listing.city)}
                 {data.listing.neighborhood ? ` · ${data.listing.neighborhood}` : ""}
                 {data.listing.zoneName ? ` (${data.listing.zoneName})` : ""}
               </p>
@@ -261,7 +321,16 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
                     {fmtCop(data.listing.pricePerM2, locale)}
                   </span>
                 </p>
+                {adminFee != null && adminFee > 0 ? (
+                  <p>
+                    <span className="text-muted">{txt.listingAdminFee}:</span>{" "}
+                    <span className="font-semibold tabular-nums">
+                      {txt.listingAdminFeeMonthly.replace("{fee}", fmtCop(adminFee, locale))}
+                    </span>
+                  </p>
+                ) : null}
               </div>
+              <p className="mt-2 text-xs text-muted">{lastPriceChangeLabel}</p>
               <div className="mt-4 flex flex-wrap gap-2">
                 <a
                   href={data.listing.url}
@@ -280,6 +349,20 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
         </Card>
 
         <div className="space-y-6">
+          {listingChecks.length > 0 ? (
+            <div
+              className="rounded-2xl border border-amber-500/30 bg-amber-500/5 px-4 py-3 text-sm shadow-card"
+              role="note"
+            >
+              <p className="font-semibold text-foreground">{txt.listingChecksTitle}</p>
+              <ul className="mt-1 list-disc space-y-1 pl-5 text-amber-900 dark:text-amber-200">
+                {listingChecks.map((check) => (
+                  <li key={check}>{check}</li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+
           <ListingNarrativeCard
             listingId={data.listing.id}
             lang={lang}
@@ -298,6 +381,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
             sampleSize={data.analysis.sampleSize}
             referencePpm2={data.analysis.referencePpm2}
             compMethod={data.analysis.compMethod}
+            compBarrio={data.analysis.review.compBarrio}
             priceDropPct={data.analysis.priceDropPct}
             domDays={data.analysis.domDays}
             nearby={nearby.data}
@@ -306,6 +390,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
 
           <VerdictBanner
             verdict={data.analysis.verdict}
+            review={data.analysis.review}
             confidence={data.analysis.confidence}
             dealScore={data.analysis.dealScore}
             discountPct={data.analysis.discountVsRefPct}
@@ -375,7 +460,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
             </div>
             <div className="mt-3 grid gap-2 text-sm sm:grid-cols-2">
               <p>
-                <span className="text-muted">{txt.city}:</span> {data.listing.city}
+                <span className="text-muted">{txt.city}:</span> {cityDisplayName(data.listing.city)}
               </p>
               <p>
                 <span className="text-muted">{txt.neighborhood}:</span>{" "}
@@ -444,6 +529,11 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
           <section className="overflow-hidden rounded-2xl border border-slate-200/90 bg-elevated shadow-card dark:border-slate-700/80">
             <div className="border-b border-slate-200/80 bg-surface/80 px-4 py-3 text-sm font-semibold text-foreground dark:border-slate-700/80">
               {txt.analyzeComparableListings}
+              {compBarrioNote ? (
+                <p className="mt-1 text-xs font-normal text-amber-800 dark:text-amber-300">
+                  {compBarrioNote}
+                </p>
+              ) : null}
             </div>
             <div className="overflow-x-auto">
               <table className="data-table min-w-full divide-y divide-slate-200 text-left text-sm dark:divide-slate-600/60">

@@ -1,8 +1,10 @@
 import { Prisma } from "@prisma/client";
 
 import { getCityFromSlug } from "@/lib/getCityFromSlug";
+import { DEFAULT_OPPORTUNITIES_PAGE_SIZE } from "@/lib/getTopOpportunities";
 import { queryMonthlyTrends } from "@/lib/monthlyTrends";
 import { prisma } from "@/lib/prisma";
+import { getCachedTopOpportunities } from "@/lib/serverCache";
 import {
   bucketKeyFromSlug,
   citySlugFromBucketKey,
@@ -16,6 +18,30 @@ import {
   type ZoneMonthlyTrend,
   type ZonePropertyTypeStat,
 } from "@/lib/zones";
+
+/**
+ * After a barrio merge, an old `uuid-` dossier URL points to the bucket where most
+ * listings with that FR location id now live. Null when nothing moved.
+ */
+export async function getMovedZoneSlug(
+  citySlug: string,
+  zoneSlug: string,
+): Promise<string | null> {
+  if (!zoneSlug.startsWith("uuid-")) return null;
+  const rows = await prisma.$queryRaw<Array<{ bucket_key: string | null }>>(Prisma.sql`
+    SELECT ${sqlBucketKey()} AS bucket_key
+    FROM listings l
+    WHERE l.is_active = true
+      AND l.neighborhood_source_id = ${zoneSlug.slice(5)}
+    GROUP BY 1
+    ORDER BY COUNT(*) DESC
+    LIMIT 1
+  `);
+  const key = rows[0]?.bucket_key;
+  if (!key || citySlugFromBucketKey(key) !== citySlug) return null;
+  const slug = zoneSlugFromBucketKey(key);
+  return slug === zoneSlug ? null : slug;
+}
 
 export async function getZoneDossier(
   citySlug: string,
@@ -94,7 +120,7 @@ export async function getZoneDossier(
   const published = dataPointCount >= minDataPoints;
   const exploreNeighborhood = summary.display_name?.trim() || zoneSlug;
 
-  const [aliasRows, typeRows, trendResult, opportunityRows, freshnessRows] = await Promise.all([
+  const [aliasRows, typeRows, trendResult, opportunities, freshnessRows, groupRows] = await Promise.all([
     prisma.$queryRaw<Array<{ label: string; count: bigint }>>(Prisma.sql`
       SELECT
         btrim(l.neighborhood_raw) AS label,
@@ -131,21 +157,74 @@ export async function getZoneDossier(
       neighborhood: exploreNeighborhood,
       months: 6,
     }),
-    prisma.$queryRaw<Array<{ n: bigint }>>(Prisma.sql`
-      SELECT COUNT(*)::bigint AS n
-      FROM listings l
-      WHERE l.is_active = true
-        AND ${sqlBucketKey()} = ${bucketKey}
-        AND l.is_deal = true
-        AND l.operation_type ILIKE '%venta%'
-    `),
+    // Same query the dossier's opportunities link opens, so the count matches the list.
+    getCachedTopOpportunities({
+      city: summary.city,
+      neighborhood: exploreNeighborhood,
+      hideReview: true,
+      pageSize: DEFAULT_OPPORTUNITIES_PAGE_SIZE,
+    }).catch(() => null),
     prisma.$queryRaw<Array<{ last_updated: Date | null }>>(Prisma.sql`
       SELECT MAX(l.date_scraped) AS last_updated
       FROM listings l
       WHERE l.is_active = true
         AND ${sqlBucketKey()} = ${bucketKey}
     `),
+    prisma.$queryRaw<
+      Array<{
+        apt_count: bigint;
+        apt_median_ppm2: number | null;
+        apt_median_price_cop: number | null;
+        house_count: bigint;
+        house_median_ppm2: number | null;
+        house_median_price_cop: number | null;
+      }>
+    >(Prisma.sql`
+      WITH typed AS (
+        SELECT
+          lower(COALESCE(l.property_type, '')) AS pt,
+          l.price_cop::float8 AS price_cop,
+          ${sqlEffectivePpm2()} AS ppm2
+        FROM listings l
+        WHERE l.is_active = true
+          AND ${sqlBucketKey()} = ${bucketKey}
+      ),
+      grouped AS (
+        SELECT
+          ppm2,
+          price_cop,
+          (pt LIKE '%apartamento%' OR pt LIKE '%apto%') AS is_apt,
+          (pt LIKE '%casa%') AS is_house
+        FROM typed
+      )
+      SELECT
+        COUNT(*) FILTER (WHERE is_apt AND ppm2 IS NOT NULL)::bigint AS apt_count,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY ppm2)
+          FILTER (WHERE is_apt AND ppm2 IS NOT NULL)::float8 AS apt_median_ppm2,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cop)
+          FILTER (WHERE is_apt)::float8 AS apt_median_price_cop,
+        COUNT(*) FILTER (WHERE is_house AND ppm2 IS NOT NULL)::bigint AS house_count,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY ppm2)
+          FILTER (WHERE is_house AND ppm2 IS NOT NULL)::float8 AS house_median_ppm2,
+        percentile_cont(0.5) WITHIN GROUP (ORDER BY price_cop)
+          FILTER (WHERE is_house)::float8 AS house_median_price_cop
+      FROM grouped
+    `),
   ]);
+
+  const groupRow = groupRows[0];
+  const groupMedians: ZoneDossier["groupMedians"] = {
+    apt: {
+      dataPointCount: Number(groupRow?.apt_count ?? 0),
+      medianPricePerM2: groupRow?.apt_median_ppm2 ?? null,
+      medianPriceCop: groupRow?.apt_median_price_cop ?? null,
+    },
+    house: {
+      dataPointCount: Number(groupRow?.house_count ?? 0),
+      medianPricePerM2: groupRow?.house_median_ppm2 ?? null,
+      medianPriceCop: groupRow?.house_median_price_cop ?? null,
+    },
+  };
 
   const aliases: ZoneAlias[] = aliasRows
     .map((row) => ({
@@ -174,8 +253,9 @@ export async function getZoneDossier(
     published,
     minDataPoints,
     medianPriceCop: summary.median_price_cop,
-    opportunityCount: Number(opportunityRows[0]?.n ?? 0),
+    opportunityCount: opportunities?.total ?? 0,
     propertyTypes,
+    groupMedians,
     aliases,
     exploreNeighborhood,
     monthlyTrend,

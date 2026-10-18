@@ -1,5 +1,22 @@
+import type { DealReview } from "@/lib/dealReview"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
+
+export function dealReviewLabels(review: DealReview | null | undefined, lang: Lang): string[] {
+  if (!review?.needsReview) return []
+  const txt = uiText[lang]
+  return review.reasons.map((reason) => {
+    if (reason === "cross_barrio_comps" && review.compBarrio && review.compBarrioShare != null) {
+      return txt.reviewReason_cross_barrio_named
+        .replace("{pct}", String(Math.round(review.compBarrioShare * 100)))
+        .replace("{barrio}", review.compBarrio)
+    }
+    if (reason === "extreme_discount") return txt.reviewReason_extreme_discount
+    if (reason === "city_wide_comps") return txt.reviewReason_city_wide_comps
+    if (reason === "unknown_barrio") return txt.reviewReason_unknown_barrio
+    return txt.reviewReason_cross_barrio_comps
+  })
+}
 
 export function dealWarningLabel(
   note: string,

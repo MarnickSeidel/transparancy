@@ -62,5 +62,6 @@
     "sector lago uribe": "Maraya",
     "aeropuerto": "Avenida Sur"
   },
-  "source_ids": {}
+  "source_ids": {},
+  "dossier_by_name": ["Pinares", "Pinares Alto", "Los Alamos"]
 }

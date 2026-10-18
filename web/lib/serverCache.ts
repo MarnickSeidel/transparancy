@@ -29,14 +29,14 @@ const PRICE_DROPS_REVALIDATE = 120
 const FRESHNESS_REVALIDATE = 300
 
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
-  // v3: never surface inactive listings as opportunities
-  "top-opportunities-v3",
+  "top-opportunities-v6",
   query.city ?? "all",
   query.propertyType ?? "all",
   query.neighborhood ?? "all",
   query.excludeNeighborhoods?.join("|") ?? "",
   query.excludeUnknownNeighborhoods ? "1" : "0",
   query.hideLowConfidence === false ? "0" : "1",
+  query.hideReview ? "1" : "0",
   query.excludeBarter ? "1" : "0",
   query.excludeProjects ? "1" : "0",
   String(query.minDiscountPct ?? GOOD_DEAL_DISCOUNT_PCT),

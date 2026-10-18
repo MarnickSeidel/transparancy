@@ -1,4 +1,4 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 48" role="img" aria-label="ClaraCasas">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 268 48" role="img" aria-label="CasasClaras">
   <g transform="translate(2 4) scale(0.078)">
     <circle cx="256" cy="248" r="232" fill="#EF7B38"/>
     <path fill="#0f172a" d="M286 332 L352 268 L418 332 L418 438 L286 438 Z"/>
@@ -14,6 +14,6 @@
     font-size="23"
     font-weight="600"
     letter-spacing="-0.03em"
-    fill="#E2E8F0"
-  >ClaraCasas</text>
+    fill="#1e293b"
+  >CasasClaras</text>
 </svg>

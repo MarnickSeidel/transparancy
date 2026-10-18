@@ -15,6 +15,7 @@ import { inputClassName } from "@/app/components/ui/Field";
 import SearchableSelect from "@/app/components/ui/SearchableSelect";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { mapCenterForCity, nearestCityFromCoords } from "@/lib/cityCenters";
+import { cityDisplayName } from "@/lib/cityNames";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
 import type { FiltersData } from "@/lib/getFiltersData";
 import SiteHeader from "@/app/components/SiteHeader";
@@ -236,7 +237,7 @@ export default function EstimateForm({
   }, [result]);
 
   const cityOptions = useMemo(
-    () => cities.map((c) => ({ value: c, label: c })),
+    () => cities.map((c) => ({ value: c, label: cityDisplayName(c) })),
     [cities],
   );
 

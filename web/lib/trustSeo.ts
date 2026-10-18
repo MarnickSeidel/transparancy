@@ -13,38 +13,38 @@ const COPY: Record<
 > = {
   methodology: {
     es: {
-      title: "Metodología de datos | ClaraCasas",
+      title: "Metodología de datos | CasasClaras",
       description:
-        "Cómo ClaraCasas recopila, procesa y publica datos de anuncios Finca Raíz para análisis de precio/m² por barrio en Colombia.",
+        "Cómo CasasClaras recopila, procesa y publica datos de anuncios Finca Raíz para análisis de precio/m² por barrio en Colombia.",
     },
     en: {
-      title: "Data methodology | ClaraCasas",
+      title: "Data methodology | CasasClaras",
       description:
-        "How ClaraCasas collects, processes, and publishes Finca Raíz listing data for neighborhood price/m² analysis in Colombia.",
+        "How CasasClaras collects, processes, and publishes Finca Raíz listing data for neighborhood price/m² analysis in Colombia.",
     },
   },
   privacy: {
     es: {
-      title: "Política de privacidad | ClaraCasas",
+      title: "Política de privacidad | CasasClaras",
       description:
-        "Información sobre cookies, almacenamiento local y tratamiento de datos en la plataforma ClaraCasas.",
+        "Información sobre cookies, almacenamiento local y tratamiento de datos en la plataforma CasasClaras.",
     },
     en: {
-      title: "Privacy policy | ClaraCasas",
+      title: "Privacy policy | CasasClaras",
       description:
-        "Information about cookies, local storage, and data handling on the ClaraCasas platform.",
+        "Information about cookies, local storage, and data handling on the CasasClaras platform.",
     },
   },
   about: {
     es: {
-      title: "Acerca de ClaraCasas",
+      title: "Acerca de CasasClaras",
       description:
-        "ClaraCasas: inteligencia inmobiliaria con datos de publicaciones en Colombia. Transparencia de mercado para inversionistas.",
+        "CasasClaras: inteligencia inmobiliaria con datos de publicaciones en Colombia. Transparencia de mercado para inversionistas.",
     },
     en: {
-      title: "About ClaraCasas",
+      title: "About CasasClaras",
       description:
-        "ClaraCasas: real estate intelligence from Colombian listing data. Market transparency for local and US investors.",
+        "CasasClaras: real estate intelligence from Colombian listing data. Market transparency for local and US investors.",
     },
   },
 };
@@ -65,7 +65,7 @@ export function trustPageMetadata(page: TrustPage, locale: Locale): Metadata {
       title,
       description,
       url: canonicalForLocale(path, locale),
-      siteName: "ClaraCasas",
+      siteName: "CasasClaras",
       locale: ogLocale(locale),
       type: "website",
     },
@@ -83,7 +83,7 @@ export function homeJsonLd(locale: Locale) {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "ClaraCasas",
+      name: "CasasClaras",
       url,
       description:
         locale === "en"
@@ -94,7 +94,7 @@ export function homeJsonLd(locale: Locale) {
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "ClaraCasas",
+      name: "CasasClaras",
       url,
       description:
         locale === "en"

@@ -39,6 +39,9 @@ _MIN_SUFFIX_LEN = 5
 _fold_to_canonical: dict[str, dict[str, str]] = {}
 # city_key -> source_id -> canonical display name
 _source_id_to_canonical: dict[str, dict[str, str]] = {}
+# city_key -> folded canonical names whose dossier is keyed by name, not FR location id
+# (FR splits these barrios across several location ids that also cover other barrios).
+_dossier_by_name: dict[str, set[str]] = {}
 # city_key -> True if loaded
 _loaded: set[str] = set()
 
@@ -87,6 +90,13 @@ def _load_city_file(path: Path) -> None:
                 if ta:
                     id_bucket[sid.strip()] = ta
 
+    by_name = raw.get("dossier_by_name") or []
+    _dossier_by_name[city_key] = (
+        {_fold(n) for n in by_name if isinstance(n, str) and n.strip()}
+        if isinstance(by_name, list)
+        else set()
+    )
+
     _fold_to_canonical[city_key] = bucket
     _source_id_to_canonical[city_key] = id_bucket
     _loaded.add(city_key)
@@ -95,6 +105,7 @@ def _load_city_file(path: Path) -> None:
 def load_all_catalogs() -> None:
     _fold_to_canonical.clear()
     _source_id_to_canonical.clear()
+    _dossier_by_name.clear()
     _loaded.clear()
     if not _DATA_DIR.is_dir():
         return
@@ -148,6 +159,12 @@ def _suffix_catalog_match(f: str, bucket: dict[str, str]) -> str | None:
             continue
         return canon
     return None
+
+
+def dossier_keyed_by_name(city_key: str | None, canonical: str | None) -> bool:
+    if not city_key or not canonical or not canonical.strip():
+        return False
+    return _fold(canonical) in _dossier_by_name.get(city_key, set())
 
 
 def resolve_by_source_id(source_id: str | None, city_key: str) -> str | None:

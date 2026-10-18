@@ -98,6 +98,9 @@ function scoreDrivers(
   if (bd.typeLocationPenalty !== 0) {
     rows.push({ label: txt.dealScoreDriver_type_location, value: -bd.typeLocationPenalty });
   }
+  if (bd.priceSanityPenalty !== 0) {
+    rows.push({ label: txt.dealScoreDriver_price_sanity, value: -bd.priceSanityPenalty });
+  }
   return rows;
 }
 

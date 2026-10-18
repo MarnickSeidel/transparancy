@@ -20,7 +20,7 @@ export const opportunitiesJsonLd = (locale: Locale = "es") => {
     inLanguage: locale === "en" ? "en-US" : "es-CO",
     isPartOf: {
       "@type": "WebSite",
-      name: "ClaraCasas",
+      name: "CasasClaras",
       url: absoluteUrl("/"),
     },
     about: {

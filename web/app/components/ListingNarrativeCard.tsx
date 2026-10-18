@@ -2,11 +2,12 @@
 
 import Card from "@/app/components/ui/Card"
 import { buildListingNarrative } from "@/lib/buildListingNarrative"
+import type { DealVerdict } from "@/lib/dealReview"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
 import type { NearbyAmenitiesResult } from "@/lib/nearbyAmenities"
 
-type Verdict = "good_deal" | "fair" | "overpriced"
+type Verdict = DealVerdict
 type Confidence = "high" | "medium" | "low"
 
 type Props = {
@@ -27,6 +28,7 @@ type Props = {
   sampleSize: number
   referencePpm2: number | null
   compMethod: string | null
+  compBarrio?: string | null
   priceDropPct: number | null
   domDays: number | null
   nearby: NearbyAmenitiesResult | null
@@ -53,6 +55,7 @@ export default function ListingNarrativeCard(props: Props) {
     sampleSize: props.sampleSize,
     referencePpm2: props.referencePpm2,
     compMethod: props.compMethod,
+    compBarrio: props.compBarrio ?? null,
     priceDropPct: props.priceDropPct,
     domDays: props.domDays,
     nearby: props.nearbyLoading ? null : props.nearby,

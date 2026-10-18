@@ -10,10 +10,12 @@ import SiteHeader from "@/app/components/SiteHeader";
 import Button from "@/app/components/ui/Button";
 import Card from "@/app/components/ui/Card";
 import { inputClassName } from "@/app/components/ui/Field";
+import SearchableSelect from "@/app/components/ui/SearchableSelect";
 import Skeleton from "@/app/components/ui/Skeleton";
 import { fetchJsonCached } from "@/lib/clientFetchCache";
 import type { FiltersData } from "@/lib/getFiltersData";
 import { BUCKET_COLORS, type PriceBucket } from "@/lib/mapPriceBuckets";
+import { cityDisplayName } from "@/lib/cityNames";
 import { uiText } from "@/lib/i18n";
 import { opportunitiesPath, localePath } from "@/lib/locale";
 import { propertyTypeLabel, propertyTypeOptions } from "@/lib/propertyTypes";
@@ -276,7 +278,7 @@ export default function ListingExplorer({
   const activeFilterChips = useMemo(() => {
     const chips: { key: string; label: string; onClear: () => void }[] = [];
     if (city !== "all") {
-      chips.push({ key: "city", label: `${txt.city}: ${city}`, onClear: () => { setCity("all"); setNeighborhood("all"); } });
+      chips.push({ key: "city", label: `${txt.city}: ${cityDisplayName(city)}`, onClear: () => { setCity("all"); setNeighborhood("all"); } });
     }
     if (neighborhood !== "all") {
       chips.push({ key: "neighborhood", label: `${txt.neighborhood}: ${neighborhood}`, onClear: () => setNeighborhood("all") });
@@ -357,6 +359,11 @@ export default function ListingExplorer({
       })
       .catch(() => setDossierHref(null));
   }, [city, neighborhood]);
+
+  const neighborhoodOptions = useMemo(
+    () => (city === "all" ? [] : neighborhoods.map((n) => ({ value: n, label: n }))),
+    [city, neighborhoods],
+  );
 
   const rows = data?.listings ?? [];
   const total = data?.total ?? 0;
@@ -448,7 +455,7 @@ export default function ListingExplorer({
                 <option value="all">{txt.allCities}</option>
                 {cities.map((c) => (
                   <option key={c} value={c}>
-                    {c}
+                    {cityDisplayName(c)}
                   </option>
                 ))}
               </select>
@@ -475,19 +482,24 @@ export default function ListingExplorer({
               <label className="block text-xs font-medium text-muted" htmlFor="exp-neighborhood">
                 {txt.neighborhood}
               </label>
-              <select
+              <SearchableSelect
                 id="exp-neighborhood"
-                className={`${inputClassName} sm:min-w-[170px]`}
-                value={neighborhood}
-                onChange={(e) => setNeighborhood(e.target.value)}
-              >
-                <option value="all">{txt.all}</option>
-                {neighborhoods.map((n) => (
-                  <option key={n} value={n}>
-                    {n}
-                  </option>
-                ))}
-              </select>
+                className="sm:min-w-[220px]"
+                allowEmpty
+                emptyLabel={txt.all}
+                disabled={city === "all"}
+                value={neighborhood === "all" ? "" : neighborhood}
+                options={neighborhoodOptions}
+                filterMode="auto"
+                placeholder={
+                  city === "all" ? txt.exploreSelectCityFirst : txt.searchableSelectPlaceholder
+                }
+                noResultsLabel={txt.searchableSelectNoMatch}
+                openListLabel={txt.searchableSelectOpenList}
+                closeListLabel={txt.searchableSelectCloseList}
+                aria-label={txt.neighborhood}
+                onChange={(next) => setNeighborhood(next || "all")}
+              />
             </div>
             <div className="w-full sm:w-auto">
               <label className="block text-xs font-medium text-muted" htmlFor="exp-estrato">
@@ -662,7 +674,7 @@ export default function ListingExplorer({
                             />
                           ) : null}
                         </td>
-                        <td className="px-4 py-3">{row.city}</td>
+                        <td className="px-4 py-3">{cityDisplayName(row.city)}</td>
                         <td className="px-4 py-3">
                           <NeighborhoodCell
                             neighborhood={row.neighborhood}
@@ -733,7 +745,7 @@ export default function ListingExplorer({
                       />
                     ) : null}
                     <p className="mt-2 text-sm text-muted">
-                      {row.city} · {row.neighborhood ?? txt.unknown}
+                      {cityDisplayName(row.city)} · {row.neighborhood ?? txt.unknown}
                     </p>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                       <div>

@@ -1,12 +1,12 @@
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 
 import ZoneDossier from "@/app/components/ZoneDossier";
 import { getRelatedZones } from "@/lib/getRelatedZones";
-import { getZoneDossier } from "@/lib/getZoneDossier";
+import { getMovedZoneSlug, getZoneDossier } from "@/lib/getZoneDossier";
 import { ZONE_NEARBY_RADIUS_M } from "@/lib/nearbyAmenities";
 import { getCachedNearbyAmenities } from "@/lib/serverCache";
 import { breadcrumbJsonLd } from "@/lib/trustSeo";
-import { LOCALES, stripLocalePrefix, type Locale } from "@/lib/locale";
+import { LOCALES, localePath, stripLocalePrefix, type Locale } from "@/lib/locale";
 import { zoneIntroParagraphs } from "@/lib/zoneCopy";
 import {
   zoneBreadcrumbItems,
@@ -51,6 +51,13 @@ export default async function ZoneDetailPage({ params }: Props) {
     );
   } catch {
     notFound();
+  }
+
+  if (!dossier?.published) {
+    const moved = await getMovedZoneSlug(params.citySlug, params.zoneSlug).catch(() => null);
+    if (moved) {
+      permanentRedirect(localePath(locale, `/zones/${params.citySlug}/${moved}`));
+    }
   }
 
   if (!dossier) notFound();

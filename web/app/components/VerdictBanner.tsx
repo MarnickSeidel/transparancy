@@ -9,18 +9,21 @@ import TrustMeta from "@/app/components/TrustMeta"
 import {
   compMethodLabel,
   confidenceLabel,
+  dealReviewLabels,
   metricTypeLabel,
 } from "@/lib/dealLabels"
+import type { DealReview, DealVerdict } from "@/lib/dealReview"
 import { formatDomDays } from "@/lib/formatDom"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 
-type Verdict = "good_deal" | "fair" | "overpriced"
+type Verdict = DealVerdict
 type Confidence = "high" | "medium" | "low"
 
 type Props = {
   verdict: Verdict
+  review?: DealReview | null
   confidence: Confidence
   dealScore: number | null
   discountPct: number | null
@@ -42,12 +45,14 @@ type Props = {
 
 const verdictStyles: Record<Verdict, string> = {
   good_deal: "border-deal-good/30 bg-deal-good/8",
+  review: "border-amber-500/40 bg-amber-500/8",
   fair: "border-border-subtle bg-surface/50",
   overpriced: "border-deal-bad/30 bg-deal-bad/8",
 }
 
-const verdictBadge: Record<Verdict, "good" | "default" | "bad"> = {
+const verdictBadge: Record<Verdict, "good" | "warn" | "default" | "bad"> = {
   good_deal: "good",
+  review: "warn",
   fair: "default",
   overpriced: "bad",
 }
@@ -84,6 +89,9 @@ function buildSummary(
       ? Math.abs(discountPct).toFixed(1)
       : null
 
+  if (verdict === "review" && pct) {
+    return txt.analyzeVerdictSummaryReview.replace("{pct}", pct).replace("{context}", context)
+  }
   if (verdict === "good_deal" && pct) {
     return txt.analyzeVerdictSummaryGood.replace("{pct}", pct).replace("{context}", context)
   }
@@ -95,6 +103,7 @@ function buildSummary(
 
 export default function VerdictBanner({
   verdict,
+  review,
   confidence,
   dealScore,
   discountPct,
@@ -140,6 +149,8 @@ export default function VerdictBanner({
     ? txt.analyzeVerdictInsufficient
     : verdict === "good_deal"
       ? txt.analyzeVerdictGood
+      : verdict === "review"
+        ? txt.analyzeVerdictReview
       : verdict === "overpriced"
         ? txt.analyzeVerdictOverpriced
         : txt.analyzeVerdictFair
@@ -172,6 +183,8 @@ export default function VerdictBanner({
     Number.isFinite(referencePpm2) &&
     referencePpm2 > 0
 
+  const reviewLines = insufficientComps ? [] : dealReviewLabels(review, lang)
+
   const priceDropChip =
     priceDropPct != null && Number.isFinite(priceDropPct) && priceDropPct > 0
       ? txt.analyzeVerdictPriceDrop.replace("{pct}", priceDropPct.toFixed(1))
@@ -198,6 +211,20 @@ export default function VerdictBanner({
 
       {summary ? (
         <p className="mt-3 text-sm leading-relaxed text-foreground/90">{summary}</p>
+      ) : null}
+
+      {reviewLines.length > 0 ? (
+        <div
+          className="mt-3 rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-900 dark:text-amber-200"
+          role="note"
+        >
+          <p className="font-semibold">{txt.reviewReasonsTitle}</p>
+          <ul className="mt-1 list-disc space-y-1 pl-5">
+            {reviewLines.map((line) => (
+              <li key={line}>{line}</li>
+            ))}
+          </ul>
+        </div>
       ) : null}
 
       {showComparison ? (

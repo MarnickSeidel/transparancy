@@ -8,6 +8,7 @@ import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
 import { fetchJsonCached } from "@/lib/clientFetchCache"
 import type { EmailList } from "@/lib/email/types"
+import { cityDisplayName } from "@/lib/cityNames"
 import { priorityCities, uiText, type Lang } from "@/lib/i18n"
 
 type ListOption = {
@@ -241,7 +242,7 @@ export default function EmailSignupForm({
           >
             {cities.map((c) => (
               <option key={c} value={c}>
-                {c}
+                {cityDisplayName(c)}
               </option>
             ))}
           </select>

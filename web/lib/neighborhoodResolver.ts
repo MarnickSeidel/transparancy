@@ -35,6 +35,8 @@ type CatalogFile = {
   neighborhoods?: string[];
   aliases?: Record<string, string>;
   source_ids?: Record<string, string>;
+  /** Barrios FR splits across several location ids; their dossier is keyed by name. */
+  dossier_by_name?: string[];
 };
 
 const CATALOGS: Record<string, CatalogFile> = {
@@ -182,7 +184,10 @@ export function buildDossierKey(args: {
     catalogKeyForCity(args.city, args.citySlug) ??
     (args.city ?? "").trim().toLowerCase().replace(/\s+/g, "-");
   if (!ck) return null;
-  if (args.neighborhoodSourceId?.trim()) {
+  const nb = args.neighborhood?.trim();
+  const keyedByName =
+    Boolean(nb) && (CATALOGS[ck]?.dossier_by_name ?? []).some((n) => fold(n) === fold(nb!));
+  if (args.neighborhoodSourceId?.trim() && !keyedByName) {
     return `${ck}:uuid:${args.neighborhoodSourceId.trim()}`;
   }
   if (args.neighborhood?.trim()) {

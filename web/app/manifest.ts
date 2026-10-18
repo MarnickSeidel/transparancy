@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "ClaraCasas",
-    short_name: "ClaraCasas",
+    name: "CasasClaras",
+    short_name: "CasasClaras",
     description:
       "Colombian real estate market intelligence — price/m² by neighborhood from Finca Raíz data.",
     start_url: "/",
@@ -12,7 +12,7 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#c45c26",
     icons: [
       {
-        src: "/branding/ClaraCasas-mark.svg",
+        src: "/branding/CasasClaras-mark.svg",
         sizes: "512x512",
         type: "image/svg+xml",
       },
