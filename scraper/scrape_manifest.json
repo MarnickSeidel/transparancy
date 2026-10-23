@@ -145,6 +145,22 @@
       "max_listings_per_run": 1000,
       "listing_index_exhausted": true,
       "enabled": false
+    },
+    {
+      "id": "dosquebradas",
+      "slug": "dosquebradas/risaralda",
+      "label": "Dosquebradas",
+      "city_default": "Dosquebradas",
+      "department_default": "Risaralda",
+      "enabled": false
+    },
+    {
+      "id": "armenia",
+      "slug": "armenia/quindio",
+      "label": "Armenia",
+      "city_default": "Armenia",
+      "department_default": "Quindio",
+      "enabled": false
     }
   ],
   "targets": []

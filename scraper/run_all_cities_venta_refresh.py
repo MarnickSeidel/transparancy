@@ -34,6 +34,8 @@ CITIES: list[tuple[str, str, str, str, str]] = [
     ("soacha", "soacha/cundinamarca", "Soacha", "Cundinamarca", "Soacha"),
     ("soledad", "soledad/atlantico", "Soledad", "Atlantico", "Soledad"),
     ("pereira", "pereira/risaralda", "Pereira", "Risaralda", "Pereira"),
+    ("dosquebradas", "dosquebradas/risaralda", "Dosquebradas", "Risaralda", "Dosquebradas"),
+    ("armenia", "armenia/quindio", "Armenia", "Quindio", "Armenia"),
 ]
 
 

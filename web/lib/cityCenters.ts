@@ -15,6 +15,8 @@ export const CITY_MAP_CENTER: Record<string, [number, number]> = {
   Villavicencio: [4.142, -73.6268],
   Soacha: [4.5872, -74.2215],
   Soledad: [10.9182, -74.7647],
+  Dosquebradas: [4.8392, -75.6672],
+  Armenia: [4.5339, -75.6811],
 };
 
 export function mapCenterForCity(city: string): [number, number] {
