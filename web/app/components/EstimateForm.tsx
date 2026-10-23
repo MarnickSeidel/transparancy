@@ -261,9 +261,9 @@ export default function EstimateForm({
       } else if (snapshot.neighborhood) {
         p.set("neighborhood", snapshot.neighborhood);
       }
-      router.replace(`/estimate?${p.toString()}`, { scroll: false });
+      router.replace(localeToolPath(lang, "/estimate", p.toString()), { scroll: false });
     },
-    [city, mapMarker, radiusMeters, router],
+    [city, lang, mapMarker, radiusMeters, router],
   );
 
   const applyGeolocation = useCallback(

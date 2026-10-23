@@ -36,6 +36,7 @@ Product name: **CasasClaras** (`lib/brand.ts`). Folder name: `transparancy`.
 - **ES:** unprefixed (`/`, `/zones`, `/oportunidades`)
 - **EN:** `/en` prefix; middleware rewrites Spanish indexable paths to `/es/*`; `/es/*` → unprefixed
 - Opportunities: `/oportunidades` + `/en/opportunities` → `/opportunities`; bare `/opportunities` **301** → `/oportunidades`
+- Estimate: `/cuanto-vale-mi-casa` + `/en/estimate` → `/estimate`; bare `/estimate` **301** → `/cuanto-vale-mi-casa`
 - Listing: `/anuncio/<id>` + `/en/listing/<id>`; helpers in `lib/locale.ts` / `lib/toolPaths.ts`
 - Tools: English links `/en/<tool>` via `localeToolPath()`; rewrite to unprefixed + `x-locale: en`
 - Headers: `x-locale` = UI copy; `x-document-lang` = `<html lang>`

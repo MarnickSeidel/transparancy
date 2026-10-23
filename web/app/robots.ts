@@ -14,6 +14,7 @@ export default function robots(): MetadataRoute.Robots {
         "/opportunities",
         "/heatmap",
         "/estimate",
+        "/cuanto-vale-mi-casa",
         "/analyze-url",
         "/price-drops",
         "/en/dashboard",

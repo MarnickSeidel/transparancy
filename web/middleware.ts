@@ -1,7 +1,12 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-import { isIndexablePath, isListingDetailPath, isOpportunitiesPath } from "@/lib/locale";
+import {
+  ESTIMATE_CANONICAL,
+  isIndexablePath,
+  isListingDetailPath,
+  isOpportunitiesPath,
+} from "@/lib/locale";
 import { isToolPath } from "@/lib/toolPaths";
 
 function rewriteEnToolPath(
@@ -70,6 +75,24 @@ export function middleware(request: NextRequest) {
     return withDocumentLang(NextResponse.redirect(url, 301), pathname);
   }
 
+  if (pathname === "/estimate" || pathname.startsWith("/estimate/")) {
+    const url = request.nextUrl.clone();
+    url.pathname =
+      pathname === "/estimate"
+        ? ESTIMATE_CANONICAL
+        : pathname.replace(/^\/estimate/, ESTIMATE_CANONICAL);
+    return withDocumentLang(NextResponse.redirect(url, 301), pathname);
+  }
+
+  if (
+    pathname === `/en${ESTIMATE_CANONICAL}` ||
+    pathname.startsWith(`/en${ESTIMATE_CANONICAL}/`)
+  ) {
+    const url = request.nextUrl.clone();
+    url.pathname = pathname.replace(ESTIMATE_CANONICAL, "/estimate");
+    return withDocumentLang(NextResponse.redirect(url, 301), pathname);
+  }
+
   if (pathname === "/es/oportunidades" || pathname.startsWith("/es/oportunidades/")) {
     const stripped =
       pathname === "/es/oportunidades"
@@ -92,6 +115,17 @@ export function middleware(request: NextRequest) {
       rewriteOpportunities(request, pathname, "en"),
       pathname,
     );
+  }
+
+  if (pathname === ESTIMATE_CANONICAL || pathname.startsWith(`${ESTIMATE_CANONICAL}/`)) {
+    const url = request.nextUrl.clone();
+    url.pathname =
+      pathname === ESTIMATE_CANONICAL
+        ? "/estimate"
+        : pathname.replace(ESTIMATE_CANONICAL, "/estimate");
+    const res = NextResponse.rewrite(url);
+    res.headers.set("x-locale", "es");
+    return withDocumentLang(res, pathname);
   }
 
   if (pathname === "/es/anuncio" || pathname.startsWith("/es/anuncio/")) {

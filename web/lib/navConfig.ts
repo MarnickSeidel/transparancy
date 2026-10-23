@@ -34,7 +34,7 @@ export const primaryNavItems: NavItem[] = [
 /** Supporting tools — under “More” */
 export const moreNavItems: NavItem[] = [
   { key: "explore", href: "/explore", textKey: "exploreNav" },
-  { key: "estimate", href: "/estimate", textKey: "estimateNav" },
+  { key: "estimate", href: "/cuanto-vale-mi-casa", textKey: "estimateNav" },
   { key: "heatmap", href: "/heatmap", textKey: "heatmapNav" },
   { key: "priceDrops", href: "/price-drops", textKey: "priceDropsNav" },
   { key: "dashboard", href: "/dashboard", textKey: "dashboardNav" },
