@@ -59,7 +59,8 @@ export async function POST(req: Request) {
       msg === "price_missing" ||
       msg === "area_missing" ||
       msg === "url_not_allowed" ||
-      msg === "url_path_invalid"
+      msg === "url_path_invalid" ||
+      msg === "city_missing"
     ) {
       const status =
         msg === "url_not_allowed" || msg === "url_path_invalid" ? 400 : 422

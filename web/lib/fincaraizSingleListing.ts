@@ -172,6 +172,30 @@ function extractLocationPath(raw: unknown): string[] {
     .filter(Boolean);
 }
 
+/** FR detail payloads put city/state in a list of `{ name }` nodes, not a single object. */
+function firstLocationName(value: unknown): string | null {
+  if (Array.isArray(value)) {
+    for (const node of value) {
+      const name = normalizeNamedField(node);
+      if (name) return name;
+    }
+    return null;
+  }
+  return normalizeNamedField(value);
+}
+
+/** Last resort when the payload has no city: `casa-en-venta-en-filandia` → Filandia. */
+function placeFromFincaraizSlug(url: string): string | null {
+  try {
+    const slug = new URL(url).pathname.split("/").filter(Boolean)[0] ?? "";
+    const match = slug.match(/-en-(?:venta|arriendo)-en-(.+)$/i);
+    if (!match?.[1]) return null;
+    return titleCase(match[1].replace(/-/g, " "));
+  } catch {
+    return null;
+  }
+}
+
 function parseFromDescription(desc: string | null) {
   if (!desc) return { areaBuiltM2: null as number | null, areaTerrainM2: null as number | null }
   const built = desc.match(/(\d[\d.,]*)\s*(?:m2|mts2|m²)\s*(?:de\s+ellos\s+)?construid/i)
@@ -316,28 +340,46 @@ export function parseSingleListingFromHtml(inputUrl: string, html: string): Pars
 
   const locations = (item as Json).locations as Json | undefined;
   const locationMain = asObject(locations?.location_main);
-  const cityObj = asObject(locations?.city);
-  const stateObj = asObject(locations?.state);
   const path = extractLocationPath((item as Json).location_path);
-  const city =
-    (typeof locations?.city === "string" ? locations.city : null) ??
-    (typeof cityObj?.name === "string" ? (cityObj.name as string) : null) ??
+  const cityName =
+    firstLocationName(locations?.city) ??
     (path.length >= 2 ? path[path.length - 2] : null) ??
-    "Pereira";
-  const department =
-    (typeof locations?.state === "string" ? locations.state : null) ??
-    (typeof stateObj?.name === "string" ? (stateObj.name as string) : null) ??
-    (path.length >= 1 ? path[path.length - 1] : null) ??
-    "Risaralda";
+    placeFromFincaraizSlug(canonical);
+  if (!cityName?.trim()) throw new Error("city_missing");
+  const city = titleCase(cityName.trim());
+  const departmentName =
+    firstLocationName(locations?.state) ??
+    firstLocationName(locations?.department) ??
+    (path.length >= 3 ? path[path.length - 1] : null);
+  const department = titleCase((departmentName ?? "").trim());
 
+  const mainType =
+    typeof locationMain?.location_type === "string"
+      ? locationMain.location_type.trim().toLowerCase()
+      : "";
+  const mainName =
+    typeof locationMain?.name === "string" ? locationMain.name.trim() : "";
+  const mainIsPlace =
+    mainType === "city" ||
+    mainType === "state" ||
+    mainType === "department" ||
+    mainName.toLowerCase() === city.toLowerCase();
+  const fromMain =
+    mainName &&
+    !mainIsPlace &&
+    (mainType === "" || mainType === "neighbourhood" || mainType === "neighborhood")
+      ? mainName
+      : null;
   const neighborhood =
-    typeof (item as Json).neighborhood === "string"
+    (typeof (item as Json).neighborhood === "string"
       ? ((item as Json).neighborhood as string)
-      : typeof (item as Json).neighbourhood === "string"
-        ? ((item as Json).neighbourhood as string)
-        : typeof locationMain?.name === "string"
-          ? (locationMain.name as string)
-        : null;
+      : null) ??
+    (typeof (item as Json).neighbourhood === "string"
+      ? ((item as Json).neighbourhood as string)
+      : null) ??
+    firstLocationName(locations?.neighbourhood) ??
+    firstLocationName(locations?.neighborhood) ??
+    fromMain;
 
   const estrato = parseIntSafe((item as Json).stratum);
   const bedrooms = parseIntSafe((item as Json).bedrooms);
@@ -372,9 +414,12 @@ export function parseSingleListingFromHtml(inputUrl: string, html: string): Pars
     areaBuiltM2,
     areaTerrainM2,
     estrato,
-    neighborhood: neighborhood ? titleCase(neighborhood.trim()) : null,
-    city: titleCase(String(city).trim() || "Pereira"),
-    department: titleCase(String(department).trim() || "Risaralda"),
+    neighborhood:
+      neighborhood && neighborhood.trim().toLowerCase() !== city.toLowerCase()
+        ? titleCase(neighborhood.trim())
+        : null,
+    city,
+    department: department || "Colombia",
     propertyType: propertyType ? titleCase(propertyType.trim()) : null,
     operationType: operationType ? titleCase(operationType.trim()) : null,
     bedrooms,

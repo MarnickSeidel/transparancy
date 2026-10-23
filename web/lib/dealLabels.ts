@@ -39,6 +39,7 @@ export function compMethodLabel(method: string | undefined, lang: Lang): string 
     zone: { es: "zona", en: "zone" },
     neighborhood: { es: "barrio", en: "neighborhood" },
     city: { es: "ciudad", en: "city" },
+    none: { es: "sin mercado", en: "no market" },
   }
   return labels[method]?.[lang] ?? method
 }
