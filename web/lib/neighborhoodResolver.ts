@@ -130,6 +130,19 @@ export function catalogNeighborhoodOptionsForCity(
   return canonicalNames.filter((name) => canonicalSet.has(name));
 }
 
+/** Catalog name for this label, including aliases. Null when it is outside the catalog. */
+export function catalogCanonicalForLabel(
+  city: string,
+  label: string,
+): string | null {
+  const cityKey = catalogKeyForCity(city);
+  if (!cityKey) return null;
+  const trimmed = label.trim();
+  if (!trimmed) return null;
+  const { foldToCanonical } = buildFoldMaps(cityKey);
+  return foldToCanonical.get(fold(trimmed)) ?? null;
+}
+
 export function isRuralLocation(
   locationType?: string | null,
   slug?: string | null,

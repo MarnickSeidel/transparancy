@@ -1,11 +1,47 @@
 import { groupConjuntoNames } from "@/lib/conjuntos"
 import { pickBestNeighborhoodLabel } from "@/lib/filterNeighborhoods"
 import { priorityCities } from "@/lib/i18n"
-import { catalogNeighborhoodOptionsForCity } from "@/lib/neighborhoodResolver"
+import {
+  catalogCanonicalForLabel,
+  catalogNeighborhoodOptionsForCity,
+} from "@/lib/neighborhoodResolver"
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 
 const DEPARTMENT_CACHE_MS = 60 * 60 * 1000
+/** Closed list shows portal barrios with at least this many listings. Search includes one-offs. */
+const EXTRA_NEIGHBORHOOD_MIN_LISTINGS = 5
+
+function neighborhoodLabels(
+  city: string | null,
+  buckets: Map<string, { labels: string[]; count: number }>,
+  minCount: number,
+): string[] {
+  const cityKey = city && city !== "all" ? normalizeNeighborhoodKey(city) : ""
+  const labels: string[] = []
+  for (const bucket of Array.from(buckets.values())) {
+    if (bucket.count < minCount) continue
+    const label = pickBestNeighborhoodLabel(bucket.labels)
+    if (!label) continue
+    const key = normalizeNeighborhoodKey(label)
+    if (!key || (cityKey && key === cityKey)) continue
+    if (city && city !== "all" && catalogCanonicalForLabel(city, label)) continue
+    labels.push(label)
+  }
+  return labels.sort((a, b) => a.localeCompare(b, "es"))
+}
+
+function mergeNeighborhoodLabels(catalog: string[], extras: string[]): string[] {
+  const seen = new Set(catalog.map((name) => normalizeNeighborhoodKey(name)))
+  const merged = [...catalog]
+  for (const label of extras) {
+    const key = normalizeNeighborhoodKey(label)
+    if (!key || seen.has(key)) continue
+    seen.add(key)
+    merged.push(label)
+  }
+  return merged.sort((a, b) => a.localeCompare(b, "es"))
+}
 let departmentNameCache: { at: number; names: Set<string> } | null = null
 
 /** Department names barely change, and grouping them scans every active listing. */
@@ -31,6 +67,8 @@ async function activeDepartmentNames(): Promise<Set<string>> {
 export type FiltersData = {
   cities: string[]
   neighborhoods: string[]
+  /** Every usable barrio label, including ones with a single listing. */
+  neighborhoodSearch: string[]
   estratos: number[]
   propertyTypes: string[]
   operationTypes: string[]
@@ -138,22 +176,26 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
     prev.count += count
   }
 
+  const allLabels = neighborhoodLabels(city, neighborhoodBuckets, 1)
   let neighborhoods: string[]
+  let neighborhoodSearch: string[]
   if (city && city !== "all") {
     const catalogOptions = catalogNeighborhoodOptionsForCity(city, rawNeighborhoodLabels)
     if (catalogOptions && catalogOptions.length > 0) {
-      neighborhoods = catalogOptions
+      const frequent = neighborhoodLabels(
+        city,
+        neighborhoodBuckets,
+        EXTRA_NEIGHBORHOOD_MIN_LISTINGS,
+      )
+      neighborhoods = mergeNeighborhoodLabels(catalogOptions, frequent)
+      neighborhoodSearch = mergeNeighborhoodLabels(catalogOptions, allLabels)
     } else {
-      neighborhoods = Array.from(neighborhoodBuckets.values())
-        .map((b) => pickBestNeighborhoodLabel(b.labels))
-        .filter((n): n is string => n != null)
-        .sort((a, b) => a.localeCompare(b))
+      neighborhoods = allLabels
+      neighborhoodSearch = allLabels
     }
   } else {
-    neighborhoods = Array.from(neighborhoodBuckets.values())
-      .map((b) => pickBestNeighborhoodLabel(b.labels))
-      .filter((n): n is string => n != null)
-      .sort((a, b) => a.localeCompare(b))
+    neighborhoods = allLabels
+    neighborhoodSearch = allLabels
   }
 
   const estratos = estratoRows
@@ -171,6 +213,7 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
   return {
     cities,
     neighborhoods,
+    neighborhoodSearch,
     estratos,
     propertyTypes,
     operationTypes,

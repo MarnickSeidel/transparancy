@@ -178,16 +178,65 @@ function parseExcludeNeighborhoods(values: string[]): Set<string> {
   return set
 }
 
+/** Same label the opportunities barrio column shows: zone when the portal stored the city as the barrio. */
+function displayedBarrioKey(
+  neighborhood: string | null,
+  zoneName: string | null,
+  city: string | null,
+): string {
+  const barrio = neighborhood?.trim() ?? ""
+  const zone = zoneName?.trim() ?? ""
+  const cityName = city?.trim() ?? ""
+  const label =
+    barrio && barrio.toLowerCase() !== cityName.toLowerCase() ? barrio : zone || barrio
+  return label ? normalizeNeighborhoodKey(label) : ""
+}
+
+/** "belmonte" matches Villa - belmonte, Belmonte alto, and a zone of that name. */
+function barrioHaystack(neighborhood: string | null, zoneName: string | null): string {
+  return `${normalizeNeighborhoodKey(neighborhood ?? "")}${normalizeNeighborhoodKey(zoneName ?? "")}`
+}
+
+function matchesSelectedBarrio(
+  neighborhood: string | null,
+  zoneName: string | null,
+  selectedKey: string,
+): boolean {
+  const haystack = barrioHaystack(neighborhood, zoneName)
+  return haystack.includes(selectedKey)
+}
+
+function neighborhoodQueryTokens(raw: string): string[] {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .split(/[^a-z0-9]+/)
+    .filter((token) => token.length >= 3)
+}
+
 function neighborhoodPassesFilters(
-  value: string | null,
+  neighborhood: string | null,
+  zoneName: string | null,
+  city: string | null,
   selectedNeighborhoodKey: string | null,
   excludedNeighborhoodKeys: Set<string>,
   excludeUnknownNeighborhoods: boolean,
 ): boolean {
-  const raw = value?.trim() ?? ""
+  const raw = neighborhood?.trim() ?? ""
   const key = raw ? normalizeNeighborhoodKey(raw) : ""
-  if (selectedNeighborhoodKey && key !== selectedNeighborhoodKey) return false
-  if (excludedNeighborhoodKeys.size > 0 && key && excludedNeighborhoodKeys.has(key)) {
+  const shown = displayedBarrioKey(neighborhood, zoneName, city)
+  if (
+    selectedNeighborhoodKey &&
+    !matchesSelectedBarrio(neighborhood, zoneName, selectedNeighborhoodKey)
+  ) {
+    return false
+  }
+  if (
+    excludedNeighborhoodKeys.size > 0 &&
+    ((key && excludedNeighborhoodKeys.has(key)) ||
+      (shown && excludedNeighborhoodKeys.has(shown)))
+  ) {
     return false
   }
   if (excludeUnknownNeighborhoods) {
@@ -293,10 +342,11 @@ function buildBaseFilters(query: OpportunityQuery): {
     radiusMeters != null &&
     radiusMeters >= 300
 
-  const selectedNeighborhoodKey =
-    !useGeo && neighborhood && neighborhood.trim()
-      ? normalizeNeighborhoodKey(neighborhood.trim())
-      : null
+  const selectedNeighborhoodRaw =
+    !useGeo && neighborhood && neighborhood.trim() ? neighborhood.trim() : null
+  const selectedNeighborhoodKey = selectedNeighborhoodRaw
+    ? normalizeNeighborhoodKey(selectedNeighborhoodRaw)
+    : null
   const excludedNeighborhoodKeys = parseExcludeNeighborhoods(excludeNeighborhoods)
 
   const estratoFilter = Array.from(
@@ -343,6 +393,19 @@ function buildBaseFilters(query: OpportunityQuery): {
   }
   if (excludeBarter) andFilters.push({ acceptsBarter: false })
   if (excludeProjects) andFilters.push({ isProject: false })
+  if (selectedNeighborhoodRaw) {
+    const tokens = neighborhoodQueryTokens(selectedNeighborhoodRaw)
+    if (tokens.length > 0) {
+      andFilters.push({
+        AND: tokens.map((token) => ({
+          OR: [
+            { neighborhood: { contains: token, mode: "insensitive" as const } },
+            { zoneName: { contains: token, mode: "insensitive" as const } },
+          ],
+        })),
+      })
+    }
+  }
 
   return {
     andFilters,
@@ -511,6 +574,8 @@ export async function getTopOpportunities(
     .filter((r) =>
       neighborhoodPassesFilters(
         r.neighborhood,
+        r.zoneName,
+        r.city,
         selectedNeighborhoodKey,
         excludedNeighborhoodKeys,
         excludeUnknownNeighborhoods,

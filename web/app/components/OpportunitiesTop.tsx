@@ -12,6 +12,7 @@ import NearbyAmenitiesSection from "@/app/components/NearbyAmenitiesSection"
 import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
 import { inputClassName } from "@/app/components/ui/Field"
+import SearchableSelect from "@/app/components/ui/SearchableSelect"
 import Skeleton from "@/app/components/ui/Skeleton"
 import SiteHeader from "@/app/components/SiteHeader"
 import WhyDealPanel from "@/app/components/WhyDealPanel"
@@ -154,6 +155,30 @@ function signalTags(
   return tags
 }
 
+function NeighborhoodChip({
+  label,
+  clearLabel,
+  onClear,
+}: {
+  label: string
+  clearLabel: string
+  onClear: () => void
+}) {
+  return (
+    <span className="inline-flex max-w-full items-center gap-1 rounded-full border border-border-subtle bg-elevated py-1 pl-2.5 pr-1 text-xs font-medium text-foreground">
+      <span className="truncate">{label}</span>
+      <button
+        type="button"
+        className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-full text-sm leading-none text-muted hover:bg-surface hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+        aria-label={clearLabel}
+        onClick={onClear}
+      >
+        ×
+      </button>
+    </span>
+  )
+}
+
 function initialOppParam(name: string, fallback: string): string {
   if (typeof window === "undefined") return fallback
   const v = new URLSearchParams(window.location.search).get(name)?.trim()
@@ -215,6 +240,10 @@ export default function OpportunitiesTop({
   const [neighborhoods, setNeighborhoods] = useState<string[]>(
     initialFilters?.neighborhoods ?? [],
   )
+  const [neighborhoodSearch, setNeighborhoodSearch] = useState<string[]>(
+    initialFilters?.neighborhoodSearch ?? initialFilters?.neighborhoods ?? [],
+  )
+  const [neighborhoodQuery, setNeighborhoodQuery] = useState("")
   const [propertyTypes, setPropertyTypes] = useState<string[]>(
     initialFilters?.propertyTypes ?? [],
   )
@@ -271,6 +300,15 @@ export default function OpportunitiesTop({
   const [loading, setLoading] = useState(true)
   const [mapLoading, setMapLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  const neighborhoodOptions = useMemo(() => {
+    const source = neighborhoodQuery.trim() ? neighborhoodSearch : neighborhoods
+    const names = new Set(source)
+    if (neighborhood !== "all" && neighborhood.trim() && !names.has(neighborhood)) {
+      names.add(neighborhood)
+    }
+    return Array.from(names).map((n) => ({ value: n, label: n }))
+  }, [neighborhood, neighborhoodQuery, neighborhoodSearch, neighborhoods])
 
   const excludeSuggestions = useMemo(() => {
     const q = excludeDraft.trim().toLowerCase()
@@ -444,6 +482,7 @@ export default function OpportunitiesTop({
       const filtersPromise = fetchJsonCached<{
         cities?: string[]
         neighborhoods?: string[]
+        neighborhoodSearch?: string[]
         propertyTypes?: string[]
         estratos?: number[]
       }>(filtersUrl)
@@ -468,6 +507,7 @@ export default function OpportunitiesTop({
         if (signal?.aborted) return
         if (fJson.cities?.length) setCities(fJson.cities)
         setNeighborhoods(fJson.neighborhoods ?? [])
+        setNeighborhoodSearch(fJson.neighborhoodSearch ?? fJson.neighborhoods ?? [])
         setPropertyTypes(fJson.propertyTypes ?? [])
         setEstratos(fJson.estratos ?? [])
       } catch (filterErr) {
@@ -515,6 +555,8 @@ export default function OpportunitiesTop({
     setCity(nextCity)
     setNeighborhood("all")
     setNeighborhoods([])
+    setNeighborhoodSearch([])
+    setNeighborhoodQuery("")
     setPropertyTypes([])
     setEstratos([])
     setSelectedEstratos([])
@@ -531,6 +573,20 @@ export default function OpportunitiesTop({
   }
 
   const handleFilterChange = () => setPage(1)
+
+  const clearNeighborhood = () => {
+    setNeighborhood("all")
+    setPage(1)
+  }
+
+  const neighborhoodChip =
+    neighborhood !== "all" ? (
+      <NeighborhoodChip
+        label={`${txt.neighborhood}: ${neighborhood}`}
+        clearLabel={txt.opportunitiesClearNeighborhood}
+        onClear={clearNeighborhood}
+      />
+    ) : null
 
   const resultFrom =
     pagination.total === 0 ? 0 : (pagination.page - 1) * pagination.pageSize + 1
@@ -652,22 +708,28 @@ export default function OpportunitiesTop({
                   <label className="block text-xs font-medium text-muted" htmlFor="opp-neighborhood">
                     {txt.neighborhood}
                   </label>
-                  <select
+                  <SearchableSelect
                     id="opp-neighborhood"
-                    className={`mt-1 w-full ${inputClassName}`}
-                    value={neighborhood}
-                    onChange={(e) => {
-                      setNeighborhood(e.target.value)
+                    className="mt-1"
+                    allowEmpty
+                    allowCustom
+                    emptyLabel={txt.all}
+                    value={neighborhood === "all" ? "" : neighborhood}
+                    options={neighborhoodOptions}
+                    filterMode="tokens"
+                    placeholder={txt.searchableSelectPlaceholder}
+                    noResultsLabel={txt.searchableSelectNoMatch}
+                    customOptionLabel={txt.opportunitiesUseTypedNeighborhood}
+                    openListLabel={txt.searchableSelectOpenList}
+                    closeListLabel={txt.searchableSelectCloseList}
+                    aria-label={txt.neighborhood}
+                    onQueryChange={setNeighborhoodQuery}
+                    onChange={(next) => {
+                      setNeighborhood(next.trim() || "all")
                       handleFilterChange()
                     }}
-                  >
-                    <option value="all">{txt.all}</option>
-                    {neighborhoods.map((n) => (
-                      <option key={n} value={n}>
-                        {n}
-                      </option>
-                    ))}
-                  </select>
+                  />
+                  {neighborhoodChip ? <div className="mt-2">{neighborhoodChip}</div> : null}
                 </div>
 
                 <fieldset>
@@ -942,6 +1004,7 @@ export default function OpportunitiesTop({
                     {loading ? "…" : resultsSummary}
                     {!loading && pagination.total > 0 ? ` · ${pageLabel}` : ""}
                   </p>
+                  {neighborhoodChip ? <div className="mt-2">{neighborhoodChip}</div> : null}
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row sm:items-center">
                   <div

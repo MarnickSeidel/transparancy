@@ -25,6 +25,10 @@ type Props = {
   required?: boolean
   allowEmpty?: boolean
   emptyLabel?: string
+  /** Commit text that is not in the list. Adds a “use this text” row while typing. */
+  allowCustom?: boolean
+  /** Label for the custom row. `{q}` is replaced with the typed text. */
+  customOptionLabel?: string
   filterMode?: FilterMode
   className?: string
   "aria-label"?: string
@@ -87,6 +91,8 @@ export default function SearchableSelect({
   required = false,
   allowEmpty = false,
   emptyLabel = "—",
+  allowCustom = false,
+  customOptionLabel,
   filterMode = "auto",
   className = "",
   "aria-label": ariaLabel,
@@ -116,9 +122,34 @@ export default function SearchableSelect({
 
   const filteredOptions = useMemo(() => {
     const base = options.filter((o) => matchesQuery(o.label, query, filterMode))
-    if (!allowEmpty) return base
-    return [{ value: "", label: emptyLabel }, ...base]
-  }, [allowEmpty, emptyLabel, filterMode, options, query])
+    const trimmed = query.trim()
+    const folded = foldSearch(trimmed)
+    const hasExact =
+      folded.length > 0 &&
+      options.some(
+        (o) => foldSearch(o.label) === folded || foldSearch(o.value) === folded,
+      )
+    const withCustom =
+      allowCustom && trimmed && !hasExact
+        ? [
+            ...base,
+            {
+              value: trimmed,
+              label: (customOptionLabel ?? "{q}").replace(/\{q\}/g, trimmed),
+            },
+          ]
+        : base
+    if (!allowEmpty || trimmed) return withCustom
+    return [{ value: "", label: emptyLabel }, ...withCustom]
+  }, [
+    allowCustom,
+    allowEmpty,
+    customOptionLabel,
+    emptyLabel,
+    filterMode,
+    options,
+    query,
+  ])
 
   const updateDropdownPosition = useCallback(() => {
     const input = inputRef.current
@@ -202,7 +233,9 @@ export default function SearchableSelect({
     const matches = options.filter((o) => matchesQuery(o.label, query, filterMode))
     if (matches.length === 1) {
       onChange(matches[0].value)
+      return
     }
+    if (allowCustom) onChange(query.trim())
   }
 
   const handleBlur = () => {

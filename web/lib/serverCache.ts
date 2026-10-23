@@ -29,7 +29,7 @@ const PRICE_DROPS_REVALIDATE = 120
 const FRESHNESS_REVALIDATE = 300
 
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
-  "top-opportunities-v6",
+  "top-opportunities-v8",
   query.city ?? "all",
   query.propertyType ?? "all",
   query.neighborhood ?? "all",
@@ -67,7 +67,7 @@ export const getCachedDashboardFilters = (city: string | null) =>
   })()
 
 export const getCachedFiltersData = (city: string | null) =>
-  unstable_cache(async () => getFiltersData(city), [`filters-data`, city ?? "all"], {
+  unstable_cache(async () => getFiltersData(city), [`filters-data-v3`, city ?? "all"], {
     revalidate: FILTERS_REVALIDATE,
   })()
 
