@@ -9,6 +9,8 @@ import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 
 const DEPARTMENT_CACHE_MS = 60 * 60 * 1000
+/** Analyze-url can store one-off listings from towns the scraper does not cover. */
+export const MIN_CITY_ACTIVE_LISTINGS = 50
 /** Closed list shows portal barrios with at least this many listings. Search includes one-offs. */
 const EXTRA_NEIGHBORHOOD_MIN_LISTINGS = 5
 
@@ -91,6 +93,7 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
     prisma.listing.groupBy({
       by: ["city"],
       where: { isActive: true },
+      _count: { _all: true },
       orderBy: { city: "asc" },
     }),
     activeDepartmentNames(),
@@ -141,6 +144,7 @@ export async function getFiltersData(city: string | null): Promise<FiltersData> 
       : []
 
   const detectedCities = cityRows
+    .filter((r) => r._count._all >= MIN_CITY_ACTIVE_LISTINGS)
     .map((r) => r.city)
     .filter(
       (c): c is string =>

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 
 import { canonicalForLocale, hreflangAlternates } from "@/lib/hreflang";
-import { ogLocale, type Locale } from "@/lib/locale";
+import { localePath, ogLocale, type Locale } from "@/lib/locale";
 import { localeOgImage, ogImageMeta } from "@/lib/ogImages";
 import { BRAND_NAME } from "@/lib/brand";
 import { pageTitle } from "@/lib/seo";
@@ -88,7 +88,10 @@ export function cityHubJsonLd(
       position: i + 1,
       name: z.displayName,
       url: absoluteUrl(
-        `/zones/${encodeURIComponent(citySlug)}/${encodeURIComponent(z.slug)}`,
+        localePath(
+          locale,
+          `/zones/${encodeURIComponent(citySlug)}/${encodeURIComponent(z.slug)}`,
+        ),
       ),
     })),
   };
@@ -113,7 +116,7 @@ export function zonesIndexItemListJsonLd(
         "@type": "ListItem",
         position: i + 1,
         name: city,
-        url: absoluteUrl(cityHubPath(slug)),
+        url: absoluteUrl(localePath(locale, cityHubPath(slug))),
       };
     }),
   };

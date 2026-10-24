@@ -26,7 +26,7 @@ export async function subscribeContact(input: SubscribeInput): Promise<Subscribe
     return { ok: false, error: "invalid_preferences" }
   }
 
-  const locale = input.locale === "en" ? "en" : "es"
+  const locale = "es" as const
   const source = input.source?.trim() || undefined
   const primaryCity = preferences.find((p) => p.city)?.city ?? null
 

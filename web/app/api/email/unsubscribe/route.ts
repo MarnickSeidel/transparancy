@@ -2,9 +2,12 @@ import { NextResponse } from "next/server"
 
 import { isEmailList } from "@/lib/email/validate"
 import { unsubscribeContact } from "@/lib/email/subscribeContact"
+import { localePath } from "@/lib/locale"
 import { absoluteUrl } from "@/lib/siteUrl"
 
 export const dynamic = "force-dynamic"
+
+const pageUrl = (path: string) => absoluteUrl(localePath("es", path))
 
 export async function GET(req: Request) {
   try {
@@ -14,25 +17,24 @@ export async function GET(req: Request) {
     const list = listRaw && isEmailList(listRaw) ? listRaw : null
 
     if (!token) {
-      return NextResponse.redirect(absoluteUrl("/email/unsubscribed?status=invalid"))
+      return NextResponse.redirect(pageUrl("/email/unsubscribed?status=invalid"))
     }
 
     if (!list) {
       return NextResponse.redirect(
-        absoluteUrl(`/email/preferences?token=${encodeURIComponent(token)}`),
+        pageUrl(`/email/preferences?token=${encodeURIComponent(token)}`),
       )
     }
 
     const updated = await unsubscribeContact(token, list)
     if (!updated) {
-      return NextResponse.redirect(absoluteUrl("/email/unsubscribed?status=invalid"))
+      return NextResponse.redirect(pageUrl("/email/unsubscribed?status=invalid"))
     }
 
-    const lang = updated.contact.locale === "en" ? "en" : "es"
     const scope = list ? `&list=${list}` : ""
-    return NextResponse.redirect(absoluteUrl(`/email/unsubscribed?status=ok&lang=${lang}${scope}`))
+    return NextResponse.redirect(pageUrl(`/email/unsubscribed?status=ok${scope}`))
   } catch (e) {
     console.error("[email/unsubscribe]", e)
-    return NextResponse.redirect(absoluteUrl("/email/unsubscribed?status=invalid"))
+    return NextResponse.redirect(pageUrl("/email/unsubscribed?status=invalid"))
   }
 }

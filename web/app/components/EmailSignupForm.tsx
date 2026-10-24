@@ -10,6 +10,7 @@ import { fetchJsonCached } from "@/lib/clientFetchCache"
 import type { EmailList } from "@/lib/email/types"
 import { cityDisplayName } from "@/lib/cityNames"
 import { priorityCities, uiText, type Lang } from "@/lib/i18n"
+import { localePath } from "@/lib/locale"
 
 type ListOption = {
   list: EmailList
@@ -76,7 +77,7 @@ export default function EmailSignupForm({
   className = "",
 }: Props) {
   const txt = uiText[lang]
-  const privacyHref = lang === "en" ? "/en/privacy" : "/privacy"
+  const privacyHref = localePath(lang, "/privacy")
   const isFooterStrip = variant === "footer-strip"
 
   const [email, setEmail] = useState("")

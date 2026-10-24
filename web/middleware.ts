@@ -2,44 +2,18 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 import {
-  ESTIMATE_CANONICAL,
-  isIndexablePath,
-  isListingDetailPath,
-  isOpportunitiesPath,
+  isLocaleSegmentRoute,
+  stripLocalePrefix,
+  toInternalPath,
+  toPublicPath,
 } from "@/lib/locale";
-import { isToolPath } from "@/lib/toolPaths";
 
-function rewriteEnToolPath(
-  request: NextRequest,
-  pathname: string,
-): NextResponse | null {
-  if (!pathname.startsWith("/en/")) return null;
-  const stripped = pathname.slice(3) || "/";
-  if (!isToolPath(stripped)) return null;
-  const url = request.nextUrl.clone();
-  url.pathname = stripped;
-  const res = NextResponse.rewrite(url);
-  res.headers.set("x-locale", "en");
-  return res;
-}
+/** Home OG image is generated at app/[locale]/opengraph-image. */
+const HOME_OG_IMAGE_PATH = "/es/opengraph-image";
 
-function rewriteOpportunities(
-  request: NextRequest,
-  pathname: string,
-  locale: "es" | "en",
-): NextResponse {
-  const rewritePath = pathname
-    .replace("/en/opportunities", "/opportunities")
-    .replace("/oportunidades", "/opportunities");
-  const url = request.nextUrl.clone();
-  url.pathname = rewritePath;
-  const res = NextResponse.rewrite(url);
-  res.headers.set("x-locale", locale);
-  return res;
-}
-
-function documentLang(pathname: string): "es" | "en" {
-  return pathname === "/en" || pathname.startsWith("/en/") ? "en" : "es";
+function documentLang(pathname: string): "es" {
+  void pathname;
+  return "es";
 }
 
 function withDocumentLang(res: NextResponse, pathname: string): NextResponse {
@@ -47,17 +21,16 @@ function withDocumentLang(res: NextResponse, pathname: string): NextResponse {
   return res;
 }
 
-function rewriteListingDetail(
-  request: NextRequest,
-  pathname: string,
-  locale: "es" | "en",
-): NextResponse {
-  const rewritePath = pathname.replace("/en/listing", "/anuncio");
-  const url = request.nextUrl.clone();
-  url.pathname = rewritePath;
-  const res = NextResponse.rewrite(url);
-  res.headers.set("x-locale", locale);
-  return res;
+/** Spanish public path for /en/*, /es/* and English internal slugs; null when already public. */
+function legacyRedirectPath(pathname: string): string | null {
+  if (pathname === "/en" || pathname.startsWith("/en/")) {
+    return stripLocalePrefix(pathname);
+  }
+  if (pathname === "/es" || pathname.startsWith("/es/")) {
+    return toPublicPath(pathname.slice(3) || "/");
+  }
+  const publicPath = toPublicPath(pathname);
+  return publicPath === pathname ? null : publicPath;
 }
 
 export function middleware(request: NextRequest) {
@@ -69,114 +42,32 @@ export function middleware(request: NextRequest) {
     return res;
   }
 
-  if (pathname === "/opportunities" || pathname.startsWith("/opportunities/")) {
+  if (pathname === HOME_OG_IMAGE_PATH) {
+    return withDocumentLang(NextResponse.next(), pathname);
+  }
+
+  const redirectPath = legacyRedirectPath(pathname);
+  if (redirectPath) {
     const url = request.nextUrl.clone();
-    url.pathname = pathname.replace("/opportunities", "/oportunidades");
+    url.pathname = redirectPath;
     return withDocumentLang(NextResponse.redirect(url, 301), pathname);
   }
 
-  if (pathname === "/estimate" || pathname.startsWith("/estimate/")) {
+  const internal = pathname === "/" ? "/" : toInternalPath(pathname);
+  if (internal) {
     const url = request.nextUrl.clone();
-    url.pathname =
-      pathname === "/estimate"
-        ? ESTIMATE_CANONICAL
-        : pathname.replace(/^\/estimate/, ESTIMATE_CANONICAL);
-    return withDocumentLang(NextResponse.redirect(url, 301), pathname);
-  }
-
-  if (
-    pathname === `/en${ESTIMATE_CANONICAL}` ||
-    pathname.startsWith(`/en${ESTIMATE_CANONICAL}/`)
-  ) {
-    const url = request.nextUrl.clone();
-    url.pathname = pathname.replace(ESTIMATE_CANONICAL, "/estimate");
-    return withDocumentLang(NextResponse.redirect(url, 301), pathname);
-  }
-
-  if (pathname === "/es/oportunidades" || pathname.startsWith("/es/oportunidades/")) {
-    const stripped =
-      pathname === "/es/oportunidades"
-        ? "/oportunidades"
-        : pathname.replace(/^\/es\/oportunidades/, "/oportunidades");
-    const url = request.nextUrl.clone();
-    url.pathname = stripped;
-    return withDocumentLang(NextResponse.redirect(url), pathname);
-  }
-
-  if (pathname === "/oportunidades" || pathname.startsWith("/oportunidades/")) {
-    return withDocumentLang(
-      rewriteOpportunities(request, pathname, "es"),
-      pathname,
-    );
-  }
-
-  if (pathname === "/en/opportunities" || pathname.startsWith("/en/opportunities/")) {
-    return withDocumentLang(
-      rewriteOpportunities(request, pathname, "en"),
-      pathname,
-    );
-  }
-
-  if (pathname === ESTIMATE_CANONICAL || pathname.startsWith(`${ESTIMATE_CANONICAL}/`)) {
-    const url = request.nextUrl.clone();
-    url.pathname =
-      pathname === ESTIMATE_CANONICAL
-        ? "/estimate"
-        : pathname.replace(ESTIMATE_CANONICAL, "/estimate");
+    url.pathname = isLocaleSegmentRoute(internal)
+      ? `/es${internal === "/" ? "" : internal}`
+      : internal;
     const res = NextResponse.rewrite(url);
     res.headers.set("x-locale", "es");
     return withDocumentLang(res, pathname);
-  }
-
-  if (pathname === "/es/anuncio" || pathname.startsWith("/es/anuncio/")) {
-    const stripped =
-      pathname === "/es/anuncio"
-        ? "/anuncio"
-        : pathname.replace(/^\/es\/anuncio/, "/anuncio");
-    const url = request.nextUrl.clone();
-    url.pathname = stripped;
-    return withDocumentLang(NextResponse.redirect(url), pathname);
-  }
-
-  if (pathname.startsWith("/en/listing/")) {
-    return withDocumentLang(
-      rewriteListingDetail(request, pathname, "en"),
-      pathname,
-    );
-  }
-
-  const enToolRewrite = rewriteEnToolPath(request, pathname);
-  if (enToolRewrite) {
-    return withDocumentLang(enToolRewrite, pathname);
   }
 
   if (pathname.startsWith("/anuncio/")) {
     const res = NextResponse.next();
     res.headers.set("x-locale", "es");
     return withDocumentLang(res, pathname);
-  }
-
-  if (pathname === "/es" || pathname.startsWith("/es/")) {
-    const stripped =
-      pathname === "/es" ? "/" : pathname.replace(/^\/es/, "") || "/";
-    return withDocumentLang(
-      NextResponse.redirect(new URL(stripped, request.url)),
-      pathname,
-    );
-  }
-
-  if (
-    !pathname.startsWith("/en") &&
-    isIndexablePath(pathname) &&
-    !isOpportunitiesPath(pathname) &&
-    !isListingDetailPath(pathname) &&
-    !pathname.startsWith("/_next")
-  ) {
-    const rewritePath = pathname === "/" ? "/es" : `/es${pathname}`;
-    return withDocumentLang(
-      NextResponse.rewrite(new URL(rewritePath, request.url)),
-      pathname,
-    );
   }
 
   return withDocumentLang(NextResponse.next(), pathname);

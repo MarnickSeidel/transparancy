@@ -15,6 +15,7 @@ import { cityDisplayName } from "@/lib/cityNames";
 import type { H3HeatCell } from "@/lib/h3Heatmap";
 import { BUCKET_COLORS } from "@/lib/mapPriceBuckets";
 import { uiText } from "@/lib/i18n";
+import { localeToolPath } from "@/lib/locale";
 import { buildListingContextLinks } from "@/lib/listingContextLinks";
 import { useUiLang } from "@/lib/useUiLang";
 
@@ -103,13 +104,12 @@ export default function H3Heatmap({
   }, [city, estrato, propertyType, resolution]);
 
   const exploreHref = useMemo(() => {
-    if (!selected) return `/explore?city=${encodeURIComponent(city)}`;
     const p = new URLSearchParams();
     p.set("city", city);
-    if (selected.topNeighborhood) {
+    if (selected?.topNeighborhood) {
       p.set("neighborhood", selected.topNeighborhood);
     }
-    return `/explore?${p.toString()}`;
+    return localeToolPath("es", "/explore", p.toString());
   }, [city, selected]);
 
   const visibleCells = useMemo(

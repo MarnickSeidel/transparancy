@@ -47,7 +47,7 @@ export default function PreferencesClient() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const [lang, setLang] = useState<Lang>("es")
+  const lang: Lang = "es"
   const [email, setEmail] = useState<string>("")
   const [prefs, setPrefs] = useState<EmailPreference[]>([])
 
@@ -56,7 +56,7 @@ export default function PreferencesClient() {
   useEffect(() => {
     if (!token) {
       setLoading(false)
-      setError(lang === "en" ? "Missing token." : "Falta el token.")
+      setError("Falta el token.")
       return
     }
     setLoading(true)
@@ -69,8 +69,6 @@ export default function PreferencesClient() {
           setError(j.error)
           return
         }
-        const l = j.contact.locale === "en" ? "en" : "es"
-        setLang(l)
         setEmail(j.contact.email)
         setPrefs(j.preferences)
       })
@@ -116,7 +114,7 @@ export default function PreferencesClient() {
         setError(j.error ?? txt.subscribeError)
         return
       }
-      setMessage(lang === "en" ? "Saved." : "Guardado.")
+      setMessage("Guardado.")
     } catch {
       setError(txt.subscribeError)
     } finally {
@@ -128,10 +126,10 @@ export default function PreferencesClient() {
     <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-12">
       <main id="main-content" className="w-full max-w-2xl">
         <h1 className="text-display text-2xl font-semibold text-foreground">
-          {lang === "en" ? "Email preferences" : "Preferencias de email"}
+          Preferencias de email
         </h1>
         <p className="mt-2 text-sm text-muted">
-          {email ? (lang === "en" ? "For" : "Para") : null}{" "}
+          {email ? "Para" : null}{" "}
           <span className="font-semibold text-foreground">{email ? maskEmail(email) : "—"}</span>
         </p>
 
@@ -172,7 +170,7 @@ export default function PreferencesClient() {
                   disabled={saving}
                   className="w-full sm:w-auto disabled:opacity-60"
                 >
-                  {saving ? (lang === "en" ? "Saving…" : "Guardando…") : (lang === "en" ? "Save" : "Guardar")}
+                  {saving ? "Guardando…" : "Guardar"}
                 </Button>
               </div>
 

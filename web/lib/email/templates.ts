@@ -1,10 +1,12 @@
 import type { EmailList } from "@prisma/client"
 
 import { escapeHtml, escapeHtmlAttr } from "@/lib/htmlEscape"
-import { opportunitiesPath } from "@/lib/locale"
+import { localePath, opportunitiesPath } from "@/lib/locale"
 import { absoluteUrl } from "@/lib/siteUrl"
 
 type Locale = "es" | "en"
+
+const pageUrl = (path: string) => absoluteUrl(localePath("es", path))
 
 function listLabel(list: EmailList, locale: Locale): string {
   const es: Record<EmailList, string> = {
@@ -37,12 +39,12 @@ function layout(args: {
     token = ""
   }
   const manageUrl = token
-    ? absoluteUrl(`/email/preferences?token=${encodeURIComponent(token)}`)
-    : absoluteUrl("/email/preferences")
+    ? pageUrl(`/email/preferences?token=${encodeURIComponent(token)}`)
+    : pageUrl("/email/preferences")
   const footer =
     args.locale === "en"
-      ? `You received this from CasasClaras. <a href="${manageUrl}">Manage preferences</a> · <a href="${args.unsubscribeUrl}">Unsubscribe</a> · <a href="${absoluteUrl("/privacy")}">Privacy</a>`
-      : `Recibiste este correo de CasasClaras. <a href="${manageUrl}">Administrar preferencias</a> · <a href="${args.unsubscribeUrl}">Cancelar suscripción</a> · <a href="${absoluteUrl("/privacy")}">Privacidad</a>`
+      ? `You received this from CasasClaras. <a href="${manageUrl}">Manage preferences</a> · <a href="${args.unsubscribeUrl}">Unsubscribe</a> · <a href="${pageUrl("/privacy")}">Privacy</a>`
+      : `Recibiste este correo de CasasClaras. <a href="${manageUrl}">Administrar preferencias</a> · <a href="${args.unsubscribeUrl}">Cancelar suscripción</a> · <a href="${pageUrl("/privacy")}">Privacidad</a>`
 
   return `<!DOCTYPE html>
 <html lang="${args.locale}">
@@ -196,10 +198,10 @@ export function buildPriceDropDigestEmail(args: {
   const bodyHtml = isEn
     ? `<h1 style="font-size:20px">Price drops — ${cityHtml}</h1>
        <p style="font-size:13px;color:#64748b">As of ${escapeHtml(args.dataDate)}</p>${rows}
-       <p><a href="${absoluteUrl("/price-drops")}">View all price drops →</a></p>`
+       <p><a href="${pageUrl("/price-drops")}">View all price drops →</a></p>`
     : `<h1 style="font-size:20px">Bajas de precio — ${cityHtml}</h1>
        <p style="font-size:13px;color:#64748b">Al ${escapeHtml(args.dataDate)}</p>${rows}
-       <p><a href="${absoluteUrl("/price-drops")}">Ver todas las bajas →</a></p>`
+       <p><a href="${pageUrl("/price-drops")}">Ver todas las bajas →</a></p>`
 
   return {
     subject,
@@ -247,7 +249,7 @@ export function buildMarketDigestEmail(args: {
          <li>Deals flagged: ${args.dealCount}</li>
          <li>Recent price drops: ${args.priceDropCount}</li>
        </ul>
-       <p><a href="${absoluteUrl("/dashboard")}">Open dashboard →</a> · <a href="${absoluteUrl("/zones")}">Zone dossiers →</a></p>
+       <p><a href="${pageUrl("/dashboard")}">Open dashboard →</a> · <a href="${pageUrl("/zones")}">Zone dossiers →</a></p>
        <p style="font-size:12px;color:#64748b">Based on Finca Raíz data. Not investment advice.</p>`
     : `<h1 style="font-size:20px">${cityHtml} — ${monthHtml}</h1>
        <p><strong>Mediana precio/m²:</strong> ${median}<br/><strong>Variación:</strong> ${change}</p>
@@ -257,7 +259,7 @@ export function buildMarketDigestEmail(args: {
          <li>Oportunidades detectadas: ${args.dealCount}</li>
          <li>Bajas de precio recientes: ${args.priceDropCount}</li>
        </ul>
-       <p><a href="${absoluteUrl("/dashboard")}">Ver tablero →</a> · <a href="${absoluteUrl("/zones")}">Dossiers por barrio →</a></p>
+       <p><a href="${pageUrl("/dashboard")}">Ver tablero →</a> · <a href="${pageUrl("/zones")}">Dossiers por barrio →</a></p>
        <p style="font-size:12px;color:#64748b">Basado en datos Finca Raíz. No es asesoría de inversión.</p>`
 
   return {
@@ -300,11 +302,11 @@ export function buildColombiaDigestEmail(args: {
     ? `<h1 style="font-size:20px">Colombia — ${quarterHtml}</h1>
        <p>Median price/m² and month-over-month change by city:</p>
        <ul>${rows}</ul>
-       <p><a href="${absoluteUrl("/dashboard")}">Explore the dashboard →</a></p>`
+       <p><a href="${pageUrl("/dashboard")}">Explore the dashboard →</a></p>`
     : `<h1 style="font-size:20px">Colombia — ${quarterHtml}</h1>
        <p>Mediana precio/m² y variación mensual por ciudad:</p>
        <ul>${rows}</ul>
-       <p><a href="${absoluteUrl("/dashboard")}">Explorar el tablero →</a></p>`
+       <p><a href="${pageUrl("/dashboard")}">Explorar el tablero →</a></p>`
 
   return {
     subject,

@@ -1,125 +1,120 @@
 export type Locale = "es" | "en";
 
 export const DEFAULT_LOCALE: Locale = "es";
-export const LOCALES: Locale[] = ["es", "en"];
+export const LOCALES: Locale[] = ["es"];
 
 export const OPPORTUNITIES_CANONICAL = "/oportunidades" as const;
 export const ESTIMATE_CANONICAL = "/cuanto-vale-mi-casa" as const;
+export const ANALYZE_CANONICAL = "/analizar-anuncio" as const;
 export const LISTING_ROUTE_PREFIX = "/anuncio" as const;
 
-const INDEXABLE_PREFIXES = ["/zones", "/methodology", "/privacy", "/about"];
+/** Public Spanish URL prefix ↔ internal app route. Prefixes must not overlap. */
+export const PUBLIC_ROUTES: ReadonlyArray<{ public: string; internal: string }> = [
+  { public: OPPORTUNITIES_CANONICAL, internal: "/opportunities" },
+  { public: ESTIMATE_CANONICAL, internal: "/estimate" },
+  { public: ANALYZE_CANONICAL, internal: "/analyze-url" },
+  { public: "/barrios", internal: "/zones" },
+  { public: "/metodologia", internal: "/methodology" },
+  { public: "/privacidad", internal: "/privacy" },
+  { public: "/acerca-de", internal: "/about" },
+  { public: "/explorar", internal: "/explore" },
+  { public: "/mapa-de-precios", internal: "/heatmap" },
+  { public: "/bajadas-de-precio", internal: "/price-drops" },
+  { public: "/mercado-en-cifras", internal: "/dashboard" },
+  { public: "/correo/confirmado", internal: "/email/confirmed" },
+  { public: "/correo/preferencias", internal: "/email/preferences" },
+  { public: "/correo/cancelado", internal: "/email/unsubscribed" },
+];
 
-export function isListingDetailPath(pathname: string): boolean {
-  const path = pathname.split("?")[0];
-  return path.startsWith(`${LISTING_ROUTE_PREFIX}/`) || path.startsWith("/en/listing/");
+/** Internal routes served from app/[locale] (rewritten to /es/*). */
+const LOCALE_SEGMENT_ROUTES = ["/zones", "/methodology", "/privacy", "/about"];
+
+function swapPrefix(path: string, from: string, to: string): string | null {
+  if (path === from) return to;
+  if (path.startsWith(`${from}/`)) return `${to}${path.slice(from.length)}`;
+  return null;
 }
 
-export function listingPath(locale: Locale, id: string): string {
-  return locale === "es" ? `${LISTING_ROUTE_PREFIX}/${id}` : `/en/listing/${id}`;
-}
-
-export function parseListingIdFromPath(pathname: string): string | null {
-  const path = pathname.split("?")[0];
-  if (path.startsWith(`${LISTING_ROUTE_PREFIX}/`)) {
-    const id = path.slice(`${LISTING_ROUTE_PREFIX}/`.length);
-    return id || null;
+/** Internal route → public Spanish path. Unmapped paths pass through. */
+export function toPublicPath(pathname: string): string {
+  for (const r of PUBLIC_ROUTES) {
+    const swapped = swapPrefix(pathname, r.internal, r.public);
+    if (swapped) return swapped;
   }
-  if (path.startsWith("/en/listing/")) {
-    const id = path.slice("/en/listing/".length);
-    return id || null;
+  return pathname;
+}
+
+/** Public Spanish path → internal route, or null when the path has no Spanish slug. */
+export function toInternalPath(pathname: string): string | null {
+  for (const r of PUBLIC_ROUTES) {
+    const swapped = swapPrefix(pathname, r.public, r.internal);
+    if (swapped) return swapped;
   }
   return null;
 }
 
-export function isOpportunitiesPath(pathname: string): boolean {
-  const path = pathname.split("?")[0];
-  return (
-    path === "/oportunidades" ||
-    path === "/opportunities" ||
-    path === "/en/opportunities" ||
-    path.startsWith("/oportunidades/") ||
-    path.startsWith("/opportunities/") ||
-    path.startsWith("/en/opportunities/")
+export function isLocaleSegmentRoute(internalPath: string): boolean {
+  if (internalPath === "/") return true;
+  return LOCALE_SEGMENT_ROUTES.some(
+    (p) => internalPath === p || internalPath.startsWith(`${p}/`),
   );
 }
 
+export function listingPath(locale: Locale, id: string): string {
+  void locale;
+  return `${LISTING_ROUTE_PREFIX}/${id}`;
+}
+
 export function opportunitiesPath(locale: Locale, search = ""): string {
-  const base = locale === "es" ? "/oportunidades" : "/en/opportunities";
+  void locale;
+  const base = "/oportunidades";
+  if (!search) return base;
+  const qs = search.startsWith("?") ? search.slice(1) : search;
+  return `${base}?${qs}`;
+}
+
+export function analyzePath(locale: Locale, search = ""): string {
+  void locale;
+  const base = ANALYZE_CANONICAL;
   if (!search) return base;
   const qs = search.startsWith("?") ? search.slice(1) : search;
   return `${base}?${qs}`;
 }
 
 export function estimatePath(locale: Locale, search = ""): string {
-  const base = locale === "es" ? ESTIMATE_CANONICAL : "/en/estimate";
+  void locale;
+  const base = ESTIMATE_CANONICAL;
   if (!search) return base;
   const qs = search.startsWith("?") ? search.slice(1) : search;
   return `${base}?${qs}`;
 }
 
-export function isIndexablePath(pathname: string): boolean {
-  if (isOpportunitiesPath(pathname)) return true;
-  if (isListingDetailPath(pathname)) return true;
-  const path = stripLocalePrefix(pathname);
-  if (path === "/") return true;
-  return INDEXABLE_PREFIXES.some(
-    (p) => path === p || path.startsWith(`${p}/`),
-  );
-}
-
 export function parseLocaleFromPath(pathname: string): Locale {
-  const path = pathname.split("?")[0];
-  if (path === "/en/opportunities" || path.startsWith("/en/opportunities/")) {
-    return "en";
-  }
-  if (path === "/oportunidades" || path.startsWith("/oportunidades/")) {
-    return "es";
-  }
-  if (path === "/opportunities" || path.startsWith("/opportunities/")) {
-    return "es";
-  }
-  if (path.startsWith("/en/listing/")) return "en";
-  if (path.startsWith(`${LISTING_ROUTE_PREFIX}/`)) return "es";
-  if (pathname === "/en" || pathname.startsWith("/en/")) return "en";
-  return "es";
+  void pathname;
+  return DEFAULT_LOCALE;
 }
 
-/** Strip /en prefix to get the canonical path segment (e.g. /en/zones → /zones). */
+/** Public Spanish path for any internal, legacy /en/* or /listing/* path (query dropped). */
 export function stripLocalePrefix(pathname: string): string {
-  const pathOnly = pathname.split("?")[0];
-  if (pathOnly === "/en") return "/";
-  if (pathOnly.startsWith("/en/")) {
-    const stripped = pathOnly.slice(3) || "/";
-    if (stripped === "/opportunities") return OPPORTUNITIES_CANONICAL;
-    if (stripped === "/estimate") return ESTIMATE_CANONICAL;
-    if (stripped.startsWith("/listing/")) {
-      return `${LISTING_ROUTE_PREFIX}/${stripped.slice("/listing/".length)}`;
-    }
-    return stripped;
+  let path = pathname.split("?")[0];
+  if (path === "/en") return "/";
+  if (path.startsWith("/en/")) path = path.slice(3) || "/";
+  if (path.startsWith("/listing/")) {
+    return `${LISTING_ROUTE_PREFIX}/${path.slice("/listing/".length)}`;
   }
-  if (pathOnly === "/opportunities") return OPPORTUNITIES_CANONICAL;
-  if (pathOnly === "/estimate") return ESTIMATE_CANONICAL;
-  return pathOnly;
+  return toPublicPath(path);
 }
 
-/** Build a locale-aware path. Spanish uses unprefixed URLs. */
+/** Public path (query string preserved). The site is Spanish-only; the locale argument is ignored. */
 export function localePath(locale: Locale, path: string): string {
-  const p = path.startsWith("/") ? path : `/${path}`;
-  if (p === OPPORTUNITIES_CANONICAL || p === "/opportunities") {
-    return opportunitiesPath(locale);
-  }
-  if (p === ESTIMATE_CANONICAL || p === "/estimate") {
-    return estimatePath(locale);
-  }
-  if (p.startsWith(`${LISTING_ROUTE_PREFIX}/`)) {
-    const id = p.slice(`${LISTING_ROUTE_PREFIX}/`.length);
-    return listingPath(locale, id);
-  }
-  if (locale === "es") return p;
-  return p === "/" ? "/en" : `/en${p}`;
+  void locale;
+  const raw = path.startsWith("/") ? path : `/${path}`;
+  const q = raw.indexOf("?");
+  if (q === -1) return stripLocalePrefix(raw);
+  return `${stripLocalePrefix(raw.slice(0, q))}${raw.slice(q)}`;
 }
 
-/** Tool route with optional query string, locale-prefixed for English. */
+/** Tool route with optional query string. */
 export function localeToolPath(locale: Locale, path: string, search = ""): string {
   const base = localePath(locale, path.split("?")[0]);
   if (!search) return base;
@@ -129,22 +124,21 @@ export function localeToolPath(locale: Locale, path: string, search = ""): strin
 
 /** Resolve nav/footer hrefs that may use translated slugs. */
 export function resolveNavHref(href: string, locale: Locale): string {
-  if (href === OPPORTUNITIES_CANONICAL || href === "/opportunities") {
-    return opportunitiesPath(locale);
-  }
   return localePath(locale, href);
 }
 
 export function switchLocalePath(currentPathname: string, target: Locale): string {
   const [path, query] = currentPathname.split("?");
-  const result = localePath(target, stripLocalePrefix(path));
+  const result = localePath(target, path);
   return query ? `${result}?${query}` : result;
 }
 
 export function htmlLang(locale: Locale): string {
-  return locale === "es" ? "es" : "en";
+  void locale;
+  return "es";
 }
 
 export function ogLocale(locale: Locale): string {
-  return locale === "es" ? "es_CO" : "en_US";
+  void locale;
+  return "es_CO";
 }

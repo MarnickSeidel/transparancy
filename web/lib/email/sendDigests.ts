@@ -59,8 +59,8 @@ async function sendForPreference(
   const digestKey = `${ctx.dataKey}:${pref.list}:${pref.city ?? "all"}:${pref.neighborhood ?? "all"}`
   if (await alreadySent(pref.contact.id, digestKey)) return "skipped"
 
-  const locale = pref.contact.locale === "en" ? "en" : "es"
-  const localeTag = locale === "en" ? "en-US" : "es-CO"
+  const locale = "es" as const
+  const localeTag = "es-CO"
   const unsub = unsubscribeUrl(pref.contact.unsubscribeToken, pref.list)
   const dataDate = new Date().toLocaleDateString(localeTag)
 

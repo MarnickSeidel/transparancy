@@ -424,7 +424,7 @@ export default function ListingExplorer({
         ) : null}
 
         <p className="mb-6 flex flex-wrap items-center gap-4">
-          <Link href="/zones" className="text-sm font-medium text-accent hover:underline">
+          <Link href={localePath(lang, "/zones")} className="text-sm font-medium text-accent hover:underline">
             {txt.zonesLink}
           </Link>
           {dossierHref ? (

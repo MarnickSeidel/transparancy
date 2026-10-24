@@ -8,12 +8,10 @@ export function hreflangAlternates(path: string): {
 } {
   const base = path.startsWith("/") ? path : `/${path}`;
   const esUrl = absoluteUrl(localePath("es", base));
-  const enUrl = absoluteUrl(localePath("en", base));
   return {
     canonical: esUrl,
     languages: {
       es: esUrl,
-      en: enUrl,
       "x-default": esUrl,
     },
   };

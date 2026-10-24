@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 
 import Button from "@/app/components/ui/Button"
+import { localePath } from "@/lib/locale"
 import { noIndexMetadata } from "@/lib/seo"
 import { absoluteUrl } from "@/lib/siteUrl"
 
@@ -33,9 +34,8 @@ const copy = {
 }
 
 export default function EmailConfirmedPage({ searchParams }: Props) {
-  const lang = searchParams.lang === "en" ? "en" : "es"
   const ok = searchParams.status === "ok"
-  const t = copy[lang]
+  const t = copy.es
 
   return (
     <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-16">
@@ -47,8 +47,8 @@ export default function EmailConfirmedPage({ searchParams }: Props) {
           {ok ? t.okBody : t.invalidBody}
         </p>
         <div className="mt-6 flex flex-col gap-3 sm:flex-row">
-          <Button href={lang === "en" ? "/en" : "/"}>{t.home}</Button>
-          <Button href={lang === "en" ? "/en/zones" : "/zones"} variant="secondary">
+          <Button href="/">{t.home}</Button>
+          <Button href={localePath("es", "/zones")} variant="secondary">
             {t.zones}
           </Button>
         </div>

@@ -33,13 +33,10 @@ Product name: **CasasClaras** (`lib/brand.ts`). Folder name: `transparancy`.
 
 ### Locale routing
 
-- **ES:** unprefixed (`/`, `/zones`, `/oportunidades`)
-- **EN:** `/en` prefix; middleware rewrites Spanish indexable paths to `/es/*`; `/es/*` → unprefixed
-- Opportunities: `/oportunidades` + `/en/opportunities` → `/opportunities`; bare `/opportunities` **301** → `/oportunidades`
-- Estimate: `/cuanto-vale-mi-casa` + `/en/estimate` → `/estimate`; bare `/estimate` **301** → `/cuanto-vale-mi-casa`
-- Listing: `/anuncio/<id>` + `/en/listing/<id>`; helpers in `lib/locale.ts` / `lib/toolPaths.ts`
-- Tools: English links `/en/<tool>` via `localeToolPath()`; rewrite to unprefixed + `x-locale: en`
-- Headers: `x-locale` = UI copy; `x-document-lang` = `<html lang>`
+- **Spanish only.** Unprefixed public URLs. `/en` and `/en/*` **301** to the Spanish path (`/en/opportunities` → `/oportunidades`, `/en/listing/:id` → `/anuncio/:id`, `/en/estimate` → `/cuanto-vale-mi-casa`).
+- **Spanish slugs:** `PUBLIC_ROUTES` in `lib/locale.ts` maps public ↔ internal (`/barrios`↔`/zones`, `/metodologia`, `/privacidad`, `/acerca-de`, `/explorar`, `/mapa-de-precios`, `/bajadas-de-precio`, `/mercado-en-cifras`, `/oportunidades`, `/cuanto-vale-mi-casa`, `/analizar-anuncio`, `/correo/{confirmado,preferencias,cancelado}`). Middleware rewrites Spanish → internal (`app/[locale]` routes via `/es/*`) and **301**s English internal paths and `/es/*` → Spanish. Add new public pages to that table; always build hrefs with `localePath()` (internal path in, Spanish out, query kept)
+- Listing: `/anuncio/<id>`; `/es/opengraph-image` is the only `/es/*` path served directly (home OG image)
+- Headers: `x-locale` and `x-document-lang` are `es`
 
 ### Deal engine
 

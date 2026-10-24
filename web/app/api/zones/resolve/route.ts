@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { NextResponse } from "next/server";
 
+import { localePath } from "@/lib/locale";
 import { prisma } from "@/lib/prisma";
 import {
   parseMinCount,
@@ -45,7 +46,7 @@ export async function GET(req: Request) {
       published,
       citySlug: slugs.citySlug,
       zoneSlug: slugs.zoneSlug,
-      href: published ? slugs.href : null,
+      href: published ? localePath("es", slugs.href) : null,
       dataPointCount,
       minDataPoints,
     });

@@ -10,22 +10,21 @@ export const dynamic = "force-dynamic";
 const TRUST_PATHS = ["/methodology", "/privacy", "/about"];
 
 function languageAlternates(path: string): Record<string, string> {
+  const es = absoluteUrl(localePath("es", path));
   return {
-    es: absoluteUrl(localePath("es", path)),
-    en: absoluteUrl(localePath("en", path)),
-    "x-default": absoluteUrl(localePath("es", path)),
+    es,
+    "x-default": es,
   };
 }
 
 function entry(
   path: string,
-  locale: "es" | "en",
   lastModified: Date,
   priority: number,
   changeFrequency: MetadataRoute.Sitemap[0]["changeFrequency"] = "weekly",
 ): MetadataRoute.Sitemap[0] {
   return {
-    url: absoluteUrl(localePath(locale, path)),
+    url: absoluteUrl(localePath("es", path)),
     lastModified,
     changeFrequency,
     priority,
@@ -37,26 +36,17 @@ function entry(
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const now = new Date();
+  const opportunitiesEs = absoluteUrl(opportunitiesPath("es"));
   const opportunitiesLanguages = {
-    es: absoluteUrl(opportunitiesPath("es")),
-    en: absoluteUrl(opportunitiesPath("en")),
-    "x-default": absoluteUrl(opportunitiesPath("es")),
+    es: opportunitiesEs,
+    "x-default": opportunitiesEs,
   };
 
   const pages: MetadataRoute.Sitemap = [
-    entry("/", "es", now, 1, "daily"),
-    entry("/", "en", now, 1, "daily"),
-    entry("/zones", "es", now, 0.9, "daily"),
-    entry("/zones", "en", now, 0.9, "daily"),
+    entry("/", now, 1, "daily"),
+    entry("/zones", now, 0.9, "daily"),
     {
-      url: absoluteUrl(opportunitiesPath("es")),
-      lastModified: now,
-      changeFrequency: "daily",
-      priority: 0.85,
-      alternates: { languages: opportunitiesLanguages },
-    },
-    {
-      url: absoluteUrl(opportunitiesPath("en")),
+      url: opportunitiesEs,
       lastModified: now,
       changeFrequency: "daily",
       priority: 0.85,
@@ -65,24 +55,21 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   for (const path of TRUST_PATHS) {
-    pages.push(entry(path, "es", now, 0.5, "monthly"));
-    pages.push(entry(path, "en", now, 0.5, "monthly"));
+    pages.push(entry(path, now, 0.5, "monthly"));
   }
 
   try {
     const cities = await listPublishableCitySlugs();
     for (const c of cities) {
       const path = `/zones/${encodeURIComponent(c.citySlug)}`;
-      pages.push(entry(path, "es", now, 0.85, "weekly"));
-      pages.push(entry(path, "en", now, 0.85, "weekly"));
+      pages.push(entry(path, now, 0.85, "weekly"));
     }
 
     const zones = await listPublishableZones();
     for (const z of zones) {
       const path = `/zones/${encodeURIComponent(z.citySlug)}/${encodeURIComponent(z.zoneSlug)}`;
       const mod = z.updatedAt ?? now;
-      pages.push(entry(path, "es", mod, 0.8, "weekly"));
-      pages.push(entry(path, "en", mod, 0.8, "weekly"));
+      pages.push(entry(path, mod, 0.8, "weekly"));
     }
   } catch (e) {
     console.error("sitemap: could not list zones", e);

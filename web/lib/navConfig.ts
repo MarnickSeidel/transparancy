@@ -27,7 +27,7 @@ export type NavItem = {
 /** Three primary journeys — visible in the main nav bar */
 export const primaryNavItems: NavItem[] = [
   { key: "zones", href: "/zones", textKey: "zonesNav" },
-  { key: "analyzeUrl", href: "/analyze-url", textKey: "analyzeUrlNav" },
+  { key: "analyzeUrl", href: "/analizar-anuncio", textKey: "analyzeUrlNav" },
   { key: "opportunities", href: "/oportunidades", textKey: "opportunitiesNav" },
 ]
 

@@ -30,9 +30,8 @@ const copy = {
 }
 
 export default function EmailUnsubscribedPage({ searchParams }: Props) {
-  const lang = searchParams.lang === "en" ? "en" : "es"
   const ok = searchParams.status === "ok"
-  const t = copy[lang]
+  const t = copy.es
 
   return (
     <div className="app-shell flex min-h-screen flex-col items-center justify-center px-4 py-16">
@@ -43,7 +42,7 @@ export default function EmailUnsubscribedPage({ searchParams }: Props) {
         <p className="mt-3 text-sm leading-relaxed text-muted">
           {ok ? t.okBody : t.invalidBody}
         </p>
-        <Button href={lang === "en" ? "/en" : "/"} className="mt-6">
+        <Button href="/" className="mt-6">
           {t.home}
         </Button>
       </main>

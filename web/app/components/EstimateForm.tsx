@@ -833,7 +833,7 @@ export default function EstimateForm({
                 </p>
               ) : null}
               <Link
-                href={lang === "en" ? "/en/methodology" : "/methodology"}
+                href={localePath(lang, "/methodology")}
                 className="inline-block text-sm font-medium text-accent hover:underline"
               >
                 {txt.estimateResultMethodology}

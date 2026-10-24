@@ -61,10 +61,10 @@ export function rootMetadata(locale: Locale = "es"): Metadata {
 }
 
 export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
+  const esUrl = absoluteUrl(opportunitiesPath("es"));
   const languages = {
-    es: absoluteUrl(opportunitiesPath("es")),
-    en: absoluteUrl(opportunitiesPath("en")),
-    "x-default": absoluteUrl(opportunitiesPath("es")),
+    es: esUrl,
+    "x-default": esUrl,
   };
 
   if (locale === "en") {

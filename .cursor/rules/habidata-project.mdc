@@ -7,7 +7,7 @@ alwaysApply: true
 
 - **Do not commit, push, or install packages** unless the user explicitly asks.
 - **Primary workspace:** `web/` (Next.js 14, Prisma, Tailwind). Scraper is `scraper/`.
-- **Locale:** Spanish = unprefixed URLs; English = `/en`. Use `localePath()` / `opportunitiesPath()` / `listingPath()` / `localeToolPath()` — never hardcode tool paths in footers or nav.
+- **Locale:** Spanish-only. Unprefixed URLs. `/en` 301s to Spanish. Use `localePath()` / `opportunitiesPath()` / `listingPath()` / `localeToolPath()` — never hardcode tool paths in footers or nav.
 - **SEO:** Zone dossiers and opportunities are indexable; dashboard, explore, estimate, heatmap, analyze-url, price-drops, listing detail are **noindex**.
 - **Data:** Listing asking prices only — not appraisals or closed sales. Keep disclaimers.
 - **Minimize diff** — match existing patterns; no drive-by refactors.

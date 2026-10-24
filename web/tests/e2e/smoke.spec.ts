@@ -10,9 +10,10 @@ test.describe("smoke", () => {
     await expect(page.locator("#main-content")).toBeVisible()
   })
 
-  test("english home uses lang en", async ({ page }) => {
+  test("english urls redirect to spanish", async ({ page }) => {
     await page.goto("/en")
-    await expect(page.locator("html")).toHaveAttribute("lang", "en")
+    await expect(page).toHaveURL("/")
+    await expect(page.locator("html")).toHaveAttribute("lang", "es")
   })
 
   test("opportunities page loads", async ({ page }) => {

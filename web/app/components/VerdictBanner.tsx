@@ -16,6 +16,7 @@ import type { DealReview, DealVerdict } from "@/lib/dealReview"
 import { formatDomDays } from "@/lib/formatDom"
 import type { Lang } from "@/lib/i18n"
 import { uiText } from "@/lib/i18n"
+import { localePath } from "@/lib/locale"
 import { propertyTypeLabel } from "@/lib/propertyTypes"
 
 type Verdict = DealVerdict
@@ -296,7 +297,7 @@ export default function VerdictBanner({
       />
 
       <Link
-        href={lang === "en" ? "/en/methodology" : "/methodology"}
+        href={localePath(lang, "/methodology")}
         className="mt-2 inline-block text-xs font-medium text-accent hover:underline"
       >
         {txt.analyzeVerdictHowWeCalculate}

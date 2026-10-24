@@ -71,7 +71,7 @@ export const getCachedDashboardFilters = (city: string | null) =>
   })()
 
 export const getCachedFiltersData = (city: string | null) =>
-  unstable_cache(async () => getFiltersData(city), [`filters-data-v3`, city ?? "all"], {
+  unstable_cache(async () => getFiltersData(city), [`filters-data-v4`, city ?? "all"], {
     revalidate: FILTERS_REVALIDATE,
   })()
 

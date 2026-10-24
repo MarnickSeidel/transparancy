@@ -1,3 +1,4 @@
+import { MIN_CITY_ACTIVE_LISTINGS } from "@/lib/getFiltersData";
 import { priorityCities } from "@/lib/i18n";
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods";
 import { prisma } from "@/lib/prisma";
@@ -21,6 +22,7 @@ export async function getDashboardFilters(
     prisma.listing.groupBy({
       by: ["city"],
       where: { isActive: true },
+      _count: { _all: true },
       orderBy: { city: "asc" },
     }),
     prisma.listing.groupBy({
@@ -40,6 +42,7 @@ export async function getDashboardFilters(
     priorityCities.map((name, idx) => [name.toLowerCase(), idx]),
   );
   const detectedCities = cityRows
+    .filter((r) => r._count._all >= MIN_CITY_ACTIVE_LISTINGS)
     .map((r) => r.city)
     .filter((c): c is string => c != null && c.trim().length > 0);
   const cities = [...detectedCities].sort((a, b) => {

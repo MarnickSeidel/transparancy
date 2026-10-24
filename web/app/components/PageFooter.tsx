@@ -1,26 +1,23 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 
 import EmailSignupForm from "@/app/components/EmailSignupForm";
-import { localePath, opportunitiesPath, stripLocalePrefix } from "@/lib/locale";
+import { localePath, opportunitiesPath } from "@/lib/locale";
 import { BRAND_COPY, BRAND_NAME } from "@/lib/brand";
 import { uiText } from "@/lib/i18n";
 import { useUiLang } from "@/lib/useUiLang";
 
 export default function PageFooter() {
-  const pathname = usePathname();
   const { lang: locale } = useUiLang("es");
   const txt = uiText[locale];
   const year = new Date().getFullYear();
   const lp = (path: string) => localePath(locale, path);
-  const pathForLang = stripLocalePrefix(pathname || "/");
 
   return (
     <footer className="mt-auto border-t border-border-subtle bg-elevated/90">
       <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
           <div>
             <Link
               href={lp("/")}
@@ -29,11 +26,11 @@ export default function PageFooter() {
               {BRAND_NAME}
             </Link>
             <p className="mt-2 max-w-xs text-xs leading-relaxed text-muted">
-              {locale === "en" ? BRAND_COPY.en.footerTagline : BRAND_COPY.es.footerTagline}
+              {BRAND_COPY.es.footerTagline}
             </p>
           </div>
           <div>
-            <p className="text-meta font-semibold">{locale === "en" ? "Explore" : "Explorar"}</p>
+            <p className="text-meta font-semibold">Explorar</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link href={lp("/zones")} className="link-focus text-foreground hover:text-accent">
@@ -58,36 +55,21 @@ export default function PageFooter() {
             </ul>
           </div>
           <div>
-            <p className="text-meta font-semibold">{locale === "en" ? "Trust" : "Confianza"}</p>
+            <p className="text-meta font-semibold">Confianza</p>
             <ul className="mt-3 space-y-2 text-sm">
               <li>
                 <Link href={lp("/methodology")} className="link-focus text-foreground hover:text-accent">
-                  {locale === "en" ? "Methodology" : "Metodología"}
+                  Metodología
                 </Link>
               </li>
               <li>
                 <Link href={lp("/about")} className="link-focus text-foreground hover:text-accent">
-                  {locale === "en" ? "About" : "Acerca de"}
+                  Acerca de
                 </Link>
               </li>
               <li>
                 <Link href={lp("/privacy")} className="link-focus text-foreground hover:text-accent">
-                  {locale === "en" ? "Privacy" : "Privacidad"}
-                </Link>
-              </li>
-            </ul>
-          </div>
-          <div>
-            <p className="text-meta font-semibold">{locale === "en" ? "Language" : "Idioma"}</p>
-            <ul className="mt-3 space-y-2 text-sm">
-              <li>
-                <Link href={localePath("es", pathForLang)} className="link-focus text-foreground hover:text-accent">
-                  Español
-                </Link>
-              </li>
-              <li>
-                <Link href={localePath("en", pathForLang)} className="link-focus text-foreground hover:text-accent">
-                  English
+                  Privacidad
                 </Link>
               </li>
             </ul>

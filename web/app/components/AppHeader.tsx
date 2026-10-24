@@ -5,7 +5,6 @@ import { useCallback, useEffect, useRef, useState } from "react"
 import { usePathname, useRouter } from "next/navigation"
 
 import BrandLogo from "@/app/components/BrandLogo"
-import LanguageToggle from "@/app/components/LanguageToggle"
 import ThemeToggle from "@/app/components/ThemeToggle"
 import Button from "@/app/components/ui/Button"
 import {
@@ -59,7 +58,6 @@ export default function AppHeader({
   subtitle,
   active,
   lang,
-  onToggleLang,
   txt: txtProp,
 }: Props) {
   const txt = txtProp ?? uiText[lang]
@@ -244,7 +242,6 @@ export default function AppHeader({
 
           <div className="flex items-center gap-2">
             <ThemeToggle theme={theme} lang={lang} onToggle={toggleTheme} />
-            <LanguageToggle lang={lang} onToggle={onToggleLang} />
             {isMarketing ? (
               <Button href={resolveNavHref("/analyze-url", lang)} className="hidden sm:inline-flex">
                 {txt.analyzeUrlCta}
