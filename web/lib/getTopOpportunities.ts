@@ -18,7 +18,7 @@ import {
   type DealListingInput,
   type MetricType,
 } from "@/lib/dealEngine"
-import { buildDealReview, type DealReview } from "@/lib/dealReview"
+import { buildDealReview, hasBorrowedReference, type DealReview } from "@/lib/dealReview"
 import { normalizeNeighborhoodKey } from "@/lib/neighborhoods"
 import { prisma } from "@/lib/prisma"
 import { resolveConjuntoVariants } from "@/lib/resolveConjuntoVariants"
@@ -719,6 +719,7 @@ export async function getTopOpportunities(
     if (hideLowConfidence && analysis.confidence === "low") continue
 
     const opportunity = rowToOpportunity(row, analysis, priceEventsByListing.get(row.id))
+    if (hasBorrowedReference(opportunity.review)) continue
     if (hideReview && opportunity.review.needsReview) continue
     allResults.push(opportunity)
   }

@@ -29,7 +29,7 @@ const PRICE_DROPS_REVALIDATE = 120
 const FRESHNESS_REVALIDATE = 300
 
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
-  "top-opportunities-v8",
+  "top-opportunities-v9",
   query.city ?? "all",
   query.propertyTypes?.length
     ? [...query.propertyTypes].sort().join("|")

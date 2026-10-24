@@ -90,6 +90,10 @@ export const buildDealReview = (args: {
   }
 }
 
+/** Opportunities never list these: the reference is not the listing's own barrio. */
+export const hasBorrowedReference = (review: DealReview): boolean =>
+  review.reasons.includes("unknown_barrio") || review.reasons.includes("cross_barrio_comps")
+
 /** True when a deal is clean enough to promote on the home page. */
 export const isFeaturableDeal = (row: {
   review: DealReview
