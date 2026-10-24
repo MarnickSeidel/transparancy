@@ -38,6 +38,26 @@ function parseEstratos(searchParams: URLSearchParams): number[] {
   return Array.from(set).sort((a, b) => a - b)
 }
 
+function parsePropertyTypes(searchParams: URLSearchParams): string[] {
+  const set = new Set<string>()
+  for (const raw of searchParams.getAll("propertyType")) {
+    for (const part of raw.split(",")) {
+      const t = part.trim()
+      if (t && t !== "all" && t.length <= 40) set.add(t)
+    }
+  }
+  return Array.from(set).slice(0, 10)
+}
+
+function parseNeighborhoods(searchParams: URLSearchParams): string[] {
+  const set = new Set<string>()
+  for (const raw of searchParams.getAll("neighborhood")) {
+    const t = raw.trim()
+    if (t && t !== "all" && t.length <= 120) set.add(t)
+  }
+  return Array.from(set).slice(0, 20)
+}
+
 function parseOptionalInt(raw: string | null): number | null {
   if (!raw?.trim()) return null
   const n = Number.parseInt(raw.replace(/\D/g, ""), 10)
@@ -63,8 +83,8 @@ export async function GET(req: Request) {
   const cityRaw = searchParams.get("city")?.trim()
   const city =
     cityRaw && cityRaw !== "all" ? cityRaw : DEFAULT_OPPORTUNITIES_CITY
-  const propertyType = searchParams.get("propertyType")
-  const neighborhood = searchParams.get("neighborhood")
+  const propertyTypes = parsePropertyTypes(searchParams)
+  const neighborhoods = parseNeighborhoods(searchParams)
   const excludeNeighborhoods = parseExcludeNeighborhoods(searchParams)
   const excludeUnknownNeighborhoods =
     searchParams.get("excludeUnknownNeighborhoods") === "1"
@@ -124,8 +144,8 @@ export async function GET(req: Request) {
   try {
     const result = await getCachedTopOpportunities({
       city,
-      propertyType,
-      neighborhood,
+      propertyTypes,
+      neighborhoods,
       excludeNeighborhoods,
       excludeUnknownNeighborhoods,
       hideLowConfidence,

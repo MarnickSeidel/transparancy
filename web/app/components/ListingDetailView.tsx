@@ -18,6 +18,7 @@ import Button from "@/app/components/ui/Button"
 import Card from "@/app/components/ui/Card"
 import Skeleton from "@/app/components/ui/Skeleton"
 import { cityDisplayName } from "@/lib/cityNames"
+import { reportedTerrainM2 } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import { formatDomDays } from "@/lib/formatDom"
 import { formatFacilities } from "@/lib/formatFacilities"
@@ -173,6 +174,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
               : txt.listingLastPriceChangeDays.replace("{n}", String(lastPriceChangeDays))
         }`
   const adminFee = data.analysis.adminFeeCop != null ? Number(data.analysis.adminFeeCop) : null
+  const terrainM2 = reportedTerrainM2(data.listing)
 
   const listingChecks = useMemo(() => {
     const l = data.listing
@@ -480,7 +482,7 @@ export default function ListingDetailView({ data, pageLocale = "es" }: Props) {
               </p>
               <p>
                 <span className="text-muted">{txt.opportunitiesMetricTerrain}:</span>{" "}
-                {data.listing.areaTerrainM2 != null ? `${data.listing.areaTerrainM2.toFixed(1)} m²` : "—"}
+                {terrainM2 != null ? `${terrainM2.toFixed(1)} m²` : "—"}
               </p>
             </div>
             <a

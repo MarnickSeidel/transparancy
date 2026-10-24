@@ -1,7 +1,7 @@
 /** UI copy — opportunities (es + en). Import merged pack from `@/lib/i18n`. */
 export const opportunities = {
   es: {
-    opportunitiesEstratoHint: "Puedes elegir varios. Vacío = todos.",
+    opportunitiesMultiSelectHint: "Puedes elegir varios. Vacío = todos.",
     opportunitiesNav: "Oportunidades",
     opportunitiesMaxPricePlaceholder: "Sin límite",
     opportunitiesTitle: "Top oportunidades inmobiliarias",
@@ -89,6 +89,7 @@ export const opportunities = {
     dealNote_likely_missing_zeros: "Posible error de ceros en precio",
     dealNote_approximate_location: "Ubicación aproximada: el portal usa un punto genérico, no comparamos por distancia",
     dealNote_large_discount: "Descuento de 40% o más: confirma precio y área antes de confiar",
+    dealNote_missing_estrato: "Sin estrato: la comparación no distingue estrato",
     dealScoreDriver_discount: "Descuento vs referencia",
     dealScoreDriver_freshness: "Actualización reciente",
     dealScoreDriver_completeness: "Datos completos",
@@ -127,7 +128,7 @@ export const opportunities = {
     opportunitiesSortByConfidence: "Confianza",
   },
   en: {
-    opportunitiesEstratoHint: "Select one or more. Empty = all.",
+    opportunitiesMultiSelectHint: "Select one or more. Empty = all.",
     opportunitiesNav: "Deals",
     opportunitiesMaxPricePlaceholder: "No limit",
     opportunitiesTitle: "Top real estate opportunities",
@@ -215,6 +216,7 @@ export const opportunities = {
     dealNote_likely_missing_zeros: "Possible missing zeros in price",
     dealNote_approximate_location: "Approximate location: the portal uses a generic point, so we don't compare by distance",
     dealNote_large_discount: "Discount of 40% or more: confirm price and area before trusting it",
+    dealNote_missing_estrato: "No estrato: the comparison does not separate by estrato",
     dealScoreDriver_discount: "Discount vs reference",
     dealScoreDriver_freshness: "Recent update",
     dealScoreDriver_completeness: "Data completeness",

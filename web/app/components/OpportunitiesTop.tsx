@@ -198,6 +198,30 @@ function initialSelectedEstratos(): number[] {
   return Array.from(set).sort((a, b) => a - b)
 }
 
+function initialSelectedPropertyTypes(): string[] {
+  if (typeof window === "undefined") return []
+  const p = new URLSearchParams(window.location.search)
+  const set = new Set<string>()
+  for (const raw of p.getAll("propertyType")) {
+    for (const part of raw.split(",")) {
+      const t = part.trim()
+      if (t && t !== "all") set.add(t)
+    }
+  }
+  return Array.from(set)
+}
+
+function initialSelectedNeighborhoods(): string[] {
+  if (typeof window === "undefined") return []
+  const p = new URLSearchParams(window.location.search)
+  const set = new Set<string>()
+  for (const raw of p.getAll("neighborhood")) {
+    const t = raw.trim()
+    if (t && t !== "all") set.add(t)
+  }
+  return Array.from(set)
+}
+
 type SimilarFilters = {
   minAreaM2: string
   maxAreaM2: string
@@ -251,11 +275,12 @@ export default function OpportunitiesTop({
   const [city, setCity] = useState(() =>
     initialOppParam("city", DEFAULT_OPPORTUNITIES_CITY),
   )
-  const [neighborhood, setNeighborhood] = useState(() =>
-    initialOppParam("neighborhood", "all"),
+  const [selectedNeighborhoods, setSelectedNeighborhoods] = useState<string[]>(() =>
+    initialSelectedNeighborhoods(),
   )
-  const [propertyType, setPropertyType] = useState(() =>
-    initialOppParam("propertyType", "all"),
+  const [mounted, setMounted] = useState(false)
+  const [selectedPropertyTypes, setSelectedPropertyTypes] = useState<string[]>(() =>
+    initialSelectedPropertyTypes(),
   )
   const [selectedEstratos, setSelectedEstratos] = useState<number[]>(() =>
     initialSelectedEstratos(),
@@ -303,12 +328,17 @@ export default function OpportunitiesTop({
 
   const neighborhoodOptions = useMemo(() => {
     const source = neighborhoodQuery.trim() ? neighborhoodSearch : neighborhoods
-    const names = new Set(source)
-    if (neighborhood !== "all" && neighborhood.trim() && !names.has(neighborhood)) {
-      names.add(neighborhood)
-    }
-    return Array.from(names).map((n) => ({ value: n, label: n }))
-  }, [neighborhood, neighborhoodQuery, neighborhoodSearch, neighborhoods])
+    return Array.from(new Set(source))
+      .filter((n) => !selectedNeighborhoods.includes(n))
+      .map((n) => ({ value: n, label: n }))
+  }, [neighborhoodQuery, neighborhoodSearch, neighborhoods, selectedNeighborhoods])
+
+  const propertyTypeChoices = useMemo(() => {
+    if (propertyTypes.length === 0) return []
+    const names = new Set(propertyTypes)
+    for (const t of selectedPropertyTypes) names.add(t)
+    return propertyTypeOptions(Array.from(names), lang)
+  }, [lang, propertyTypes, selectedPropertyTypes])
 
   const excludeSuggestions = useMemo(() => {
     const q = excludeDraft.trim().toLowerCase()
@@ -321,12 +351,8 @@ export default function OpportunitiesTop({
   const opportunitiesFilterParams = useMemo(() => {
     const p = new URLSearchParams()
     p.set("city", city)
-    if (propertyType !== "all" && propertyType.trim()) {
-      p.set("propertyType", propertyType.trim())
-    }
-    if (neighborhood !== "all" && neighborhood.trim()) {
-      p.set("neighborhood", neighborhood.trim())
-    }
+    for (const t of selectedPropertyTypes) p.append("propertyType", t)
+    for (const n of selectedNeighborhoods) p.append("neighborhood", n)
     if (selectedEstratos.length > 0) {
       for (const e of selectedEstratos) p.append("estrato", String(e))
     } else if (similarFilters?.estrato) {
@@ -395,8 +421,8 @@ export default function OpportunitiesTop({
     maxPriceCop,
     minAreaM2,
     minDiscountPct,
-    neighborhood,
-    propertyType,
+    selectedNeighborhoods,
+    selectedPropertyTypes,
     similarFilters,
     sortBy,
   ])
@@ -419,8 +445,8 @@ export default function OpportunitiesTop({
     const links = buildListingContextLinks({
       lang,
       city,
-      neighborhood: neighborhood !== "all" ? neighborhood : null,
-      propertyType: propertyType !== "all" ? propertyType : null,
+      neighborhood: selectedNeighborhoods.length === 1 ? selectedNeighborhoods[0] : null,
+      propertyType: selectedPropertyTypes.length === 1 ? selectedPropertyTypes[0] : null,
     })
     return [
       {
@@ -442,7 +468,7 @@ export default function OpportunitiesTop({
         cta: txt.heatmapNav,
       },
     ]
-  }, [city, lang, neighborhood, propertyType, txt])
+  }, [city, lang, selectedNeighborhoods, selectedPropertyTypes, txt])
 
   const clearSimilarFilters = () => {
     setSimilarFilters(null)
@@ -472,6 +498,10 @@ export default function OpportunitiesTop({
     return () => {
       cancelled = true
     }
+  }, [])
+
+  useEffect(() => {
+    setMounted(true)
   }, [])
 
   const load = useCallback(async (signal?: AbortSignal) => {
@@ -553,7 +583,7 @@ export default function OpportunitiesTop({
 
   const handleCityChange = (nextCity: string) => {
     setCity(nextCity)
-    setNeighborhood("all")
+    setSelectedNeighborhoods([])
     setNeighborhoods([])
     setNeighborhoodSearch([])
     setNeighborhoodQuery("")
@@ -572,20 +602,44 @@ export default function OpportunitiesTop({
     handleFilterChange()
   }
 
+  const handleTogglePropertyType = (value: string) => {
+    setSelectedPropertyTypes((prev) =>
+      prev.includes(value) ? prev.filter((t) => t !== value) : [...prev, value],
+    )
+    handleFilterChange()
+  }
+
   const handleFilterChange = () => setPage(1)
 
-  const clearNeighborhood = () => {
-    setNeighborhood("all")
-    setPage(1)
+  const handleAddNeighborhood = (value: string) => {
+    const t = value.trim()
+    if (!t) {
+      setSelectedNeighborhoods([])
+    } else {
+      setSelectedNeighborhoods((prev) =>
+        prev.some((n) => n.toLowerCase() === t.toLowerCase()) ? prev : [...prev, t],
+      )
+    }
+    handleFilterChange()
+  }
+
+  const handleRemoveNeighborhood = (value: string) => {
+    setSelectedNeighborhoods((prev) => prev.filter((n) => n !== value))
+    handleFilterChange()
   }
 
   const neighborhoodChip =
-    neighborhood !== "all" ? (
-      <NeighborhoodChip
-        label={`${txt.neighborhood}: ${neighborhood}`}
-        clearLabel={txt.opportunitiesClearNeighborhood}
-        onClear={clearNeighborhood}
-      />
+    mounted && selectedNeighborhoods.length > 0 ? (
+      <div className="flex flex-wrap gap-2">
+        {selectedNeighborhoods.map((n) => (
+          <NeighborhoodChip
+            key={n}
+            label={`${txt.neighborhood}: ${n}`}
+            clearLabel={txt.opportunitiesClearNeighborhood}
+            onClear={() => handleRemoveNeighborhood(n)}
+          />
+        ))}
+      </div>
     ) : null
 
   const resultFrom =
@@ -682,27 +736,41 @@ export default function OpportunitiesTop({
                   </select>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-medium text-muted" htmlFor="opp-type">
-                    {txt.type}
-                  </label>
-                  <select
-                    id="opp-type"
-                    className={`mt-1 w-full ${inputClassName}`}
-                    value={propertyType}
-                    onChange={(e) => {
-                      setPropertyType(e.target.value)
-                      handleFilterChange()
-                    }}
+                <fieldset>
+                  <legend className="text-xs font-medium text-muted">{txt.type}</legend>
+                  <div
+                    className="mt-2 flex flex-wrap gap-2"
+                    role="group"
+                    aria-label={txt.type}
                   >
-                    <option value="all">{txt.all}</option>
-                    {propertyTypeOptions(propertyTypes, lang).map((t) => (
-                      <option key={t.value} value={t.value}>
-                        {t.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                    {propertyTypeChoices.length === 0 ? (
+                      <p className="text-xs text-muted">{txt.all}</p>
+                    ) : (
+                      propertyTypeChoices.map((t) => {
+                        const checked = selectedPropertyTypes.includes(t.value)
+                        return (
+                          <label
+                            key={t.value}
+                            className={`inline-flex cursor-pointer items-center gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs font-medium transition ${
+                              checked
+                                ? "border-accent bg-accent/10 text-foreground"
+                                : "border-border-subtle bg-elevated text-muted hover:text-foreground"
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              className="h-3.5 w-3.5 accent-[var(--accent)]"
+                              checked={checked}
+                              onChange={() => handleTogglePropertyType(t.value)}
+                            />
+                            {t.label}
+                          </label>
+                        )
+                      })
+                    )}
+                  </div>
+                  <p className="mt-1 text-xs text-muted">{txt.opportunitiesMultiSelectHint}</p>
+                </fieldset>
 
                 <div>
                   <label className="block text-xs font-medium text-muted" htmlFor="opp-neighborhood">
@@ -714,7 +782,7 @@ export default function OpportunitiesTop({
                     allowEmpty
                     allowCustom
                     emptyLabel={txt.all}
-                    value={neighborhood === "all" ? "" : neighborhood}
+                    value=""
                     options={neighborhoodOptions}
                     filterMode="tokens"
                     placeholder={txt.searchableSelectPlaceholder}
@@ -724,12 +792,10 @@ export default function OpportunitiesTop({
                     closeListLabel={txt.searchableSelectCloseList}
                     aria-label={txt.neighborhood}
                     onQueryChange={setNeighborhoodQuery}
-                    onChange={(next) => {
-                      setNeighborhood(next.trim() || "all")
-                      handleFilterChange()
-                    }}
+                    onChange={handleAddNeighborhood}
                   />
                   {neighborhoodChip ? <div className="mt-2">{neighborhoodChip}</div> : null}
+                  <p className="mt-1 text-xs text-muted">{txt.opportunitiesMultiSelectHint}</p>
                 </div>
 
                 <fieldset>
@@ -765,7 +831,7 @@ export default function OpportunitiesTop({
                       })
                     )}
                   </div>
-                  <p className="mt-1 text-xs text-muted">{txt.opportunitiesEstratoHint}</p>
+                  <p className="mt-1 text-xs text-muted">{txt.opportunitiesMultiSelectHint}</p>
                 </fieldset>
 
                 <div>

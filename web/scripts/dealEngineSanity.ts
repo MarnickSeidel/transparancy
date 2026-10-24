@@ -206,6 +206,35 @@ assert(
   "steep lote should apply terrain penalty",
 );
 
+const foreign = selectComps(
+  base({ id: "filandia", city: "Manizales", neighborhood: "Filandia", zoneName: null }),
+  [comp("a", 3_000_000, 5.07, -75.52), comp("b", 3_100_000, 5.071, -75.521), comp("c", 2_900_000, 5.072, -75.522), comp("d", 3_200_000, 5.073, -75.523)],
+  "private",
+);
+assert(foreign.method === "none", "a listing labeled as another municipality has no comps");
+
+const widePool = Array.from({ length: 12 }, (_, i) =>
+  base({
+    id: `z${i}`,
+    neighborhood: `Barrio ${i}`,
+    zoneName: "Circunvalar - alamos",
+    latitude: null,
+    longitude: null,
+  }),
+);
+const wide = selectComps(
+  base({
+    id: "subject-wide",
+    neighborhood: "Pereira",
+    zoneName: "Circunvalar - alamos",
+    latitude: null,
+    longitude: null,
+  }),
+  widePool,
+  "private",
+);
+assert(wide.method === "none", "a city-named barrio on a wide zone is not a market");
+
 console.log("dealEngine sanity: OK", {
   normal: {
     metric: analysis.metricType,

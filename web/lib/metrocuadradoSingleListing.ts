@@ -210,7 +210,8 @@ const parseFromSsrFallback = (html: string, propertyId: string, canonical: strin
   if (priceCop == null || priceCop <= 0) throw new Error("price_missing")
   if (areaM2 == null || areaM2 <= 0) throw new Error("area_missing")
 
-  const cityRaw = cityMatch?.[1]?.trim() || "Pereira"
+  const cityRaw = cityMatch?.[1]?.trim()
+  if (!cityRaw) throw new Error("city_missing")
   const city = titleCase(cityRaw.replace(/\s+/g, " "))
   const department =
     CITY_DEPARTMENT[city.toLowerCase()] ?? "Colombia"
@@ -278,8 +279,9 @@ export const parseMetrocuadradoListingFromHtml = (
   const areaBuiltM2 = parseNumber(data.areac) ?? areaM2
   const areaTerrainM2 = null
 
-  const city =
-    titleCase(namedString(data.city) ?? "Pereira")
+  const cityName = namedString(data.city)
+  if (!cityName?.trim()) throw new Error("city_missing")
+  const city = titleCase(cityName)
   const neighborhoodRaw =
     namedString(data.neighborhood) ??
     namedString(data.commonNeighborhood)

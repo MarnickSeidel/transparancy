@@ -113,6 +113,91 @@ export type WhyDeal = {
 };
 
 const GEO_RADIUS_M = 1000;
+/** A portal zone with more barrios than this is half a city, not a comp set. */
+const WIDE_ZONE_MAX_BARRIOS = 8;
+
+/** Municipalities that must not be comps for a different stored city. */
+const FOREIGN_MUNICIPALITIES = new Set([
+  "dosquebradas",
+  "santa rosa de cabal",
+  "cartago",
+  "armenia",
+  "filandia",
+  "circasia",
+  "salento",
+  "quimbaya",
+  "montenegro",
+  "calarca",
+  "la virginia",
+  "marsella",
+  "villamaria",
+  "chinchina",
+]);
+
+function foldPlace(value: string | null | undefined): string {
+  return (value ?? "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+export function coordsInColombia(
+  latitude: number | null | undefined,
+  longitude: number | null | undefined,
+): boolean {
+  if (latitude == null || longitude == null) return false;
+  return latitude >= -5 && latitude <= 13 && longitude >= -82 && longitude <= -66;
+}
+
+function isNamedNeighborhood(listing: DealListingInput): boolean {
+  const neighborhood = foldPlace(listing.neighborhood);
+  const city = foldPlace(listing.city);
+  return Boolean(neighborhood && neighborhood !== city);
+}
+
+function isForeignMunicipality(listing: DealListingInput): boolean {
+  const neighborhood = foldPlace(listing.neighborhood);
+  if (!neighborhood || neighborhood === foldPlace(listing.city)) return false;
+  return FOREIGN_MUNICIPALITIES.has(neighborhood);
+}
+
+function zoneSpansManyBarrios(
+  subject: DealListingInput,
+  pool: DealListingInput[],
+): boolean {
+  const zone = foldPlace(subject.zoneName);
+  if (!zone) return false;
+  const barrios = new Set<string>();
+  for (const candidate of pool) {
+    if (foldPlace(candidate.zoneName) !== zone) continue;
+    if (!isNamedNeighborhood(candidate)) continue;
+    barrios.add(foldPlace(candidate.neighborhood));
+    if (barrios.size > WIDE_ZONE_MAX_BARRIOS) return true;
+  }
+  return false;
+}
+
+/** Hide a lot size the portal copied from the built area. */
+export function reportedTerrainM2(listing: {
+  propertyType: string | null;
+  areaM2: number;
+  areaBuiltM2: number | null;
+  areaTerrainM2: number | null;
+}): number | null {
+  const lot = listing.areaTerrainM2;
+  if (lot == null || !isHouse(listing.propertyType)) return lot;
+  const built = listing.areaBuiltM2;
+  if (
+    built != null &&
+    Math.abs(built - lot) < 0.5 &&
+    Math.abs(listing.areaM2 - lot) < 0.5
+  ) {
+    return null;
+  }
+  return lot;
+}
 const MIN_RELAXED_SAMPLE = 4;
 
 const MIN_STICKER_PRICE_COP: Record<string, number> = {
@@ -496,6 +581,14 @@ function compCompatible(
 ): boolean {
   if (candidate.id === subject.id) return false;
   if (subject.city !== candidate.city) return false;
+  if (isForeignMunicipality(candidate)) return false;
+  if (
+    candidate.latitude != null &&
+    candidate.longitude != null &&
+    !coordsInColombia(candidate.latitude, candidate.longitude)
+  ) {
+    return false;
+  }
   if (!isVenta(candidate.operationType)) return false;
 
   if (subject.propertyType) {
@@ -562,10 +655,9 @@ function locationTier(subject: DealListingInput, candidate: DealListingInput): n
     return 0;
   }
   if (
-    subject.neighborhood &&
-    candidate.neighborhood &&
-    subject.neighborhood.trim().toLowerCase() ===
-      candidate.neighborhood.trim().toLowerCase()
+    isNamedNeighborhood(subject) &&
+    isNamedNeighborhood(candidate) &&
+    foldPlace(subject.neighborhood) === foldPlace(candidate.neighborhood)
   ) {
     return 1;
   }
@@ -577,10 +669,14 @@ export function selectComps(
   pool: DealListingInput[],
   metricType: MetricType,
 ): { comps: DealListingInput[]; method: string } {
+  if (isForeignMunicipality(subject)) {
+    return { comps: [], method: "none" };
+  }
   const compatible = pool.filter((c) => compCompatible(subject, c, metricType));
   if (compatible.length === 0) {
     return { comps: [], method: "none" };
   }
+  const wideZone = zoneSpansManyBarrios(subject, pool);
 
   if (subject.latitude != null && subject.longitude != null) {
     const geoOrdered = geoSortedComps(subject, compatible);
@@ -604,13 +700,19 @@ export function selectComps(
     (a, b) => locationTier(subject, a) - locationTier(subject, b),
   );
   const zone = byLocation.filter((c) => locationTier(subject, c) === 0);
-  if (zone.length >= MIN_RELAXED_SAMPLE) {
+  if (!wideZone && zone.length >= MIN_RELAXED_SAMPLE) {
     return { comps: zone.slice(0, 24), method: "zone" };
   }
 
-  const nb = byLocation.filter((c) => locationTier(subject, c) <= 1);
+  const nb = byLocation.filter((c) =>
+    wideZone ? locationTier(subject, c) === 1 : locationTier(subject, c) <= 1,
+  );
   if (nb.length >= MIN_RELAXED_SAMPLE) {
     return { comps: nb.slice(0, 24), method: "neighborhood" };
+  }
+
+  if (wideZone && !isNamedNeighborhood(subject)) {
+    return { comps: [], method: "none" };
   }
 
   return { comps: byLocation.slice(0, 24), method: "city" };
@@ -746,6 +848,13 @@ function computeConfidence(
     confidence = "low";
     if (!reasons.includes("low_comp_sample")) {
       reasons.push("low_comp_sample");
+    }
+  }
+
+  if (listing.estrato == null) {
+    confidence = "low";
+    if (!reasons.includes("missing_estrato")) {
+      reasons.push("missing_estrato");
     }
   }
 

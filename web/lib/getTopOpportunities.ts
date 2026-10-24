@@ -5,8 +5,11 @@ import {
   analyzeListingDeal,
   getCityHouseFloor,
   getDealCompPool,
+  getNearbyDealCompsForPoints,
   getPlaceholderCoordKeys,
   GOOD_DEAL_DISCOUNT_PCT,
+  hasPlaceholderCoords,
+  mergeCompPools,
   poolCacheKeyForPropertyType,
 } from "@/lib/dealCompPool"
 import {
@@ -91,7 +94,13 @@ type ListingRow = Prisma.ListingGetPayload<{ select: typeof listingSelect }>
 
 export type OpportunityQuery = {
   city?: string | null
+  /** One or more property types; empty / omit = any. */
+  propertyTypes?: string[]
+  /** @deprecated use propertyTypes */
   propertyType?: string | null
+  /** One or more barrios; a listing matches if it matches any. Empty / omit = any. */
+  neighborhoods?: string[]
+  /** @deprecated use neighborhoods */
   neighborhood?: string | null
   excludeNeighborhoods?: string[]
   excludeUnknownNeighborhoods?: boolean
@@ -219,7 +228,7 @@ function neighborhoodPassesFilters(
   neighborhood: string | null,
   zoneName: string | null,
   city: string | null,
-  selectedNeighborhoodKey: string | null,
+  selectedNeighborhoodKeys: string[],
   excludedNeighborhoodKeys: Set<string>,
   excludeUnknownNeighborhoods: boolean,
 ): boolean {
@@ -227,8 +236,8 @@ function neighborhoodPassesFilters(
   const key = raw ? normalizeNeighborhoodKey(raw) : ""
   const shown = displayedBarrioKey(neighborhood, zoneName, city)
   if (
-    selectedNeighborhoodKey &&
-    !matchesSelectedBarrio(neighborhood, zoneName, selectedNeighborhoodKey)
+    selectedNeighborhoodKeys.length > 0 &&
+    !selectedNeighborhoodKeys.some((k) => matchesSelectedBarrio(neighborhood, zoneName, k))
   ) {
     return false
   }
@@ -314,13 +323,15 @@ export function sortOpportunityRows(
 
 function buildBaseFilters(query: OpportunityQuery): {
   andFilters: Prisma.ListingWhereInput[]
-  selectedNeighborhoodKey: string | null
+  selectedNeighborhoodKeys: string[]
   excludedNeighborhoodKeys: Set<string>
   useGeo: boolean
 } {
   const {
     city,
+    propertyTypes = [],
     propertyType,
+    neighborhoods = [],
     neighborhood,
     excludeNeighborhoods = [],
     maxPriceCop = null,
@@ -342,11 +353,18 @@ function buildBaseFilters(query: OpportunityQuery): {
     radiusMeters != null &&
     radiusMeters >= 300
 
-  const selectedNeighborhoodRaw =
-    !useGeo && neighborhood && neighborhood.trim() ? neighborhood.trim() : null
-  const selectedNeighborhoodKey = selectedNeighborhoodRaw
-    ? normalizeNeighborhoodKey(selectedNeighborhoodRaw)
-    : null
+  const selectedNeighborhoodRaws = useGeo
+    ? []
+    : Array.from(
+        new Set(
+          [...neighborhoods, ...(neighborhood ? [neighborhood] : [])]
+            .map((n) => n.trim())
+            .filter(Boolean),
+        ),
+      )
+  const selectedNeighborhoodKeys = selectedNeighborhoodRaws
+    .map((n) => normalizeNeighborhoodKey(n))
+    .filter(Boolean)
   const excludedNeighborhoodKeys = parseExcludeNeighborhoods(excludeNeighborhoods)
 
   const estratoFilter = Array.from(
@@ -357,6 +375,14 @@ function buildBaseFilters(query: OpportunityQuery): {
       ].filter((n) => Number.isFinite(n) && n >= 1 && n <= 6),
     ),
   ).sort((a, b) => a - b)
+
+  const propertyTypeFilter = Array.from(
+    new Set(
+      [...propertyTypes, ...(propertyType ? [propertyType] : [])]
+        .map((t) => t.trim())
+        .filter(Boolean),
+    ),
+  )
 
   const andFilters: Prisma.ListingWhereInput[] = [
     {
@@ -370,8 +396,10 @@ function buildBaseFilters(query: OpportunityQuery): {
   if (maxPriceCop != null) andFilters.push({ priceCop: { lte: maxPriceCop } })
   if (minPriceCop != null) andFilters.push({ priceCop: { gte: minPriceCop } })
   if (city && city !== "all") andFilters.push({ city })
-  if (propertyType && propertyType.trim()) {
-    andFilters.push({ propertyType: propertyType.trim() })
+  if (propertyTypeFilter.length === 1) {
+    andFilters.push({ propertyType: propertyTypeFilter[0] })
+  } else if (propertyTypeFilter.length > 1) {
+    andFilters.push({ propertyType: { in: propertyTypeFilter } })
   }
   if (estratoFilter.length === 1) {
     andFilters.push({ estrato: estratoFilter[0] })
@@ -393,23 +421,27 @@ function buildBaseFilters(query: OpportunityQuery): {
   }
   if (excludeBarter) andFilters.push({ acceptsBarter: false })
   if (excludeProjects) andFilters.push({ isProject: false })
-  if (selectedNeighborhoodRaw) {
-    const tokens = neighborhoodQueryTokens(selectedNeighborhoodRaw)
-    if (tokens.length > 0) {
-      andFilters.push({
+  const neighborhoodTokenGroups = selectedNeighborhoodRaws.map(neighborhoodQueryTokens)
+  // A barrio with no usable tokens can't be pre-filtered in SQL; rely on the key match instead.
+  if (
+    neighborhoodTokenGroups.length > 0 &&
+    neighborhoodTokenGroups.every((tokens) => tokens.length > 0)
+  ) {
+    andFilters.push({
+      OR: neighborhoodTokenGroups.map((tokens) => ({
         AND: tokens.map((token) => ({
           OR: [
             { neighborhood: { contains: token, mode: "insensitive" as const } },
             { zoneName: { contains: token, mode: "insensitive" as const } },
           ],
         })),
-      })
-    }
+      })),
+    })
   }
 
   return {
     andFilters,
-    selectedNeighborhoodKey,
+    selectedNeighborhoodKeys,
     excludedNeighborhoodKeys,
     useGeo,
   }
@@ -514,7 +546,7 @@ export async function getTopOpportunities(
 
   if (!city || city === "all") return empty()
 
-  const { andFilters, selectedNeighborhoodKey, excludedNeighborhoodKeys } =
+  const { andFilters, selectedNeighborhoodKeys, excludedNeighborhoodKeys } =
     buildBaseFilters(query)
 
   if (conjunto?.trim()) {
@@ -576,7 +608,7 @@ export async function getTopOpportunities(
         r.neighborhood,
         r.zoneName,
         r.city,
-        selectedNeighborhoodKey,
+        selectedNeighborhoodKeys,
         excludedNeighborhoodKeys,
         excludeUnknownNeighborhoods,
       ),
@@ -623,9 +655,30 @@ export async function getTopOpportunities(
     }),
   ])
 
+  const nearbyPools = await Promise.all(
+    typeKeys.map((key) => {
+      const sample = analyzeSlice.find(
+        (r) => poolCacheKeyForPropertyType(r.propertyType) === key,
+      )
+      const points = analyzeSlice
+        .filter((r) => poolCacheKeyForPropertyType(r.propertyType) === key)
+        .filter(
+          (r) =>
+            r.latitude != null &&
+            r.longitude != null &&
+            !hasPlaceholderCoords(r, placeholderCoordKeys),
+        )
+        .map((r) => ({
+          latitude: r.latitude as number,
+          longitude: r.longitude as number,
+        }))
+      return getNearbyDealCompsForPoints(city, sample?.propertyType ?? null, points)
+    }),
+  )
+
   const poolByType = new Map<string, DealListingInput[]>()
   typeKeys.forEach((key, i) => {
-    poolByType.set(key, typePools[i] ?? [])
+    poolByType.set(key, mergeCompPools(typePools[i] ?? [], nearbyPools[i] ?? []))
   })
   const descriptionById = new Map(
     descriptionRows.map((row) => [row.id, row.description]),

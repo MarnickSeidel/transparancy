@@ -4,6 +4,7 @@ import { unstable_cache } from "next/cache"
 import { MIN_ANALYTICS_AREA_M2, percentile } from "@/lib/analytics"
 import {
   analyzeDeal,
+  coordsInColombia,
   toDealListingInput,
   type DealAnalysis,
   type DealListingInput,
@@ -126,10 +127,14 @@ export const minBuiltPpm2ForHouse = (pool: DealListingInput[]): number => {
     : DEFAULT_HOUSE_BUILT_PPM2_FLOOR
 }
 
-const loadDealCompPool = async (
+const NEARBY_RADIUS_M = 1150
+const NEARBY_TAKE = 400
+const NEARBY_BATCH_TAKE = 5000
+
+const ventaWhere = (
   city: string,
   propertyType?: string | null,
-): Promise<DealListingInput[]> => {
+): Prisma.ListingWhereInput => {
   const trimmedType = propertyType?.trim() || null
   const where: Prisma.ListingWhereInput = {
     isActive: true,
@@ -141,15 +146,122 @@ const loadDealCompPool = async (
   if (trimmedType) {
     where.propertyType = { equals: trimmedType, mode: "insensitive" }
   }
+  return where
+}
 
+const bboxAround = (lat: number, lng: number) => {
+  const dLat = NEARBY_RADIUS_M / 111_320
+  const cos = Math.cos((lat * Math.PI) / 180)
+  const dLng = NEARBY_RADIUS_M / (111_320 * Math.max(0.2, Math.abs(cos)))
+  return {
+    minLat: lat - dLat,
+    maxLat: lat + dLat,
+    minLng: lng - dLng,
+    maxLng: lng + dLng,
+  }
+}
+
+const loadDealCompPool = async (
+  city: string,
+  propertyType?: string | null,
+): Promise<DealListingInput[]> => {
   const rows = await prisma.listing.findMany({
-    where,
+    where: ventaWhere(city, propertyType),
     take: DEAL_COMP_POOL_SIZE,
     orderBy: [{ dateScraped: "desc" }],
     select: dealCompPoolSelect,
   })
   return rows.map((r) => toDealListingInput(r))
 }
+
+const loadNearbyDealComps = async (
+  city: string,
+  propertyType: string | null | undefined,
+  points: { latitude: number; longitude: number }[],
+  take: number,
+): Promise<DealListingInput[]> => {
+  const seen = new Set<string>()
+  const unique: { latitude: number; longitude: number }[] = []
+  for (const point of points) {
+    if (!coordsInColombia(point.latitude, point.longitude)) continue
+    const key = `${point.latitude.toFixed(3)},${point.longitude.toFixed(3)}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    unique.push(point)
+  }
+  if (unique.length === 0) return []
+
+  const rows = await prisma.listing.findMany({
+    where: {
+      AND: [
+        ventaWhere(city, propertyType),
+        {
+          OR: unique.map((point) => {
+            const box = bboxAround(point.latitude, point.longitude)
+            return {
+              AND: [
+                { latitude: { gte: box.minLat, lte: box.maxLat } },
+                { longitude: { gte: box.minLng, lte: box.maxLng } },
+              ],
+            }
+          }),
+        },
+      ],
+    },
+    take,
+    orderBy: [{ dateScraped: "desc" }],
+    select: dealCompPoolSelect,
+  })
+  return rows.map((r) => toDealListingInput(r))
+}
+
+export const mergeCompPools = (
+  base: DealListingInput[],
+  extra: DealListingInput[],
+): DealListingInput[] => {
+  if (extra.length === 0) return base
+  const seen = new Set(base.map((listing) => listing.id))
+  const merged = base.slice()
+  for (const listing of extra) {
+    if (seen.has(listing.id)) continue
+    seen.add(listing.id)
+    merged.push(listing)
+  }
+  return merged
+}
+
+/** Listings within ~1 km of one pin, including ones outside the newest-1,500 slice. */
+export const getNearbyDealComps = (
+  city: string,
+  propertyType: string | null | undefined,
+  latitude: number,
+  longitude: number,
+): Promise<DealListingInput[]> => {
+  const typeKey = poolCacheKeyForPropertyType(propertyType)
+  const latKey = latitude.toFixed(3)
+  const lngKey = longitude.toFixed(3)
+  return unstable_cache(
+    async () => {
+      const rows = await loadNearbyDealComps(
+        city,
+        propertyType,
+        [{ latitude, longitude }],
+        NEARBY_TAKE,
+      )
+      return rows.map(toCacheableDealListing)
+    },
+    ["deal-comp-nearby-v1", city, typeKey, latKey, lngKey],
+    { revalidate: DEAL_COMP_POOL_REVALIDATE_SEC },
+  )().then((rows) => rows.map(fromCacheableDealListing))
+}
+
+/** One query for every pin on an opportunities page. */
+export const getNearbyDealCompsForPoints = (
+  city: string,
+  propertyType: string | null | undefined,
+  points: { latitude: number; longitude: number }[],
+): Promise<DealListingInput[]> =>
+  loadNearbyDealComps(city, propertyType, points, NEARBY_BATCH_TAKE)
 
 const loadHouseFloorPool = async (city: string): Promise<DealListingInput[]> => {
   const rows = await prisma.listing.findMany({
@@ -309,16 +421,35 @@ export const analyzeListingDeal = async (
   subject: DealListingInput,
   opts?: AnalyzeListingDealOptions,
 ): Promise<DealAnalysis> => {
-  const pool =
-    opts?.pool ?? (await getDealCompPool(subject.city, subject.propertyType))
   const houseFloor =
     opts?.houseFloor ?? (await getCityHouseFloor(subject.city))
   const keys =
     opts?.placeholderCoordKeys ?? new Set(await getPlaceholderCoordKeys(subject.city))
   const approximateLocation = hasPlaceholderCoords(subject, keys)
+  const outsideColombia =
+    subject.latitude != null &&
+    subject.longitude != null &&
+    !coordsInColombia(subject.latitude, subject.longitude)
+  const dropSubjectCoords = approximateLocation || outsideColombia
+
+  let pool = opts?.pool ?? (await getDealCompPool(subject.city, subject.propertyType))
+  if (
+    opts?.pool == null &&
+    !dropSubjectCoords &&
+    subject.latitude != null &&
+    subject.longitude != null
+  ) {
+    const nearby = await getNearbyDealComps(
+      subject.city,
+      subject.propertyType,
+      subject.latitude,
+      subject.longitude,
+    )
+    pool = mergeCompPools(pool, nearby)
+  }
 
   const analysis = analyzeDeal(
-    approximateLocation ? withoutCoords(subject) : subject,
+    dropSubjectCoords ? withoutCoords(subject) : subject,
     stripPlaceholderCoords(pool, keys),
     {
       priceEvents: opts?.priceEvents,

@@ -135,7 +135,13 @@ export const persistAnalyzedDealScore = async (
   },
 ): Promise<void> => {
   const dealScore = analysis.dealScore
-  if (dealScore == null || !Number.isFinite(dealScore)) return
+  if (dealScore == null || !Number.isFinite(dealScore)) {
+    await prisma.listing.update({
+      where: { id: listingId },
+      data: { dealScore: null, isDeal: false },
+    })
+    return
+  }
   const isDeal =
     !analysis.excluded &&
     analysis.discountVsRefPct != null &&

@@ -31,8 +31,12 @@ const FRESHNESS_REVALIDATE = 300
 const opportunityCacheKey = (query: OpportunityQuery): string[] => [
   "top-opportunities-v8",
   query.city ?? "all",
-  query.propertyType ?? "all",
-  query.neighborhood ?? "all",
+  query.propertyTypes?.length
+    ? [...query.propertyTypes].sort().join("|")
+    : query.propertyType ?? "all",
+  query.neighborhoods?.length
+    ? [...query.neighborhoods].sort().join("|")
+    : query.neighborhood ?? "all",
   query.excludeNeighborhoods?.join("|") ?? "",
   query.excludeUnknownNeighborhoods ? "1" : "0",
   query.hideLowConfidence === false ? "0" : "1",

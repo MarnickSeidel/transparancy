@@ -16,7 +16,7 @@ import Skeleton from "@/app/components/ui/Skeleton"
 import SiteHeader from "@/app/components/SiteHeader"
 import ToolNextSteps from "@/app/components/ToolNextSteps"
 import WhyDealPanel from "@/app/components/WhyDealPanel"
-import type { WhyDeal } from "@/lib/dealEngine"
+import { reportedTerrainM2, type WhyDeal } from "@/lib/dealEngine"
 import { dealWarningLabel } from "@/lib/dealLabels"
 import type { DealReview, DealVerdict } from "@/lib/dealReview"
 import { formatDomDays } from "@/lib/formatDom"
@@ -170,6 +170,8 @@ export default function AnalyzeUrlForm() {
 
     return steps.slice(0, 3)
   }, [data, lang, txt])
+
+  const terrainM2 = data ? reportedTerrainM2(data.listing) : null
 
   const priceTimelinePoints = useMemo(
     () =>
@@ -462,7 +464,7 @@ export default function AnalyzeUrlForm() {
                 </p>
                 <p>
                   <span className="text-muted">{txt.opportunitiesMetricTerrain}:</span>{" "}
-                  {data.listing.areaTerrainM2 != null ? `${data.listing.areaTerrainM2.toFixed(1)} m²` : "—"}
+                  {terrainM2 != null ? `${terrainM2.toFixed(1)} m²` : "—"}
                 </p>
               </div>
               <a
