@@ -308,7 +308,7 @@ export default function OpportunitiesTop({
   const [excludeUnknownNeighborhoods, setExcludeUnknownNeighborhoods] =
     useState(false)
   const [hideLowConfidence, setHideLowConfidence] = useState(true)
-  const [hideReview, setHideReview] = useState(() => initialOppParam("hideReview", "1") !== "0")
+  const [hideReview, setHideReview] = useState(() => initialOppParam("hideReview", "0") === "1")
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
   const [sortBy, setSortBy] = useState<SortBy>("dealScore")
   const [resultsView, setResultsView] = useState<ResultsView>("list")
