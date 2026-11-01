@@ -1,4 +1,4 @@
-# CasasClaras (Transparancy)
+# LupaCasa (Transparancy)
 
 Real estate listing transparency for Colombia: a Python scraper loads listings from [Finca Raíz](https://www.fincaraiz.com.co) (and on-demand Metrocuadrado via analyze-url) into PostgreSQL, and a **Next.js** app surfaces filters, zone dossiers, and deal hints based on price per square meter versus neighborhood averages.
 

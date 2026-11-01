@@ -1,7 +1,7 @@
 /** UI copy — common (es + en). Import merged pack from `@/lib/i18n`. */
 export const common = {
   es: {
-    title: "CasasClaras — transparencia del mercado",
+    title: "LupaCasa — transparencia del mercado",
     subtitle: "Publicaciones de Finca Raíz. Precio/m² vs promedio del barrio: verde por debajo, amarillo cerca, rojo por encima.",
     city: "Ciudad",
     estrato: "Estrato",
@@ -53,13 +53,13 @@ export const common = {
     errorPageTitle: "Algo salió mal",
     errorPageHint: "No pudimos cargar esta página. Intenta de nuevo.",
     errorPageRetry: "Reintentar",
-    siteFooterTagline: "CasasClaras · Colombia · Datos de publicaciones (no tasación oficial).",
+    siteFooterTagline: "LupaCasa · Colombia · Datos de publicaciones (no tasación oficial).",
     dataFreshnessLabel: "Datos actualizados",
     dataFreshnessNote: "Actualizamos el inventario periódicamente desde anuncios activos de Finca Raíz (no en tiempo real).",
     domDaysLabel: "Días en mercado",
   },
   en: {
-    title: "CasasClaras — market transparency",
+    title: "LupaCasa — market transparency",
     subtitle: "Finca Raíz listings. Price/m² vs neighborhood average: green below, yellow near, red above.",
     city: "City",
     estrato: "Estrato",
@@ -111,7 +111,7 @@ export const common = {
     errorPageTitle: "Something went wrong",
     errorPageHint: "We could not load this page. Please try again.",
     errorPageRetry: "Try again",
-    siteFooterTagline: "CasasClaras · Colombia · Listing-market data (not an official appraisal).",
+    siteFooterTagline: "LupaCasa · Colombia · Listing-market data (not an official appraisal).",
     dataFreshnessLabel: "Data updated",
     dataFreshnessNote: "We refresh inventory periodically from active Finca Raíz ads (not real-time).",
     domDaysLabel: "Days on market",

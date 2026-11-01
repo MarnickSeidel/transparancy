@@ -5,7 +5,7 @@ import { noIndexMetadata } from "@/lib/seo"
 
 export const metadata: Metadata = noIndexMetadata(
   "Suscripción cancelada",
-  "Confirmación de cancelación de alertas de CasasClaras.",
+  "Confirmación de cancelación de alertas de LupaCasa.",
 )
 
 type Props = {

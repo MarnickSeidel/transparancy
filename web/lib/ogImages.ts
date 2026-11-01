@@ -17,5 +17,5 @@ export const ogImageMeta = (url: string) => ({
   url,
   width: 1200,
   height: 630,
-  alt: "CasasClaras",
+  alt: "LupaCasa",
 })

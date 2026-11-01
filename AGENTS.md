@@ -1,4 +1,4 @@
-# Agent instructions — CasasClaras (`transparancy`)
+# Agent instructions — LupaCasa (`transparancy`)
 
 Short architecture map for agents. **Open this file only when the task needs it** (routing, deal engine, SEO, caching, env). Everyday hard rules live in [`.cursor/rules/habidata-project.mdc`](.cursor/rules/habidata-project.mdc).
 
@@ -8,7 +8,7 @@ Short architecture map for agents. **Open this file only when the task needs it*
 
 ## What this is
 
-**CasasClaras** — transparency for Colombia residential **listing** asking prices (Finca Raíz + Metrocuadrado analyze-url). Not closed sales or appraisals.
+**LupaCasa** — transparency for Colombia residential **listing** asking prices (Finca Raíz + Metrocuadrado analyze-url). Not closed sales or appraisals.
 
 | Path | Role |
 |------|------|
@@ -17,7 +17,7 @@ Short architecture map for agents. **Open this file only when the task needs it*
 | `web/data/neighborhoods/` | Barrio JSON (web + scraper) |
 | `docker-compose.yml` | Postgres 16 |
 
-Product name: **CasasClaras** (`lib/brand.ts`). Folder name: `transparancy`.
+Product name: **LupaCasa** (`lib/brand.ts`). Folder name: `transparancy`.
 
 **Stack:** Next 14.2, React 18, TS 5, Prisma 5, Tailwind 3.4, Leaflet, h3-js, Recharts, Resend. i18n is custom (`lib/i18n/`, `lib/locale.ts`, `middleware.ts`) — not next-intl.
 

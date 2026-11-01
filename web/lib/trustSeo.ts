@@ -13,38 +13,38 @@ const COPY: Record<
 > = {
   methodology: {
     es: {
-      title: "Metodología de datos | CasasClaras",
+      title: "Metodología de datos | LupaCasa",
       description:
-        "Cómo CasasClaras recopila, procesa y publica datos de anuncios Finca Raíz para análisis de precio/m² por barrio en Colombia.",
+        "Cómo LupaCasa recopila, procesa y publica datos de anuncios Finca Raíz para análisis de precio/m² por barrio en Colombia.",
     },
     en: {
-      title: "Data methodology | CasasClaras",
+      title: "Data methodology | LupaCasa",
       description:
-        "How CasasClaras collects, processes, and publishes Finca Raíz listing data for neighborhood price/m² analysis in Colombia.",
+        "How LupaCasa collects, processes, and publishes Finca Raíz listing data for neighborhood price/m² analysis in Colombia.",
     },
   },
   privacy: {
     es: {
-      title: "Política de privacidad | CasasClaras",
+      title: "Política de privacidad | LupaCasa",
       description:
-        "Información sobre cookies, almacenamiento local y tratamiento de datos en la plataforma CasasClaras.",
+        "Información sobre cookies, almacenamiento local y tratamiento de datos en la plataforma LupaCasa.",
     },
     en: {
-      title: "Privacy policy | CasasClaras",
+      title: "Privacy policy | LupaCasa",
       description:
-        "Information about cookies, local storage, and data handling on the CasasClaras platform.",
+        "Information about cookies, local storage, and data handling on the LupaCasa platform.",
     },
   },
   about: {
     es: {
-      title: "Acerca de CasasClaras",
+      title: "Acerca de LupaCasa",
       description:
-        "CasasClaras: inteligencia inmobiliaria con datos de publicaciones en Colombia. Transparencia de mercado para inversionistas.",
+        "LupaCasa: inteligencia inmobiliaria con datos de publicaciones en Colombia. Transparencia de mercado para inversionistas.",
     },
     en: {
-      title: "About CasasClaras",
+      title: "About LupaCasa",
       description:
-        "CasasClaras: real estate intelligence from Colombian listing data. Market transparency for local and US investors.",
+        "LupaCasa: real estate intelligence from Colombian listing data. Market transparency for local and US investors.",
     },
   },
 };
@@ -65,7 +65,7 @@ export function trustPageMetadata(page: TrustPage, locale: Locale): Metadata {
       title,
       description,
       url: canonicalForLocale(path, locale),
-      siteName: "CasasClaras",
+      siteName: "LupaCasa",
       locale: ogLocale(locale),
       type: "website",
     },
@@ -83,7 +83,7 @@ export function homeJsonLd(locale: Locale) {
     {
       "@context": "https://schema.org",
       "@type": "WebSite",
-      name: "CasasClaras",
+      name: "LupaCasa",
       url,
       description:
         locale === "en"
@@ -94,7 +94,7 @@ export function homeJsonLd(locale: Locale) {
     {
       "@context": "https://schema.org",
       "@type": "Organization",
-      name: "CasasClaras",
+      name: "LupaCasa",
       url,
       description:
         locale === "en"

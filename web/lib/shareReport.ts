@@ -105,7 +105,7 @@ export const buildShareMessage = (
       : "—"
 
   if (lang === "es") {
-    return `Análisis CasasClaras: ${payload.listing.title}\nVeredicto: ${verdictLabel} (${discount} vs referencia)\n${reportUrl}`
+    return `Análisis LupaCasa: ${payload.listing.title}\nVeredicto: ${verdictLabel} (${discount} vs referencia)\n${reportUrl}`
   }
-  return `CasasClaras analysis: ${payload.listing.title}\nVerdict: ${verdictLabel} (${discount} vs reference)\n${reportUrl}`
+  return `LupaCasa analysis: ${payload.listing.title}\nVerdict: ${verdictLabel} (${discount} vs reference)\n${reportUrl}`
 }

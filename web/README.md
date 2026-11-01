@@ -1,6 +1,6 @@
-# CasasClaras Web App
+# LupaCasa Web App
 
-Next.js 14 app for the CasasClaras platform. See the [root README](../README.md) for full stack setup. Agent-oriented architecture notes live in [`AGENTS.md`](../AGENTS.md).
+Next.js 14 app for the LupaCasa platform. See the [root README](../README.md) for full stack setup. Agent-oriented architecture notes live in [`AGENTS.md`](../AGENTS.md).
 
 ## Quick start
 

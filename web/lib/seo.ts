@@ -70,7 +70,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
   if (locale === "en") {
     const title = "Undervalued property opportunities in Colombia";
     const description =
-      "Ranked Finca Raíz listings by relative discount vs neighborhood benchmarks — CasasClaras deal finder.";
+      "Ranked Finca Raíz listings by relative discount vs neighborhood benchmarks — LupaCasa deal finder.";
     const url = absoluteUrl(opportunitiesPath("en"));
     const ogImage = opportunitiesOgImage();
     return {
@@ -92,7 +92,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
 
   const title = "Oportunidades inmobiliarias";
   const description =
-    "Ranking de publicaciones con mejor descuento relativo frente al mercado del barrio — herramienta CasasClaras.";
+    "Ranking de publicaciones con mejor descuento relativo frente al mercado del barrio — herramienta LupaCasa.";
   const url = absoluteUrl(opportunitiesPath("es"));
   const ogImage = opportunitiesOgImage();
   return {
@@ -113,7 +113,7 @@ export function opportunitiesMetadata(locale: Locale = "es"): Metadata {
 }
 
 /**
- * Document `<title>`. The root layout template appends `| CasasClaras`.
+ * Document `<title>`. The root layout template appends `| LupaCasa`.
  * Titles that already name the brand stay absolute so it is not repeated.
  */
 export function pageTitle(title: string): Metadata["title"] {

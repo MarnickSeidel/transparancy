@@ -6,7 +6,7 @@ import { pageTitle } from "@/lib/seo"
 type Props = { params: { slug: string } }
 
 export const metadata: Metadata = {
-  title: pageTitle("Informe CasasClaras"),
+  title: pageTitle("Informe LupaCasa"),
   description: "Análisis compartido de precio por m² vs comparables.",
   robots: { index: false, follow: false },
 }

@@ -1,4 +1,4 @@
-# CasasClaras — Website Audit Roadmap
+# LupaCasa — Website Audit Roadmap
 
 Last updated: August 2026  
 Status: **in progress** — brand/perf/token batches applied; deal consistency shipped; scale work remains
@@ -22,7 +22,7 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 | Accessibility | 7.5 | Skip link, live regions, reduced-motion, select ARIA i18n |
 | Code quality | 7.5 | Playwright smoke tests added; no unit tests yet |
 | Security | 7.0 | Rate limits on more heavy routes; still in-memory only |
-| Product | 7.5 | Listing detail pages; CasasClaras brand unified |
+| Product | 7.5 | Listing detail pages; LupaCasa brand unified |
 
 ---
 
@@ -50,7 +50,7 @@ July 2026 audit improvements are largely **done**. Remaining work focuses on **s
 - Playwright smoke tests (`tests/e2e/smoke.spec.ts`)
 
 ### Brand + polish batch (July 2026)
-- Unify **CasasClaras** across metadata, OG, JSON-LD, email, trust pages, share copy
+- Unify **LupaCasa** across metadata, OG, JSON-LD, email, trust pages, share copy
 - Scope Leaflet CSS to map components only
 - `robots.txt` disallow `/anuncio/`, `/en/listing/`, `/email/`, `/r/`
 - Sitemap `alternates.languages` (hreflang pairs)
@@ -127,4 +127,4 @@ cd web && npm run dev
 # Optional: npx playwright install && npm run test:e2e
 ```
 
-Check: brand name CasasClaras on home/about/OG; maps still style correctly; `/robots.txt` disallows tools + anuncio/email; email signup errors announced; heavy API returns 429 when hammered.
+Check: brand name LupaCasa on home/about/OG; maps still style correctly; `/robots.txt` disallows tools + anuncio/email; email signup errors announced; heavy API returns 429 when hammered.

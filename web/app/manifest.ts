@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "CasasClaras",
-    short_name: "CasasClaras",
+    name: "LupaCasa",
+    short_name: "LupaCasa",
     description:
       "Colombian real estate market intelligence — price/m² by neighborhood from Finca Raíz data.",
     start_url: "/",

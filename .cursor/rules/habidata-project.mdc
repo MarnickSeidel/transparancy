@@ -1,9 +1,9 @@
 ---
-description: ClaraCasas hard rules and when to open deeper docs
+description: LupaCasa hard rules and when to open deeper docs
 alwaysApply: true
 ---
 
-# ClaraCasas — hard rules
+# LupaCasa — hard rules
 
 - **Do not commit, push, or install packages** unless the user explicitly asks.
 - **Primary workspace:** `web/` (Next.js 14, Prisma, Tailwind). Scraper is `scraper/`.

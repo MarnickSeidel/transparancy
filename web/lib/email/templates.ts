@@ -43,14 +43,14 @@ function layout(args: {
     : pageUrl("/email/preferences")
   const footer =
     args.locale === "en"
-      ? `You received this from CasasClaras. <a href="${manageUrl}">Manage preferences</a> · <a href="${args.unsubscribeUrl}">Unsubscribe</a> · <a href="${pageUrl("/privacy")}">Privacy</a>`
-      : `Recibiste este correo de CasasClaras. <a href="${manageUrl}">Administrar preferencias</a> · <a href="${args.unsubscribeUrl}">Cancelar suscripción</a> · <a href="${pageUrl("/privacy")}">Privacidad</a>`
+      ? `You received this from LupaCasa. <a href="${manageUrl}">Manage preferences</a> · <a href="${args.unsubscribeUrl}">Unsubscribe</a> · <a href="${pageUrl("/privacy")}">Privacy</a>`
+      : `Recibiste este correo de LupaCasa. <a href="${manageUrl}">Administrar preferencias</a> · <a href="${args.unsubscribeUrl}">Cancelar suscripción</a> · <a href="${pageUrl("/privacy")}">Privacidad</a>`
 
   return `<!DOCTYPE html>
 <html lang="${args.locale}">
 <head><meta charset="utf-8"><title>${escapeHtml(args.title)}</title></head>
 <body style="font-family:system-ui,sans-serif;line-height:1.5;color:#0f172a;max-width:560px;margin:0 auto;padding:24px">
-  <p style="font-weight:600;font-size:18px;margin:0 0 16px">CasasClaras</p>
+  <p style="font-weight:600;font-size:18px;margin:0 0 16px">LupaCasa</p>
   ${args.bodyHtml}
   <hr style="border:none;border-top:1px solid #e2e8f0;margin:24px 0" />
   <p style="font-size:12px;color:#64748b">${footer}</p>
@@ -79,8 +79,8 @@ export function buildConfirmEmail(args: {
 
   const isEn = args.locale === "en"
   const subject = isEn
-    ? "Confirm your CasasClaras email preferences"
-    : "Confirma tus preferencias de email en CasasClaras"
+    ? "Confirm your LupaCasa email preferences"
+    : "Confirma tus preferencias de email en LupaCasa"
   const bodyHtml = isEn
     ? `<h1 style="font-size:20px;margin:0 0 12px">Confirm your subscription</h1>
        <p>You asked to receive:</p>
@@ -101,8 +101,8 @@ export function buildConfirmEmail(args: {
   })
 
   const text = isEn
-    ? `Confirm your CasasClaras subscription: ${args.confirmUrl}`
-    : `Confirma tu suscripción en CasasClaras: ${args.confirmUrl}`
+    ? `Confirm your LupaCasa subscription: ${args.confirmUrl}`
+    : `Confirma tu suscripción en LupaCasa: ${args.confirmUrl}`
 
   return { subject, html, text }
 }
@@ -126,8 +126,8 @@ export function buildDealDigestEmail(args: {
   const scope = args.neighborhood ? `${args.neighborhood}, ${args.city}` : args.city
   const scopeHtml = escapeHtml(scope)
   const subject = isEn
-    ? `Top deals in ${scope} — CasasClaras`
-    : `Mejores oportunidades en ${scope} — CasasClaras`
+    ? `Top deals in ${scope} — LupaCasa`
+    : `Mejores oportunidades en ${scope} — LupaCasa`
 
   const rows =
     args.listings.length === 0
@@ -181,8 +181,8 @@ export function buildPriceDropDigestEmail(args: {
   const isEn = args.locale === "en"
   const cityHtml = escapeHtml(args.city)
   const subject = isEn
-    ? `Recent price drops in ${args.city} — CasasClaras`
-    : `Bajas de precio recientes en ${args.city} — CasasClaras`
+    ? `Recent price drops in ${args.city} — LupaCasa`
+    : `Bajas de precio recientes en ${args.city} — LupaCasa`
 
   const rows =
     args.drops.length === 0

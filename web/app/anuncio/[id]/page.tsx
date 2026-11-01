@@ -20,8 +20,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const locale = (headers().get("x-locale") as Locale | null) ?? "es"
   const description =
     locale === "en"
-      ? `Deal score ${detail.analysis.dealScore?.toFixed(1) ?? "—"} vs neighborhood benchmarks — CasasClaras.`
-      : `Puntaje ${detail.analysis.dealScore?.toFixed(1) ?? "—"} frente al mercado del barrio — CasasClaras.`
+      ? `Deal score ${detail.analysis.dealScore?.toFixed(1) ?? "—"} vs neighborhood benchmarks — LupaCasa.`
+      : `Puntaje ${detail.analysis.dealScore?.toFixed(1) ?? "—"} frente al mercado del barrio — LupaCasa.`
 
   return noIndexMetadata(detail.listing.title, description)
 }

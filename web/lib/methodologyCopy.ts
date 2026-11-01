@@ -22,7 +22,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
   es: {
     title: "Metodología de datos",
     intro:
-      "CasasClaras transforma anuncios públicos de Finca Raíz en estadísticas de mercado por barrio en ciudades colombianas. Nuestro objetivo es transparencia: mostrar lo que el mercado publica como precio de pedido, no lo que alguien desearía.",
+      "LupaCasa transforma anuncios públicos de Finca Raíz en estadísticas de mercado por barrio en ciudades colombianas. Nuestro objetivo es transparencia: mostrar lo que el mercado publica como precio de pedido, no lo que alguien desearía.",
     sections: [
       {
         heading: "Recopilación",
@@ -68,7 +68,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
       },
       {
         q: "¿Es esto una tasación o asesoría de inversión?",
-        a: "No. CasasClaras agrega precios publicados en estadísticas (mediana, conteos, tendencias). No sustituye una valoración profesional, due diligence legal ni asesoría de inversión.",
+        a: "No. LupaCasa agrega precios publicados en estadísticas (mediana, conteos, tendencias). No sustituye una valoración profesional, due diligence legal ni asesoría de inversión.",
       },
       {
         q: "¿Cómo se calcula el precio/m²?",
@@ -87,7 +87,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
   en: {
     title: "Data methodology",
     intro:
-      "CasasClaras transforms publicly listed Finca Raíz advertisements into neighborhood-level market statistics for Colombian cities. Our goal is transparency: show what the market is actually asking, not what anyone wishes it were.",
+      "LupaCasa transforms publicly listed Finca Raíz advertisements into neighborhood-level market statistics for Colombian cities. Our goal is transparency: show what the market is actually asking, not what anyone wishes it were.",
     sections: [
       {
         heading: "Collection",
@@ -133,7 +133,7 @@ export const methodologyContent: Record<Locale, MethodologyContent> = {
       },
       {
         q: "Is this an appraisal or investment advice?",
-        a: "No. CasasClaras aggregates published asking prices into statistics (median, counts, trends). It is not a substitute for professional valuation, legal due diligence, or investment advice. US investors should consult local experts.",
+        a: "No. LupaCasa aggregates published asking prices into statistics (median, counts, trends). It is not a substitute for professional valuation, legal due diligence, or investment advice. US investors should consult local experts.",
       },
       {
         q: "How is price per m² calculated?",

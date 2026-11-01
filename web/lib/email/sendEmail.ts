@@ -11,7 +11,7 @@ export type SendEmailResult =
 
 export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
   const apiKey = process.env.RESEND_API_KEY?.trim()
-  const from = process.env.EMAIL_FROM?.trim() || "CasasClaras <onboarding@resend.dev>"
+  const from = process.env.EMAIL_FROM?.trim() || "LupaCasa <onboarding@resend.dev>"
 
   if (!apiKey) {
     if (process.env.NODE_ENV === "development") {
