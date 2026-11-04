@@ -1,7 +1,8 @@
 name: Monthly scrape (Claude)
 
-# Runs days 1-4 so a refresh that hits the 6h job limit resumes the next day.
-# Days with no cities due skip the Claude step entirely.
+# Runs days 1-4 so a refresh that hits the time limit resumes the next day.
+# Days with no cities due skip everything after the check.
+# The workflow scrapes; Claude then reviews the logs, fixes blocks, and reports.
 on:
   schedule:
     - cron: "0 6 1-4 * *"
@@ -27,6 +28,8 @@ jobs:
     env:
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       STALE_DAYS: ${{ inputs.stale_days || '7' }}
+      SKIP_DEAL_REFRESH: "1"
+      LOG: ${{ github.workspace }}/.scrape-logs
 
     steps:
       - uses: actions/checkout@v4
@@ -47,15 +50,81 @@ jobs:
         run: |
           due="$(python cities_due.py --days "$STALE_DAYS")"
           echo "cities=$due" >> "$GITHUB_OUTPUT"
-          # Stop starting new cities 3.5h in, leaving time for the last city + maintenance.
-          echo "SCRAPE_DEADLINE=$(( $(date +%s) + 210 * 60 ))" >> "$GITHUB_ENV"
           echo "Cities due: ${due:-none}"
+          mkdir -p "$LOG"
+          echo "$due" > "$LOG/cities_due.txt"
 
-      - name: Claude runs the scrape
+      - name: Record before numbers
         if: steps.due.outputs.cities != ''
-        uses: anthropics/claude-code-action@v1
+        working-directory: scraper
+        run: |
+          python - <<'PY' | tee "$LOG/before.txt"
+          import os, psycopg2
+          c = psycopg2.connect(os.environ["DATABASE_URL"]); cur = c.cursor()
+          cur.execute("SELECT COUNT(*), COUNT(*) FILTER (WHERE is_active) FROM listings")
+          print("listings total/active:", cur.fetchone())
+          cur.execute("""SELECT city, COUNT(*) FILTER (WHERE is_active), MAX(last_seen_at)
+                         FROM listings GROUP BY city ORDER BY 2 DESC LIMIT 25""")
+          for r in cur.fetchall(): print(r)
+          c.close()
+          PY
+
+      - name: Smoke test (20 Pereira apartments, no deactivation)
+        id: smoke
+        if: steps.due.outputs.cities != ''
+        working-directory: scraper
+        run: |
+          set -o pipefail
+          LISTING_URL=https://www.fincaraiz.com.co/venta/apartamentos/pereira/risaralda \
+          CITY_DEFAULT=Pereira DEPARTMENT_DEFAULT=Risaralda \
+          MAX_LISTINGS_PER_RUN=20 MAX_NO_ACTION_PAGES=2 \
+          python -u scrape.py 2>&1 | tee "$LOG/smoke.log"
+          if grep -q "^Page 1: failed to fetch/parse" "$LOG/smoke.log"; then
+            echo "SMOKE_FAILED" >> "$LOG/status.txt"
+            exit 1
+          fi
+          echo "SMOKE_OK" >> "$LOG/status.txt"
+
+      - name: Scrape due cities (one at a time)
+        if: steps.due.outputs.cities != '' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 270
+        working-directory: scraper
         env:
           CITIES_DUE: ${{ steps.due.outputs.cities }}
+        run: |
+          # Don't start a new city after 3.5h; a city cut off mid-way is harmless
+          # (inactive-marking only runs once all its property types finish).
+          deadline=$(( $(date +%s) + 210 * 60 ))
+          for c in $CITIES_DUE; do
+            if [ "$(date +%s)" -ge "$deadline" ]; then
+              echo "TIME_UP before $c" >> "$LOG/status.txt"; exit 0
+            fi
+            echo "START $c $(date -u +%FT%TZ)" >> "$LOG/status.txt"
+            echo "::group::$c"
+            python -u run_all_cities_venta_refresh.py --only "$c" 2>&1 | tee "$LOG/$c.log" | grep -E "^>>> |^Page 1: failed" || true
+            echo "::endgroup::"
+            fails=$(grep -c "^Page 1: failed to fetch/parse" "$LOG/$c.log" || true)
+            if [ "$fails" -ge 4 ]; then
+              echo "BLOCKED $c fails=$fails" >> "$LOG/status.txt"; exit 0
+            fi
+            echo "DONE $c fails=$fails $(date -u +%FT%TZ)" >> "$LOG/status.txt"
+          done
+          echo "ALL_DONE $(date -u +%FT%TZ)" >> "$LOG/status.txt"
+
+      - name: Maintenance (deals, zone aggregates, shrink, archive)
+        if: always() && steps.due.outputs.cities != '' && steps.smoke.outcome == 'success'
+        continue-on-error: true
+        working-directory: scraper
+        run: |
+          set -o pipefail
+          python -u refresh_derived_data.py --soft-shrink --shrink-days 14 2>&1 | tee "$LOG/maintenance.log"
+          python -u archive_inactive_listings.py --apply --days 90 2>&1 | tee -a "$LOG/maintenance.log"
+
+      - name: Claude reviews and reports
+        if: always() && steps.due.outputs.cities != ''
+        uses: anthropics/claude-code-action@v1
+        env:
           GH_TOKEN: ${{ github.token }}
           BASH_DEFAULT_TIMEOUT_MS: "600000"
           BASH_MAX_TIMEOUT_MS: "600000"
@@ -66,14 +135,14 @@ jobs:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
           github_token: ${{ github.token }}
           prompt: |
-            You are running the monthly LupaCasa listing-data scrape in GitHub Actions
-            for ${{ github.repository }} (run ${{ github.run_id }}).
+            You are reviewing the monthly LupaCasa listing-data scrape that this GitHub Actions
+            run (${{ github.run_id }}, repo ${{ github.repository }}) just performed.
+            The scraping and maintenance steps are already finished. Their logs are in
+            .scrape-logs/ (env LOG).
 
-            Cities due this run (env CITIES_DUE): ${{ steps.due.outputs.cities }}
-
-            Read docs/SCRAPER_AUTOMATION.md completely, then follow it step by step.
+            Read docs/SCRAPER_AUTOMATION.md completely, then follow §4 step by step.
             Finish with the report it describes (step summary + GitHub issue).
           claude_args: |
             --model sonnet
-            --max-turns 200
+            --max-turns 60
             --allowedTools "Bash,Read,Write,Glob,Grep"
