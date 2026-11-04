@@ -1,0 +1,79 @@
+name: Monthly scrape (Claude)
+
+# Runs days 1-4 so a refresh that hits the 6h job limit resumes the next day.
+# Days with no cities due skip the Claude step entirely.
+on:
+  schedule:
+    - cron: "0 6 1-4 * *"
+  workflow_dispatch:
+    inputs:
+      stale_days:
+        description: "Refresh cities not scraped in the last N days (0 = all cities)"
+        required: false
+        default: "7"
+
+concurrency:
+  group: monthly-scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    permissions:
+      contents: read
+      issues: write
+      id-token: write
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STALE_DAYS: ${{ inputs.stale_days || '7' }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: scraper/requirements.txt
+
+      - name: Install scraper dependencies
+        working-directory: scraper
+        run: pip install -r requirements.txt
+
+      - name: Find cities due for refresh
+        id: due
+        working-directory: scraper
+        run: |
+          due="$(python cities_due.py --days "$STALE_DAYS")"
+          echo "cities=$due" >> "$GITHUB_OUTPUT"
+          # Stop starting new cities 3.5h in, leaving time for the last city + maintenance.
+          echo "SCRAPE_DEADLINE=$(( $(date +%s) + 210 * 60 ))" >> "$GITHUB_ENV"
+          echo "Cities due: ${due:-none}"
+
+      - name: Claude runs the scrape
+        if: steps.due.outputs.cities != ''
+        uses: anthropics/claude-code-action@v1
+        env:
+          CITIES_DUE: ${{ steps.due.outputs.cities }}
+          GH_TOKEN: ${{ github.token }}
+          BASH_DEFAULT_TIMEOUT_MS: "600000"
+          BASH_MAX_TIMEOUT_MS: "600000"
+        with:
+          # Set ONE of these repo secrets: ANTHROPIC_API_KEY (pay per use) or
+          # CLAUDE_CODE_OAUTH_TOKEN (Claude Pro/Max subscription, from `claude setup-token`).
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          github_token: ${{ github.token }}
+          prompt: |
+            You are running the monthly LupaCasa listing-data scrape in GitHub Actions
+            for ${{ github.repository }} (run ${{ github.run_id }}).
+
+            Cities due this run (env CITIES_DUE): ${{ steps.due.outputs.cities }}
+
+            Read docs/SCRAPER_AUTOMATION.md completely, then follow it step by step.
+            Finish with the report it describes (step summary + GitHub issue).
+          claude_args: |
+            --model sonnet
+            --max-turns 200
+            --allowedTools "Bash,Read,Write,Glob,Grep"

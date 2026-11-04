@@ -61,7 +61,7 @@ Product name: **LupaCasa** (`lib/brand.ts`). Folder name: `transparancy`.
 - API: bound inputs, `serverCache` + `rateLimit` on expensive routes; analyze-url host allowlist only
 - DB: Prisma / parameterized `Prisma.sql` only
 
-Commands, env vars, testing: [`web/README.md`](web/README.md) + `web/.env.example`. Email ops: [`docs/EMAIL_OPERATIONS.md`](docs/EMAIL_OPERATIONS.md).
+Commands, env vars, testing: [`web/README.md`](web/README.md) + `web/.env.example`. Email ops: [`docs/EMAIL_OPERATIONS.md`](docs/EMAIL_OPERATIONS.md). Monthly scrape (Claude via `.github/workflows/monthly-scrape.yml`): [`docs/SCRAPER_AUTOMATION.md`](docs/SCRAPER_AUTOMATION.md).
 
 ---
 

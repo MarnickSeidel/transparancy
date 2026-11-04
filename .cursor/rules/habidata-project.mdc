@@ -21,6 +21,7 @@ Do **not** load these by default. Open when the task touches that area:
 | [`AGENTS.md`](../../AGENTS.md) | Routing/middleware, deal engine, caching, SEO strategy, env vars |
 | [`docs/ROADMAP.md`](../../docs/ROADMAP.md) | Prioritization / marking work done |
 | [`docs/EMAIL_OPERATIONS.md`](../../docs/EMAIL_OPERATIONS.md) | Email cron / digests |
+| [`docs/SCRAPER_AUTOMATION.md`](../../docs/SCRAPER_AUTOMATION.md) | Monthly scrape (Claude in GitHub Actions runbook) |
 | [`web/README.md`](../../web/README.md) | Deal analysis details, analyze-url, amenities |
 
 Session doc updates (rules / AGENTS / roadmap) only when you learned something reusable — keep them short. Do not commit docs unless asked.
