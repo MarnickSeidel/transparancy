@@ -13,6 +13,9 @@ scraper/debug_listing.png
 scraper/_nb_snapshot*.json
 scraper/CV/
 
+# Claude Code (personal settings)
+.claude/settings.local.json
+
 # OS
 .DS_Store
 Thumbs.db

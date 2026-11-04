@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./web/.env)",
+      "Read(./web/.env.local)",
+      "Read(./scraper/.env)"
+    ],
+    "ask": [
+      "Bash(git push:*)",
+      "Bash(git commit:*)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)"
+    ]
+  }
+}
