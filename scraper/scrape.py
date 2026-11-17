@@ -379,7 +379,24 @@ def extract_owner_fields(item: dict[str, Any]) -> dict[str, Any]:
         out["owner_type"] = otype[:50]
     if "particular" in owner:
         out["owner_particular"] = bool(owner.get("particular"))
+    seller_type = derive_seller_type(owner)
+    if seller_type:
+        out["seller_type"] = seller_type
     return out
+
+
+def derive_seller_type(owner: dict[str, Any]) -> str | None:
+    """Normalize Finca Raíz owner info to 'particular' | 'inmobiliaria' | 'desarrollador' | other.
+
+    FR sends particular=true with type=null for private sellers, and
+    particular=false with type='inmobiliaria' / 'desarrollador' for businesses.
+    """
+    if owner.get("particular") is True:
+        return "particular"
+    otype = normalize_named_field(owner.get("type"))
+    if otype:
+        return otype.strip().casefold()[:30]
+    return None
 
 
 def extract_location_main_meta(item: dict[str, Any]) -> dict[str, str | None]:

@@ -52,6 +52,8 @@ model Listing {
   ownerName             String?  @map("owner_name") @db.VarChar(200)
   ownerType             String?  @map("owner_type") @db.VarChar(50)
   ownerParticular       Boolean? @map("owner_particular")
+  /// 'particular' | 'inmobiliaria' | 'desarrollador' (derived from FR owner.particular / owner.type)
+  sellerType            String?  @map("seller_type") @db.VarChar(30)
   neighborhoodSourceId  String?  @map("neighborhood_source_id") @db.VarChar(120)
   zoneName              String?  @map("zone_name") @db.VarChar(100)
   communeName           String?  @map("commune_name") @db.VarChar(100)
@@ -99,6 +101,7 @@ model Listing {
   @@index([dealScore])
   @@index([zoneName])
   @@index([ownerId])
+  @@index([sellerType])
   @@index([areaPrivateM2])
   @@index([sourceFingerprint])
   @@index([latitude, longitude])
@@ -151,11 +154,14 @@ model ListingMarketFact {
   lastSeenAt       DateTime  @map("last_seen_at")
   latitude         Float?
   longitude        Float?
+  ownerId          BigInt?   @map("owner_id")
+  sellerType       String?   @map("seller_type") @db.VarChar(30)
   archivedAt       DateTime  @default(now()) @map("archived_at") @db.Timestamptz
 
   @@index([city, lastSeenAt])
   @@index([city, neighborhood])
   @@index([lastSeenAt])
+  @@index([sellerType])
   @@map("listing_market_facts")
 }
 
