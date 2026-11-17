@@ -160,6 +160,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
                 r.get("owner_name"),
                 r.get("owner_type"),
                 r.get("owner_particular"),
+                r.get("seller_type"),
                 r.get("neighborhood_source_id"),
                 r.get("zone_name"),
                 r.get("commune_name"),
@@ -208,6 +209,7 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
           area_private_m2, price_per_m2_private, description, address, technical_sheet,
           garage, floor, antiquity,
           accepts_barter, construction_state, owner_id, owner_name, owner_type, owner_particular,
+          seller_type,
           neighborhood_source_id, zone_name, commune_name, facilities, image_count,
           price_admin_included, highlight, relevance, paid_quota, is_project,
           area_mismatch_flag, terrace_heavy_flag,
@@ -367,6 +369,8 @@ def upsert_listings(conn, rows: list[dict[str, Any]]) -> dict[str, int]:
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.owner_particular
             ELSE COALESCE(listings.owner_particular, EXCLUDED.owner_particular)
           END,
+          -- Not part of the fingerprint: take the latest known value whenever FR sends one.
+          seller_type = COALESCE(EXCLUDED.seller_type, listings.seller_type),
           neighborhood_source_id = CASE
             WHEN listings.source_fingerprint IS DISTINCT FROM EXCLUDED.source_fingerprint THEN EXCLUDED.neighborhood_source_id
             ELSE COALESCE(listings.neighborhood_source_id, EXCLUDED.neighborhood_source_id)
@@ -996,7 +1000,9 @@ def archive_inactive_to_facts(
                 first_seen_at,
                 last_seen_at,
                 latitude,
-                longitude
+                longitude,
+                owner_id,
+                seller_type
               FROM listings
               WHERE is_active = false
                 AND last_seen_at < NOW() - (%s * interval '1 day')
@@ -1011,7 +1017,7 @@ def archive_inactive_to_facts(
                 id, external_id, city, neighborhood, estrato, property_type,
                 operation_type, price_cop, area_m2, price_per_m2,
                 source_created_at, first_seen_at, last_seen_at,
-                latitude, longitude, archived_at
+                latitude, longitude, owner_id, seller_type, archived_at
               )
               SELECT
                 gen_random_uuid(),
@@ -1029,6 +1035,8 @@ def archive_inactive_to_facts(
                 d.last_seen_at,
                 d.latitude,
                 d.longitude,
+                d.owner_id,
+                d.seller_type,
                 NOW()
               FROM doomed d
               ON CONFLICT (external_id) DO UPDATE SET
@@ -1045,6 +1053,8 @@ def archive_inactive_to_facts(
                 last_seen_at = EXCLUDED.last_seen_at,
                 latitude = EXCLUDED.latitude,
                 longitude = EXCLUDED.longitude,
+                owner_id = EXCLUDED.owner_id,
+                seller_type = EXCLUDED.seller_type,
                 archived_at = NOW()
               RETURNING external_id
             ),
